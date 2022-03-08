@@ -17,6 +17,20 @@
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1570;CS1591</NoWarn>
+
+    <Product>FlashCap</Product>
+    <Trademark>FlashCap</Trademark>
+    <Copyright>Copyright (c) Kouji Matsui</Copyright>
+    <Description>Independent camera capture library on .NET/.NET Core and .NET Framework.</Description>
+
+    <Company>Kouji Matsui (@kozy_kekyo, @kekyo@mastodon.cloud)</Company>
+    <Authors>Kouji Matsui (@kozy_kekyo, @kekyo@mastodon.cloud)</Authors>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/kekyo/FlashCap</PackageProjectUrl>
+    <PackageIcon>FlashCap.100.png</PackageIcon>
+    <PackageTags>image;camera;capture;independent</PackageTags>
+    <AllowedOutputExtensionsInPackageBuildOutputFolder>.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
+    <NoWarn>$(NoWarn);NU1605;NU1701</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' != 'Release'">
@@ -35,10 +49,6 @@
 
   <ItemGroup>
     <PackageReference Include="RelaxVersioner" Version="2.5.5" PrivateAssets="All" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.0'">
-    <PackageReference Include="System.Runtime.InteropServices" Version="4.3.0" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'Release'">
