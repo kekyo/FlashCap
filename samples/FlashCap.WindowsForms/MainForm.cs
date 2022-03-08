@@ -51,7 +51,7 @@ namespace FlashCap.WindowsForms
                 {
                     this.captureDevice?.Capture(e, this.buffer);
 
-                    await Task.Delay(500);
+                    await Task.Delay(100);
 
                     var image = this.buffer.ExtractImage();
 
