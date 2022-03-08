@@ -35,8 +35,11 @@ By specializing only image capture, it is simple and has no any other library de
 Platforms on which camera devices can be used:
 
 * Windows (around Video For Windows API)
-* TODO: Windows (DirectShow API)
-* TODO: Linux (V2L2 API)
+
+TODO:
+
+* Windows (DirectShow API)
+* Linux (V2L2 API)
 
 ---
 
@@ -84,6 +87,15 @@ Console.ReadLine();
 // Stop processing:
 device.Stop();
 ```
+
+Full sample code and another library combination usage are here:
+
+* [Windows Forms application](samples/FlashCap.WindowsForms/)
+
+TODO:
+
+* [WPF application](samples/FlashCap.WPF/)
+* [Avalonia](samples/FlashCap.Avalonia/)
 
 ---
 
