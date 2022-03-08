@@ -9,63 +9,91 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace FlashCap.Internal
 {
     internal static class BitmapConverter
     {
+        private static void ParallelRun(int height, int step, Action<int> action)
+        {
+#if NETSTANDARD1_1
+            for (var y = 0; y < height; y += step)
+            {
+                var y_ = y;
+                System.Threading.Tasks.Task.Run(() => action(y_));
+            }
+#else
+            void Entry(object? state) => action((int)state!);
+            WaitCallback entry = Entry;
+
+            for (var y = 0; y < height; y += step)
+            {
+                ThreadPool.QueueUserWorkItem(entry, y);
+            }
+#endif
+        }
+
         private static unsafe void ConvertFromUYVY(
             int width, int height, byte* pFrom, byte* pTo)
         {
-            for (var y = 0; y < height; y++)
+            ParallelRun(height, 4, y =>
             {
-                byte* pFromBase = pFrom + (height - y - 1) * width * 2;
-
-                for (var x = 0; x < width; x += 2)
+                for (var yi = 0; yi < 4; yi++)
                 {
-                    double u = pFromBase[0];
-                    double y1 = pFromBase[1];
-                    double v = pFromBase[2];
-                    double y2 = pFromBase[3];
+                    byte* pFromBase = pFrom + (height - (y + yi) - 1) * width * 2;
+                    byte* pToBase = pTo + (y + yi) * width * 3;
 
-                    *pTo++ = Saturate(y1 + 1.773 * (u - 128.0));
-                    *pTo++ = Saturate(y1 - 0.344 * (v - 128.0) - 0.714 * (u - 128.0));
-                    *pTo++ = Saturate(y1 + 1.403 * (v - 128.0));
+                    for (var x = 0; x < width; x += 2)
+                    {
+                        double u = pFromBase[0];
+                        double y1 = pFromBase[1];
+                        double v = pFromBase[2];
+                        double y2 = pFromBase[3];
 
-                    *pTo++ = Saturate(y2 + 1.773 * (u - 128.0));
-                    *pTo++ = Saturate(y2 - 0.344 * (v - 128.0) - 0.714 * (u - 128.0));
-                    *pTo++ = Saturate(y2 + 1.403 * (v - 128.0));
+                        *pToBase++ = Saturate(y1 + 1.773 * (u - 128.0));
+                        *pToBase++ = Saturate(y1 - 0.344 * (v - 128.0) - 0.714 * (u - 128.0));
+                        *pToBase++ = Saturate(y1 + 1.403 * (v - 128.0));
 
-                    pFromBase += 4;
+                        *pToBase++ = Saturate(y2 + 1.773 * (u - 128.0));
+                        *pToBase++ = Saturate(y2 - 0.344 * (v - 128.0) - 0.714 * (u - 128.0));
+                        *pToBase++ = Saturate(y2 + 1.403 * (v - 128.0));
+
+                        pFromBase += 4;
+                    }
                 }
-            }
+            });
         }
 
         private static unsafe void ConvertFromYUY2(
             int width, int height, byte* pFrom, byte* pTo)
         {
-            for (var y = 0; y < height; y++)
+            ParallelRun(height, 4, y =>
             {
-                byte* pFromBase = pFrom + (height - y - 1) * width * 2;
-
-                for (var x = 0; x < width; x += 2)
+                for (var yi = 0; yi < 4; yi++)
                 {
-                    double y1 = pFromBase[0];
-                    double u = pFromBase[1];
-                    double y2 = pFromBase[2];
-                    double v = pFromBase[3];
+                    byte* pFromBase = pFrom + (height - (y + yi) - 1) * width * 2;
+                    byte* pToBase = pTo + (y + yi) * width * 3;
 
-                    *pTo++ = Saturate(y1 + 1.773 * (u - 128.0));
-                    *pTo++ = Saturate(y1 - 0.344 * (v - 128.0) - 0.714 * (u - 128.0));
-                    *pTo++ = Saturate(y1 + 1.403 * (v - 128.0));
+                    for (var x = 0; x < width; x += 2)
+                    {
+                        double y1 = pFromBase[0];
+                        double u = pFromBase[1];
+                        double y2 = pFromBase[2];
+                        double v = pFromBase[3];
 
-                    *pTo++ = Saturate(y2 + 1.773 * (u - 128.0));
-                    *pTo++ = Saturate(y2 - 0.344 * (v - 128.0) - 0.714 * (u - 128.0));
-                    *pTo++ = Saturate(y2 + 1.403 * (v - 128.0));
+                        *pToBase++ = Saturate(y1 + 1.773 * (u - 128.0));
+                        *pToBase++ = Saturate(y1 - 0.344 * (v - 128.0) - 0.714 * (u - 128.0));
+                        *pToBase++ = Saturate(y1 + 1.403 * (v - 128.0));
 
-                    pFromBase += 4;
+                        *pToBase++ = Saturate(y2 + 1.773 * (u - 128.0));
+                        *pToBase++ = Saturate(y2 - 0.344 * (v - 128.0) - 0.714 * (u - 128.0));
+                        *pToBase++ = Saturate(y2 + 1.403 * (v - 128.0));
+
+                        pFromBase += 4;
+                    }
                 }
-            }
+            });
         }
 
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP

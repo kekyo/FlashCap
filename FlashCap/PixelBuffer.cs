@@ -108,14 +108,18 @@ namespace FlashCap
                             pBfhAlternate->bih.biClrImportant = 0;
                             pBfhAlternate->bih.biClrUsed = 0;
 
+#if DEBUG
                             var sw = new Stopwatch();
                             sw.Start();
+#endif
                             BitmapConverter.Convert(
                                 pBfh->bih.biWidth, pBfh->bih.biHeight, pBfh->bih.biCompression,
                                 pImageContainer + sizeof(NativeMethods.BITMAPFILEHEADER),
                                 pAlternateImageContainer + sizeof(NativeMethods.BITMAPFILEHEADER));
-                            var el = sw.Elapsed;
-                            Debug.WriteLine($"Convert: {el}");
+
+#if DEBUG
+                            Debug.WriteLine($"Convert: {sw.Elapsed}");
+#endif
                         }
 
                         return this.alternateImageContainer!;
