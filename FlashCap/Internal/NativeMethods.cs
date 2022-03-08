@@ -19,6 +19,11 @@ namespace FlashCap.Internal
         public const int WS_OVERLAPPEDWINDOW = 0x00CF0000;
         public const int WS_POPUPWINDOW = unchecked ((int)0x80880000);
         public const int WS_VISIBLE = 0x10000000;
+        public const int WS_EX_TOOLWINDOW = 0x00000080;
+        public const int WS_EX_TRANSPARENT = 0x00000020;
+
+        public const int GWL_STYLE = -16;
+        public const int GWL_EXSTYLE = -20;
 
         private const int SW_HIDE = 0;
         private const int SW_SHOWNORMAL = 1;
@@ -34,6 +39,14 @@ namespace FlashCap.Internal
         [DllImport("user32", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool DestroyWindow(IntPtr hWnd);
+
+        [DllImport("user32")]
+        public static extern int GetWindowLong(
+            IntPtr hWnd, int nIndex);
+
+        [DllImport("user32")]
+        public static extern int SetWindowLong(
+            IntPtr hWnd, int nIndex, int dwNewLong);
 
         ////////////////////////////////////////////////////////////////////////
 
@@ -195,6 +208,9 @@ namespace FlashCap.Internal
                 Marshal.GetFunctionPointerForDelegate(callback) : IntPtr.Zero;
             SendMessage(hWnd, WM_CAP_SET_CALLBACK_FRAME, IntPtr.Zero, fp);
         }
+
+        public static void capGrabFrameNonStop(IntPtr hWnd) =>
+            SendMessage(hWnd, WM_CAP_GRAB_FRAME_NOSTOP, IntPtr.Zero, IntPtr.Zero);
 
         public static void capDlgVideoFormat(IntPtr hWnd) =>
             SendMessage(hWnd, WM_CAP_DLG_VIDEOFORMAT, IntPtr.Zero, IntPtr.Zero);

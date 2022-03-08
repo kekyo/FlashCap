@@ -79,9 +79,10 @@ namespace FlashCap.Devices
 
         public void Start()
         {
-            NativeMethods.capSetPreviewScale(this.handle, true);    // TODO:
+            NativeMethods.capSetPreviewScale(this.handle, false);    // TODO:
             NativeMethods.capSetPreviewFPS(this.handle, 60);
             NativeMethods.capShowPreview(this.handle, true);   // TODO:
+            //NativeMethods.capGrabFrameNonStop(this.handle);
         }
 
         public void Stop() =>

@@ -45,12 +45,20 @@ namespace FlashCap.Devices
             var identity = (int)description.Identity;
             var handle = NativeMethods.capCreateCaptureWindow(
                 $"FlashCap_{identity}", NativeMethods.WS_POPUPWINDOW,
-                0, 0, 100, 100, IntPtr.Zero, 0);
+                -100, -100, 10, 10, IntPtr.Zero, 0);
             if (handle == IntPtr.Zero)
             {
                 var code = Marshal.GetLastWin32Error();
                 Marshal.ThrowExceptionForHR(code);
             }
+
+            var extyles = NativeMethods.GetWindowLong(
+                handle,
+                NativeMethods.GWL_EXSTYLE);
+            NativeMethods.SetWindowLong(
+                handle,
+                NativeMethods.GWL_EXSTYLE,
+                extyles | NativeMethods.WS_EX_TOOLWINDOW | NativeMethods.WS_EX_TRANSPARENT);
 
             return new VideoForWindowsDevice(handle, identity, holdRawData);
         }
