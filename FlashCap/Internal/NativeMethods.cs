@@ -15,6 +15,7 @@ namespace FlashCap.Internal
 {
     internal static class NativeMethods
     {
+        public const int WS_CHILD = 0x40000000;
         public const int WS_OVERLAPPEDWINDOW = 0x00CF0000;
         public const int WS_POPUPWINDOW = unchecked ((int)0x80880000);
         public const int WS_VISIBLE = 0x10000000;
@@ -23,7 +24,7 @@ namespace FlashCap.Internal
         private const int SW_SHOWNORMAL = 1;
 
         [DllImport("user32", EntryPoint = "SendMessageW", CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern int SendMessage(
+        private static extern IntPtr SendMessage(
             IntPtr hWnd, int wMsg, IntPtr wParam, IntPtr lParam);
 
         [DllImport("user32", SetLastError = true)]
@@ -65,6 +66,12 @@ namespace FlashCap.Internal
         //private const int WM_CAP_FILE_SAVEDIB = WM_CAP_START + 25;
         private const int WM_CAP_GRAB_FRAME_NOSTOP = WM_CAP_START + 61;
         private const int WM_CAP_SET_CALLBACK_FRAME = WM_CAP_START + 5;
+        private const int WM_CAP_GET_VIDEOFORMAT = WM_CAP_START + 44;
+        private const int WM_CAP_SET_VIDEOFORMAT = WM_CAP_START + 45;
+        private const int WM_CAP_DLG_VIDEOFORMAT = WM_CAP_START + 41;
+        private const int WM_CAP_DLG_VIDEOSOURCE = WM_CAP_START + 42;
+        private const int WM_CAP_DLG_VIDEODISPLAY = WM_CAP_START + 43;
+        private const int WM_CAP_DLG_VIDEOCOMPRESSION = WM_CAP_START + 46;
 
         [StructLayout(LayoutKind.Sequential)]
         public struct VIDEOHDR
@@ -79,7 +86,45 @@ namespace FlashCap.Internal
             private UIntPtr[] dwReserved;
         }
 
-        public delegate void CAPVIDEOCALLBACK(IntPtr hWnd, ref VIDEOHDR vhdr);
+        public enum CompressionModes : uint
+        {
+            BI_RGB = 0,
+            BI_JPEG = 4,
+            BI_PNG = 5,
+            BI_YUY2 = 0x32595559,
+            BI_UYVY = 0x59565955,
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 2)]
+        public struct BITMAPFILEHEADER
+        {
+            public byte bfType0;
+            public byte bfType1;
+            public int bfSize;
+            public short bfReserved1;
+            public short bfReserved2;
+            public int bfOffBits;
+
+            public BITMAPINFOHEADER bih;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct BITMAPINFOHEADER
+        {
+            public int biSize;
+            public int biWidth;
+            public int biHeight;
+            public short biPlanes;
+            public short biBitCount;
+            public CompressionModes biCompression;
+            public int biSizeImage;
+            public int biXPelsPerMeter;
+            public int biYPelsPerMeter;
+            public int biClrUsed;
+            public int biClrImportant;
+        }
+
+        public delegate void CAPVIDEOCALLBACK(IntPtr hWnd, in VIDEOHDR vhdr);
 
         public static void capDriverConnect(IntPtr hWnd, int nDevice) =>
             SendMessage(hWnd, WM_CAP_DRIVER_CONNECT, (IntPtr)nDevice, IntPtr.Zero);
@@ -88,9 +133,49 @@ namespace FlashCap.Internal
 
         public static void capShowPreview(IntPtr hWnd, bool isShow)
         {
-            ShowWindow(hWnd, isShow ? SW_SHOWNORMAL : SW_HIDE);
             SendMessage(hWnd, WM_CAP_SET_OVERLAY, (IntPtr)1, IntPtr.Zero);
             SendMessage(hWnd, WM_CAP_SET_PREVIEW, (IntPtr)(isShow ? 1 : 0), IntPtr.Zero);
+            ShowWindow(hWnd, isShow ? SW_SHOWNORMAL : SW_HIDE);
+        }
+
+        public static void capGetVideoFormat(
+            IntPtr hWnd, ref BITMAPINFOHEADER bih)
+        {
+            var size = SendMessage(hWnd, WM_CAP_GET_VIDEOFORMAT, IntPtr.Zero, IntPtr.Zero).ToInt32();
+            var buffer = Marshal.AllocHGlobal(size);
+            try
+            {
+                var realSize = SendMessage(hWnd, WM_CAP_GET_VIDEOFORMAT, (IntPtr)size, buffer);
+                bih = (BITMAPINFOHEADER)Marshal.PtrToStructure(buffer, typeof(BITMAPINFOHEADER))!;
+            }
+            finally
+            {
+                Marshal.FreeHGlobal(buffer);
+            }
+        }
+
+        public static void capSetVideoFormat(IntPtr hWnd, ref BITMAPINFOHEADER bih)
+        {
+            var handle = GCHandle.Alloc(bih, GCHandleType.Pinned);
+            try
+            {
+                var ptr = handle.AddrOfPinnedObject();
+                var result = SendMessage(
+                    hWnd,
+                    WM_CAP_SET_VIDEOFORMAT,
+                    (IntPtr)Marshal.SizeOf(typeof(BITMAPINFOHEADER)),
+                    ptr);
+
+                if (result == IntPtr.Zero)
+                {
+                    var code = Marshal.GetLastWin32Error();
+                    Marshal.ThrowExceptionForHR(code);
+                }
+            }
+            finally
+            {
+                handle.Free();
+            }
         }
 
         public static void capSetPreviewScale(IntPtr hWnd, bool scaled) =>
@@ -104,11 +189,20 @@ namespace FlashCap.Internal
             SendMessage(hWnd, WM_CAP_GRAB_FRAME_NOSTOP, IntPtr.Zero, IntPtr.Zero);
         }
 
-        public static void capSetCallbackFrame(IntPtr hWnd, CAPVIDEOCALLBACK callback)
+        public static void capSetCallbackFrame(IntPtr hWnd, CAPVIDEOCALLBACK? callback)
         {
             var fp = callback is { } ?
                 Marshal.GetFunctionPointerForDelegate(callback) : IntPtr.Zero;
             SendMessage(hWnd, WM_CAP_SET_CALLBACK_FRAME, IntPtr.Zero, fp);
         }
+
+        public static void capDlgVideoFormat(IntPtr hWnd) =>
+            SendMessage(hWnd, WM_CAP_DLG_VIDEOFORMAT, IntPtr.Zero, IntPtr.Zero);
+        public static void capDlgVideoSource(IntPtr hWnd) =>
+            SendMessage(hWnd, WM_CAP_DLG_VIDEOSOURCE, IntPtr.Zero, IntPtr.Zero);
+        public static void capDlgVideoDisplay(IntPtr hWnd) =>
+            SendMessage(hWnd, WM_CAP_DLG_VIDEODISPLAY, IntPtr.Zero, IntPtr.Zero);
+        public static void capDlgVideoCompression(IntPtr hWnd) =>
+            SendMessage(hWnd, WM_CAP_DLG_VIDEOCOMPRESSION, IntPtr.Zero, IntPtr.Zero);
     }
 }

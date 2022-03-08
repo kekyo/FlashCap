@@ -15,6 +15,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlashCap.WindowsForms", "samples\FlashCap.WindowsForms\FlashCap.WindowsForms.csproj", "{4B3E46F8-898A-482C-8893-1DFA2B3AB998}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{655486CC-57A5-494E-97D0-9850B6D55BBA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +34,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4B3E46F8-898A-482C-8893-1DFA2B3AB998} = {655486CC-57A5-494E-97D0-9850B6D55BBA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {53E3C2D2-05FD-4396-ABF1-6B313F8F82A9}

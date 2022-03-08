@@ -11,22 +11,19 @@ namespace FlashCap
 {
     public sealed class CaptureDeviceDescription
     {
-        public readonly int DeviceId;
+        public readonly object Identity;
         public readonly string Name;
         public readonly string Description;
 
         public CaptureDeviceDescription(
-            int deviceId, string name, string description)
+            object identity, string name, string description)
         {
-            this.DeviceId = deviceId;
+            this.Identity = identity;
             this.Name = name;
             this.Description = description;
         }
 
-        public CaptureDevice Open() =>
-            CaptureDevices.Open(this.DeviceId);
-
         public override string ToString() =>
-            $"{this.DeviceId}: {this.Name}: {this.Description}";
+            $"{this.Identity}: {this.Name}: {this.Description}";
     }
 }

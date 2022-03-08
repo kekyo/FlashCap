@@ -25,7 +25,7 @@ namespace FlashCap.WindowsForms
             // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();
 #endif
-            Application.Run(new Form1());
+            Application.Run(new MainForm());
         }
     }
 }
