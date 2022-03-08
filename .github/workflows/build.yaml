@@ -36,9 +36,9 @@ jobs:
       with:
         dotnet-version: 6.0.100
     - name: Install dependencies
-      run: dotnet restore
+      run: dotnet restore FlashCap/FlashCap.csproj
     - name: Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build --configuration Release --no-restore FlashCap/FlashCap.csproj
 #    - name: Test
 #      run: dotnet test --no-restore --verbosity normal -p:CITest=True
 #      timeout-minutes: 10
