@@ -5,4 +5,8 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
   </PropertyGroup>
 
+  <ItemGroup>
+    <None Include="../Images/FlashCap.100.png" Pack="true" PackagePath="" />
+  </ItemGroup>
+
 </Project>
