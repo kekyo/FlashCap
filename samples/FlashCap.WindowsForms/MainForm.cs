@@ -12,6 +12,7 @@ using System;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -51,7 +52,7 @@ namespace FlashCap.WindowsForms
                 {
                     this.captureDevice?.Capture(e, this.buffer);
 
-                    await Task.Delay(100);
+                    await TaskEx.Delay(100);
 
                     var image = this.buffer.ExtractImage();
 
