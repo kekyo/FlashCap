@@ -138,6 +138,8 @@ Therefore, the following method is recommended:
 2. When the image is actually needed, use `buffer.ExtractImage` to extract the image data.
 This operation can be performed in a separate thread.
 
+### Enable queuing
+
 This is illustrated for it strategy:
 
 ```csharp
@@ -166,6 +168,53 @@ Task.Run(() =>
     {
         // Get image container:
         byte[] image = buffer.ExtractImage();
+
+        // Decode by SkiaSharp:
+        var bitmap = SKBitmap.Decode(image);
+
+        // (Anything use of it...)
+    }
+});
+```
+
+### More optimization
+
+We can reuse `PixelBuffer` instance when it is not needed.
+These code completes reusing:
+
+```csharp
+// Pixel buffer queue and reserver:
+var reserver = new ConcurrentStack<PixelBuffer>();
+var queue = new BlockingCollection<PixelBuffer>();
+
+// Hook frame arrived event:
+device.FrameArrived += (s, e) =>
+{
+    // Try despence a pixel buffer:
+    if (!reserver.TryPop(out var buffer))
+    {
+        // If empty, create now:
+        buffer = new PixelBuffer();
+    }
+
+    // Capture a frame into a dispensed pixel buffer.
+    device.Capture(e, buffer);
+
+    // Enqueue pixel buffer.
+    queue.Add(buffer);
+};
+
+// Decoding with offloaded thread:
+Task.Run(() =>
+{
+    foreach (var buffer in queue.GetConsumingEnumerable())
+    {
+        // Get image container:
+        byte[] image = buffer.ExtractImage();
+
+        // Now, the pixel buffer isn't needed.
+        // So we can push it into reserver.
+        reserver.Push(buffer);
 
         // Decode by SkiaSharp:
         var bitmap = SKBitmap.Decode(image);
