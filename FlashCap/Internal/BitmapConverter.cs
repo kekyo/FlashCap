@@ -64,11 +64,11 @@ namespace FlashCap.Internal
         }
 
         private static unsafe void ConvertFromUYVY(
-            int width, int height, byte* pFrom, byte* pTo)
+            int width, int height, byte* pFrom, byte* pTo, int scatter)
         {
-            ParallelRun(height, 4, y =>
+            ParallelRun(height, scatter, y =>
             {
-                var myi = Math.Min(height - y, 4);
+                var myi = Math.Min(height - y, scatter);
                 for (var yi = 0; yi < myi; yi++)
                 {
                     byte* pFromBase = pFrom + (height - (y + yi) - 1) * width * 2;
@@ -96,11 +96,11 @@ namespace FlashCap.Internal
         }
 
         private static unsafe void ConvertFromYUY2(
-            int width, int height, byte* pFrom, byte* pTo)
+            int width, int height, byte* pFrom, byte* pTo, int scatter)
         {
-            ParallelRun(height, 4, y =>
+            ParallelRun(height, scatter, y =>
             {
-                var myi = Math.Min(height - y, 4);
+                var myi = Math.Min(height - y, scatter);
                 for (var yi = 0; yi < myi; yi++)
                 {
                     byte* pFromBase = pFrom + (height - (y + yi) - 1) * width * 2;
@@ -159,10 +159,10 @@ namespace FlashCap.Internal
             switch (compressionMode)
             {
                 case NativeMethods.CompressionModes.BI_UYVY:
-                    ConvertFromUYVY(width, height, pFrom, pTo);
+                    ConvertFromUYVY(width, height, pFrom, pTo, 16);
                     break;
                 case NativeMethods.CompressionModes.BI_YUY2:
-                    ConvertFromYUY2(width, height, pFrom, pTo);
+                    ConvertFromYUY2(width, height, pFrom, pTo, 16);
                     break;
                 default:
                     throw new ArgumentException();
