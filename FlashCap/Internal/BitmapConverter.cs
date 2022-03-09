@@ -11,26 +11,55 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
+#if !(NET20 || NET35)
+using System.Linq;
+#endif
+#if !(NET20 || NET35)
+using System.Threading.Tasks;
+#endif
+
 namespace FlashCap.Internal
 {
     internal static class BitmapConverter
     {
         private static void ParallelRun(int height, int step, Action<int> action)
         {
-#if NETSTANDARD1_1
-            for (var y = 0; y < height; y += step)
+#if NET20 || NET35
+            using var raise = new ManualResetEvent(false);
+            var count = 1;
+            void Entry(object? state)
             {
-                var y_ = y;
-                System.Threading.Tasks.Task.Run(() => action(y_));
+                try
+                {
+                    action((int)state!);
+                }
+                finally
+                {
+                    if (Interlocked.Decrement(ref count) == 0)
+                    {
+                        raise.Set();
+                    }
+                }
             }
-#else
-            void Entry(object? state) => action((int)state!);
             WaitCallback entry = Entry;
 
             for (var y = 0; y < height; y += step)
             {
+                Interlocked.Increment(ref count);
                 ThreadPool.QueueUserWorkItem(entry, y);
             }
+
+            if (Interlocked.Decrement(ref count) >= 1)
+            {
+                raise.WaitOne();
+            }
+#elif NETSTANDARD1_1
+            Task.WaitAll(
+                Enumerable.Range(0, height / step).
+                Select(ys => Task.Run(() => action(ys * step))).
+                ToArray());
+#else
+            Parallel.For(0, height / step, ys => action(ys * step));
 #endif
         }
 
@@ -39,7 +68,8 @@ namespace FlashCap.Internal
         {
             ParallelRun(height, 4, y =>
             {
-                for (var yi = 0; yi < 4; yi++)
+                var myi = Math.Min(height - y, 4);
+                for (var yi = 0; yi < myi; yi++)
                 {
                     byte* pFromBase = pFrom + (height - (y + yi) - 1) * width * 2;
                     byte* pToBase = pTo + (y + yi) * width * 3;
@@ -70,7 +100,8 @@ namespace FlashCap.Internal
         {
             ParallelRun(height, 4, y =>
             {
-                for (var yi = 0; yi < 4; yi++)
+                var myi = Math.Min(height - y, 4);
+                for (var yi = 0; yi < myi; yi++)
                 {
                     byte* pFromBase = pFrom + (height - (y + yi) - 1) * width * 2;
                     byte* pToBase = pTo + (y + yi) * width * 3;
