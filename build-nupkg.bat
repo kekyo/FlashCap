@@ -13,5 +13,5 @@ echo.
 rem git clean -xfd
 
 dotnet restore
-dotnet build -c Release -p:Platform="Any CPU" FlashCap.sln
+dotnet build -p:Configuration=Release -p:Platform=AnyCPU FlashCap\FlashCap.csproj
 dotnet pack -p:Configuration=Release -p:Platform=AnyCPU -o artifacts FlashCap\FlashCap.csproj
