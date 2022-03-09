@@ -34,99 +34,104 @@ namespace FlashCap
                 _ => sizeof(NativeMethods.BITMAPFILEHEADER) + size
             };
 
-            if (this.imageContainer == null ||
-                this.imageContainer.Length != totalSize)
+            lock (this)
             {
-                this.imageContainer = new byte[totalSize];
-                this.alternateImageContainer = null;
-            }
-
-            if (bih.biCompression == NativeMethods.CompressionModes.BI_JPEG ||
-                bih.biCompression == NativeMethods.CompressionModes.BI_PNG)
-            {
-                Marshal.Copy(
-                    pData,
-                    this.imageContainer!,
-                    0,
-                    size);
-
-                this.holdRawData = true;
-            }
-            else
-            {
-                fixed (byte* pImageContainer = &this.imageContainer![0])
+                if (this.imageContainer == null ||
+                    this.imageContainer.Length != totalSize)
                 {
-                    var pBfh = (NativeMethods.BITMAPFILEHEADER*)pImageContainer;
-                    pBfh->bfType0 = 0x42;
-                    pBfh->bfType1 = 0x4d;
-                    pBfh->bfSize = totalSize;
-                    pBfh->bfOffBits = sizeof(NativeMethods.BITMAPFILEHEADER);
-                    pBfh->bih = bih;
+                    this.imageContainer = new byte[totalSize];
+                    this.alternateImageContainer = null;
                 }
 
-                Marshal.Copy(
-                    pData,
-                    this.imageContainer!,
-                    sizeof(NativeMethods.BITMAPFILEHEADER),
-                    size);
+                if (bih.biCompression == NativeMethods.CompressionModes.BI_JPEG ||
+                    bih.biCompression == NativeMethods.CompressionModes.BI_PNG)
+                {
+                    Marshal.Copy(
+                        pData,
+                        this.imageContainer!,
+                        0,
+                        size);
 
-                this.holdRawData = holdRawData;
+                    this.holdRawData = true;
+                }
+                else
+                {
+                    fixed (byte* pImageContainer = &this.imageContainer![0])
+                    {
+                        var pBfh = (NativeMethods.BITMAPFILEHEADER*)pImageContainer;
+                        pBfh->bfType0 = 0x42;
+                        pBfh->bfType1 = 0x4d;
+                        pBfh->bfSize = totalSize;
+                        pBfh->bfOffBits = sizeof(NativeMethods.BITMAPFILEHEADER);
+                        pBfh->bih = bih;
+                    }
+
+                    Marshal.Copy(
+                        pData,
+                        this.imageContainer!,
+                        sizeof(NativeMethods.BITMAPFILEHEADER),
+                        size);
+
+                    this.holdRawData = holdRawData;
+                }
             }
         }
 
         public unsafe byte[] ExtractImage()
         {
-            if (!this.holdRawData)
+            lock (this)
             {
-                fixed (byte* pImageContainer = &this.imageContainer![0])
+                if (!this.holdRawData)
                 {
-                    var pBfh = (NativeMethods.BITMAPFILEHEADER*)pImageContainer;
-
-                    if (BitmapConverter.GetRequiredBufferSize(
-                        pBfh->bih.biWidth, pBfh->bih.biHeight, pBfh->bih.biCompression) is { } size)
+                    fixed (byte* pImageContainer = &this.imageContainer![0])
                     {
-                        var totalSize = sizeof(NativeMethods.BITMAPFILEHEADER) + size;
+                        var pBfh = (NativeMethods.BITMAPFILEHEADER*)pImageContainer;
 
-                        if (this.alternateImageContainer == null ||
-                            this.alternateImageContainer.Length != totalSize)
+                        if (BitmapConverter.GetRequiredBufferSize(
+                            pBfh->bih.biWidth, pBfh->bih.biHeight, pBfh->bih.biCompression) is { } size)
                         {
-                            this.alternateImageContainer = new byte[totalSize];
-                        }
+                            var totalSize = sizeof(NativeMethods.BITMAPFILEHEADER) + size;
 
-                        fixed (byte* pAlternateImageContainer = &this.alternateImageContainer![0])
-                        {
-                            var pBfhAlternate = (NativeMethods.BITMAPFILEHEADER*)pAlternateImageContainer;
+                            if (this.alternateImageContainer == null ||
+                                this.alternateImageContainer.Length != totalSize)
+                            {
+                                this.alternateImageContainer = new byte[totalSize];
+                            }
 
-                            *pBfhAlternate = *pBfh;
+                            fixed (byte* pAlternateImageContainer = &this.alternateImageContainer![0])
+                            {
+                                var pBfhAlternate = (NativeMethods.BITMAPFILEHEADER*)pAlternateImageContainer;
 
-                            pBfhAlternate->bfSize = totalSize;
-                            pBfhAlternate->bih.biSize = sizeof(NativeMethods.BITMAPINFOHEADER);
-                            pBfhAlternate->bih.biPlanes = 1;
-                            pBfhAlternate->bih.biBitCount = 24;   // B8G8R8
-                            pBfhAlternate->bih.biCompression = NativeMethods.CompressionModes.BI_RGB;
-                            pBfhAlternate->bih.biSizeImage = size;
-                            pBfhAlternate->bih.biClrImportant = 0;
-                            pBfhAlternate->bih.biClrUsed = 0;
+                                *pBfhAlternate = *pBfh;
+
+                                pBfhAlternate->bfSize = totalSize;
+                                pBfhAlternate->bih.biSize = sizeof(NativeMethods.BITMAPINFOHEADER);
+                                pBfhAlternate->bih.biPlanes = 1;
+                                pBfhAlternate->bih.biBitCount = 24;   // B8G8R8
+                                pBfhAlternate->bih.biCompression = NativeMethods.CompressionModes.BI_RGB;
+                                pBfhAlternate->bih.biSizeImage = size;
+                                pBfhAlternate->bih.biClrImportant = 0;
+                                pBfhAlternate->bih.biClrUsed = 0;
+#if DEBUG
+                                var sw = new Stopwatch();
+                                sw.Start();
+#endif
+                                BitmapConverter.Convert(
+                                    pBfh->bih.biWidth, pBfh->bih.biHeight, pBfh->bih.biCompression,
+                                    pImageContainer + sizeof(NativeMethods.BITMAPFILEHEADER),
+                                    pAlternateImageContainer + sizeof(NativeMethods.BITMAPFILEHEADER));
 
 #if DEBUG
-                            var sw = new Stopwatch();
-                            sw.Start();
+                                Debug.WriteLine($"Convert: {sw.Elapsed}");
 #endif
-                            BitmapConverter.Convert(
-                                pBfh->bih.biWidth, pBfh->bih.biHeight, pBfh->bih.biCompression,
-                                pImageContainer + sizeof(NativeMethods.BITMAPFILEHEADER),
-                                pAlternateImageContainer + sizeof(NativeMethods.BITMAPFILEHEADER));
+                            }
 
-#if DEBUG
-                            Debug.WriteLine($"Convert: {sw.Elapsed}");
-#endif
+                            return this.alternateImageContainer!;
                         }
-
-                        return this.alternateImageContainer!;
                     }
                 }
+                return this.imageContainer!;
             }
-            return this.imageContainer!;
         }
     }
 }
