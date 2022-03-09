@@ -64,7 +64,7 @@ Then, do capture:
 
 ```csharp
 // Open a device:
-var description0 = descriptions.ElementAt(0);
+var description0 = devices.Descriptions.ElementAt(0);
 using var device = devices.Open(description0);
 
 // Reserved pixel buffer:
