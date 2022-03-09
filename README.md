@@ -28,9 +28,9 @@ By specializing only image capture, it is simple and has no any other library de
 .NET platforms supported are as follows:
 
 * .NET 6, 5 (net6.0, net5.0)
-* .NET Core 3.1, 3.0, 2.1, 2.0 (netcoreapp3.1 and etc)
+* .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (netcoreapp3.1 and etc)
 * .NET Standard 2.1, 2.0, 1.1 (netstandard2.1 and etc)
-* .NET Framework 4.5, 4.0, 3.5, 2.0 (net45 and etc)
+* .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5, 2.0 (net45 and etc)
 
 Platforms on which camera devices can be used:
 
@@ -48,16 +48,24 @@ TODO:
 For using Video For Windows API:
 
 ```csharp
+using FlashCap;
+using FlashCap.Devices;
+
 // Capture device enumeration:
 var devices = new VideoForWindowsDevices();
-var descriptions = devices.Descriptions.ToArray();
 
-Console.WriteLine($"{descriptions[0].Name}, {descriptions[0].Description}");
+foreach (var description in devices.Descriptions)
+{
+    Console.WriteLine($"{description.Name}, {description.Description}");
+}
 ```
+
+Then, do capture:
 
 ```csharp
 // Open a device:
-using var device = devices.Open(descriptions[0]);
+var description0 = descriptions.ElementAt(0);
+using var device = devices.Open(description0);
 
 // Reserved pixel buffer:
 var buffer = new PixelBuffer();
@@ -99,7 +107,7 @@ TODO:
 
 ---
 
-## About pixel buffer
+## Advanced: About pixel buffer
 
 Pixel buffer (`PixelBuffer` class) is controlled about
 image data allocation and buffering.
@@ -129,6 +137,43 @@ Therefore, the following method is recommended:
 1. `device.Capture(e, buffer)` is handled in the `FrameArrived` event.
 2. When the image is actually needed, use `buffer.ExtractImage` to extract the image data.
 This operation can be performed in a separate thread.
+
+This is illustrated for it strategy:
+
+```csharp
+using System.Collections.Concurrent;
+using SkiaSharp;
+
+// Pixel buffer queue:
+var queue = new BlockingCollection<PixelBuffer>();
+
+// Hook frame arrived event:
+device.FrameArrived += (s, e) =>
+{
+    // Capture a frame into a pixel buffer.
+    // We have to do capturing on only FrameArrived event context.
+    var buffer = new PixelBuffer();
+    device.Capture(e, buffer);
+
+    // Enqueue pixel buffer.
+    queue.Add(buffer);
+};
+
+// Decoding with offloaded thread:
+Task.Run(() =>
+{
+    foreach (var buffer in queue.GetConsumingEnumerable())
+    {
+        // Get image container:
+        byte[] image = buffer.ExtractImage();
+
+        // Decode by SkiaSharp:
+        var bitmap = SKBitmap.Decode(image);
+
+        // (Anything use of it...)
+    }
+});
+```
 
 ---
 
