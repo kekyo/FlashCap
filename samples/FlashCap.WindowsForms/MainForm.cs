@@ -57,6 +57,17 @@ namespace FlashCap.WindowsForms
                     var image = this.buffer.ExtractImage();
 
                     var bitmap = Bitmap.FromStream(new MemoryStream(image));
+
+#if NETCOREAPP
+                    // HACK: on .NET Core, will be leaked (or delayed GC?)
+                    //   updating background image with new Bitmap's.
+                    if (this.BackgroundImage is { } oldImage)
+                    {
+                        this.BackgroundImage = null;
+                        oldImage.Dispose();
+                    }
+#endif
+
                     this.BackgroundImage = bitmap;
                 }
                 finally

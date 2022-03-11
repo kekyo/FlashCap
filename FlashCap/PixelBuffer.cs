@@ -117,7 +117,8 @@ namespace FlashCap
                                 sw.Start();
 #endif
                                 BitmapConverter.Convert(
-                                    pBfh->bih.biWidth, pBfh->bih.biHeight, pBfh->bih.biCompression,
+                                    pBfh->bih.biWidth, pBfh->bih.biHeight,
+                                    pBfh->bih.biCompression, false,
                                     pImageContainer + sizeof(NativeMethods.BITMAPFILEHEADER),
                                     pAlternateImageContainer + sizeof(NativeMethods.BITMAPFILEHEADER));
 
