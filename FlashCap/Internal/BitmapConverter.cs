@@ -63,8 +63,11 @@ namespace FlashCap.Internal
 #endif
         }
 
+        // Preffered article: https://docs.microsoft.com/en-us/windows/win32/medfound/recommended-8-bit-yuv-formats-for-video-rendering#420-formats-16-bits-per-pixel
+
         private static unsafe void ConvertFromUYVY(
-            int width, int height, byte* pFrom, byte* pTo, int scatter)
+            int width, int height, bool performFullRange,
+            byte* pFrom, byte* pTo, int scatter)
         {
             ParallelRun(height, scatter, y =>
             {
@@ -76,18 +79,21 @@ namespace FlashCap.Internal
 
                     for (var x = 0; x < width; x += 2)
                     {
-                        double u = pFromBase[0];
-                        double y1 = pFromBase[1];
-                        double v = pFromBase[2];
-                        double y2 = pFromBase[3];
+                        var d = pFromBase[0] - 128;  // U
+                        var c1 = pFromBase[1] - 16;  // Y1
+                        var e = pFromBase[2] - 128;  // V
+                        var c2 = pFromBase[3] - 16;  // Y2
 
-                        *pToBase++ = Saturate(y1 + 1.773 * (u - 128.0));
-                        *pToBase++ = Saturate(y1 - 0.344 * (v - 128.0) - 0.714 * (u - 128.0));
-                        *pToBase++ = Saturate(y1 + 1.403 * (v - 128.0));
+                        var cc1 = 298 * c1;
+                        var cc2 = 298 * c2;
 
-                        *pToBase++ = Saturate(y2 + 1.773 * (u - 128.0));
-                        *pToBase++ = Saturate(y2 - 0.344 * (v - 128.0) - 0.714 * (u - 128.0));
-                        *pToBase++ = Saturate(y2 + 1.403 * (v - 128.0));
+                        *pToBase++ = Clip((cc1 + 516 * d + 128) >> 8);   // B1
+                        *pToBase++ = Clip((cc1 - 100 * d - 208 * e + 128) >> 8);   // G1
+                        *pToBase++ = Clip((cc1 + 409 * e + 128) >> 8);   // R1
+
+                        *pToBase++ = Clip((cc2 + 516 * d + 128) >> 8);   // B1
+                        *pToBase++ = Clip((cc2 - 100 * d - 208 * e + 128) >> 8);   // G1
+                        *pToBase++ = Clip((cc2 + 409 * e + 128) >> 8);   // R1
 
                         pFromBase += 4;
                     }
@@ -96,7 +102,8 @@ namespace FlashCap.Internal
         }
 
         private static unsafe void ConvertFromYUY2(
-            int width, int height, byte* pFrom, byte* pTo, int scatter)
+            int width, int height, bool performFullRange,
+            byte* pFrom, byte* pTo, int scatter)
         {
             ParallelRun(height, scatter, y =>
             {
@@ -108,18 +115,21 @@ namespace FlashCap.Internal
 
                     for (var x = 0; x < width; x += 2)
                     {
-                        double y1 = pFromBase[0];
-                        double u = pFromBase[1];
-                        double y2 = pFromBase[2];
-                        double v = pFromBase[3];
+                        var c1 = pFromBase[0] - 16;  // Y1
+                        var d = pFromBase[1] - 128;   // U
+                        var c2 = pFromBase[2] - 16;  // Y2
+                        var e = pFromBase[3] - 128;   // V
 
-                        *pToBase++ = Saturate(y1 + 1.773 * (u - 128.0));
-                        *pToBase++ = Saturate(y1 - 0.344 * (v - 128.0) - 0.714 * (u - 128.0));
-                        *pToBase++ = Saturate(y1 + 1.403 * (v - 128.0));
+                        var cc1 = 298 * c1;
+                        var cc2 = 298 * c2;
 
-                        *pToBase++ = Saturate(y2 + 1.773 * (u - 128.0));
-                        *pToBase++ = Saturate(y2 - 0.344 * (v - 128.0) - 0.714 * (u - 128.0));
-                        *pToBase++ = Saturate(y2 + 1.403 * (v - 128.0));
+                        *pToBase++ = Clip((cc1 + 516 * d + 128) >> 8);   // B1
+                        *pToBase++ = Clip((cc1 - 100 * d - 208 * e + 128) >> 8);   // G1
+                        *pToBase++ = Clip((cc1 + 409 * e + 128) >> 8);   // R1
+
+                        *pToBase++ = Clip((cc2 + 516 * d + 128) >> 8);   // B1
+                        *pToBase++ = Clip((cc2 - 100 * d - 208 * e + 128) >> 8);   // G1
+                        *pToBase++ = Clip((cc2 + 409 * e + 128) >> 8);   // R1
 
                         pFromBase += 4;
                     }
@@ -130,7 +140,7 @@ namespace FlashCap.Internal
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-        private static byte Saturate(double value) =>
+        private static byte Clip(int value) =>
             value < 0 ? (byte)0 :
             value > 255 ? (byte)255 :
             (byte)value;
@@ -153,16 +163,17 @@ namespace FlashCap.Internal
         }
 
         public static unsafe void Convert(
-            int width, int height, NativeMethods.CompressionModes compressionMode,
+            int width, int height,
+            NativeMethods.CompressionModes compressionMode, bool performFullRange,
             byte* pFrom, byte* pTo)
         {
             switch (compressionMode)
             {
                 case NativeMethods.CompressionModes.BI_UYVY:
-                    ConvertFromUYVY(width, height, pFrom, pTo, 16);
+                    ConvertFromUYVY(width, height, performFullRange, pFrom, pTo, 32);
                     break;
                 case NativeMethods.CompressionModes.BI_YUY2:
-                    ConvertFromYUY2(width, height, pFrom, pTo, 16);
+                    ConvertFromYUY2(width, height, performFullRange, pFrom, pTo, 32);
                     break;
                 default:
                     throw new ArgumentException();
