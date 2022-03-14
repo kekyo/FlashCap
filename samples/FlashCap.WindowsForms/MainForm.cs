@@ -29,7 +29,7 @@ namespace FlashCap.WindowsForms
         {
             var devices = new CaptureDevices();
             var descriptors = devices.EnumerateDescriptors().
-                Where(d => d.DeviceType == DeviceTypes.DirectShow).
+                //Where(d => d.DeviceType == DeviceTypes.DirectShow).
                 //Where(d => d.DeviceType == DeviceTypes.VideoForWindows).
                 ToArray();
 

@@ -240,3 +240,18 @@ Task.Run(() =>
 
 Apache-v2.
 
+## History
+
+* 0.3.0:
+  * Implemented central device enumeration.
+  * Add supporting device characteristics enumeration.
+  * Brush up some interface members for DirectShow and V2L2.
+* 0.2.0:
+  * Applied YUV conversion formula with MS's technical article.
+  * Made PixelBuffer thread safe.
+* 0.1.10:
+  * Increased scatter height on parallel conversion.
+  * Fixed conversion overrun when height mod isn't just.
+* 0.1.0:
+  * Initial release.
+
