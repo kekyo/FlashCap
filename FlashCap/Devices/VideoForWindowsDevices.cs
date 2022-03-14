@@ -18,39 +18,6 @@ namespace FlashCap.Devices
 {
     public sealed class VideoForWindowsDevices : ICaptureDevices
     {
-        private static unsafe VideoCharacteristics? GetCharacteristics(int index)
-        {
-            var handle = NativeMethods_VideoForWindows.CreateVideoSourceWindow(index);
-            try
-            {
-                NativeMethods_VideoForWindows.capDriverConnect(handle, index);
-
-                // Try to set 30fps, but VFW API may cause ignoring it silently...
-                NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out var cp);
-                cp.dwRequestMicroSecPerFrame = (int)(1_000_000.0 / 30.0);
-                NativeMethods_VideoForWindows.capCaptureSetSetup(handle, cp);
-                NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out cp);
-
-                NativeMethods_VideoForWindows.capGetVideoFormat(handle, out var pih);
-                try
-                {
-                    var pBih = (NativeMethods.RAW_BITMAPINFOHEADER*)pih.ToPointer();
-                    var characteristics = NativeMethods.CreateVideoCharacteristics(
-                        pih, (int)(1_000_000_000.0 / cp.dwRequestMicroSecPerFrame));
-                    return characteristics;
-                }
-                finally
-                {
-                    Marshal.FreeCoTaskMem(pih);
-                }
-            }
-            finally
-            {
-                NativeMethods_VideoForWindows.capDriverDisconnect(handle, index);
-                NativeMethods_VideoForWindows.DestroyWindow(handle);
-            }
-        }
-
         public IEnumerable<ICaptureDeviceDescriptor> EnumerateDescriptors() =>
             Enumerable.Range(0, NativeMethods_VideoForWindows.MaxVideoForWindowsDevices).
             Collect(index =>
@@ -68,7 +35,16 @@ namespace FlashCap.Devices
                         index,
                         string.IsNullOrEmpty(n) ? "Default" : n,
                         string.IsNullOrEmpty(d) ? "VideoForWindows default" : d,
-                        new[] { new VideoCharacteristics(PixelFormats.MJPG, 0, 640, 480, 15000) });
+                        new[] {
+                            new VideoCharacteristics(PixelFormats.YUY2, 16, 640, 480, 30000),
+                            new VideoCharacteristics(PixelFormats.YUY2, 16, 640, 480, 15000),
+                            new VideoCharacteristics(PixelFormats.MJPG, 24, 1920, 1080, 30000),
+                            new VideoCharacteristics(PixelFormats.MJPG, 24, 1600, 1200, 30000),
+                            new VideoCharacteristics(PixelFormats.MJPG, 24, 1280, 960, 30000),
+                            new VideoCharacteristics(PixelFormats.MJPG, 24, 1024, 768, 30000),
+                            new VideoCharacteristics(PixelFormats.MJPG, 24, 640, 480, 30000),
+                            new VideoCharacteristics(PixelFormats.MJPG, 24, 640, 480, 15000),
+                        });
                 }
                 else
                 {

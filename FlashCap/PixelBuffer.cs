@@ -77,9 +77,9 @@ namespace FlashCap
                             (IntPtr)(pImageContainer + pBfhTo->bfOffBits),
                             pData,
                             (IntPtr)size);
-                    }
 
-                    this.transcodeIfYUV = transcodeIfYUV;
+                        this.transcodeIfYUV = transcodeIfYUV;
+                    }
                 }
             }
         }

@@ -53,10 +53,7 @@ namespace FlashCap.Devices
                 pBih->biHeight = characteristics.Height;
                 pBih->biSizeImage = pBih->CalculateImageSize();
 
-                if (!NativeMethods_VideoForWindows.capSetVideoFormat(handle, pih))
-                {
-                    Trace.WriteLine("FlashCap: Couldn't set bitmap format to VFW device.");
-                }
+                NativeMethods_VideoForWindows.capSetVideoFormat(handle, pih);
             }
             finally
             {
@@ -119,7 +116,7 @@ namespace FlashCap.Devices
         public void Start()
         {
             NativeMethods_VideoForWindows.capSetPreviewScale(this.handle, false);
-            NativeMethods_VideoForWindows.capSetPreviewFPS(this.handle, 30);
+            NativeMethods_VideoForWindows.capSetPreviewFPS(this.handle, 15);
             NativeMethods_VideoForWindows.capShowPreview(this.handle, true);
         }
 
