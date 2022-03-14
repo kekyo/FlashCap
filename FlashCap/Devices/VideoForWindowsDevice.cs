@@ -38,9 +38,7 @@ namespace FlashCap.Devices
             this.callback = this.CallbackEntry;
 
             NativeMethods_VideoForWindows.capSetCallbackFrame(this.handle, this.callback);
-            NativeMethods_VideoForWindows.capGetVideoFormat(this.handle, out var bih);
-
-            this.pBih = (IntPtr)bih.ToNative();
+            NativeMethods_VideoForWindows.capGetVideoFormat(this.handle, out this.pBih);
 
             this.Characteristics = characteristics;
         }

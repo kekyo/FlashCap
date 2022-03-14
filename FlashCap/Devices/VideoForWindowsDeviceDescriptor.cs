@@ -8,8 +8,6 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using FlashCap.Internal;
-using System;
-using System.Runtime.InteropServices;
 
 namespace FlashCap.Devices
 {
@@ -29,29 +27,11 @@ namespace FlashCap.Devices
         public override DeviceTypes DeviceType =>
             DeviceTypes.VideoForWindows;
 
-        public override ICaptureDevice Open(
+        public override unsafe ICaptureDevice Open(
             VideoCharacteristics characteristics,
             bool transcodeIfYUV = true)
         {
-            // HACK: VFW couldn't operate without any attached window resources.
-            //   * It's hider for moving outsite of desktop.
-            //   * And will make up transparent tool window.
-            var handle = NativeMethods_VideoForWindows.capCreateCaptureWindow(
-                $"FlashCap_{this.index}", NativeMethods_VideoForWindows.WS_POPUPWINDOW,
-                -100, -100, 10, 10, IntPtr.Zero, 0);
-            if (handle == IntPtr.Zero)
-            {
-                var code = Marshal.GetLastWin32Error();
-                Marshal.ThrowExceptionForHR(code);
-            }
-
-            var extyles = NativeMethods_VideoForWindows.GetWindowLong(
-                handle,
-                NativeMethods_VideoForWindows.GWL_EXSTYLE);
-            NativeMethods_VideoForWindows.SetWindowLong(
-                handle,
-                NativeMethods_VideoForWindows.GWL_EXSTYLE,
-                extyles | NativeMethods_VideoForWindows.WS_EX_TOOLWINDOW | NativeMethods_VideoForWindows.WS_EX_TRANSPARENT);
+            var handle = NativeMethods_VideoForWindows.CreateVideoSourceWindow(this.index);
 
             return new VideoForWindowsDevice(
                 handle, this.index, characteristics, transcodeIfYUV);

@@ -88,6 +88,31 @@ namespace FlashCap.Internal
         private const int WM_CAP_DLG_VIDEOSOURCE = WM_CAP_START + 42;
         private const int WM_CAP_DLG_VIDEODISPLAY = WM_CAP_START + 43;
         private const int WM_CAP_DLG_VIDEOCOMPRESSION = WM_CAP_START + 46;
+        private const int WM_CAP_GET_SEQUENCE_SETUP = WM_CAP_START + 65;
+        private const int WM_CAP_SET_SEQUENCE_SETUP = WM_CAP_START + 64;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct CAPTUREPARMS
+        {
+            public int dwRequestMicroSecPerFrame;
+            public int fMakeUserHitOKToCapture;
+            public int wPercentDropForError;
+            public int fYield;
+            public int dwIndexSize;
+            public int wChunkGranularity;
+            public int fCaptureAudio;
+            public int wNumVideoRequested;
+            public int wNumAudioRequested;
+            public int fAbortLeftMouse;
+            public int fAbortRightMouse;
+            public int fMCIControl;
+            public int fStepMCIDevice;
+            public int dwMCIStartTime;
+            public int dwMCIStopTime;
+            public int fStepCaptureAt2x;
+            public int wStepCaptureAverageFrames;
+            public int dwAudioBufferSize;
+        }
 
         [StructLayout(LayoutKind.Sequential)]
         public struct VIDEOHDR
@@ -119,42 +144,43 @@ namespace FlashCap.Internal
         }
 
         public static void capGetVideoFormat(
-            IntPtr hWnd, out NativeMethods.BITMAPINFOHEADER bih)
+            IntPtr hWnd, out IntPtr pBih)
         {
             var size = SendMessage(hWnd, WM_CAP_GET_VIDEOFORMAT, IntPtr.Zero, IntPtr.Zero).ToInt32();
-            var buffer = Marshal.AllocCoTaskMem(size);
-            try
+            pBih = Marshal.AllocCoTaskMem(size);
+            SendMessage(hWnd, WM_CAP_GET_VIDEOFORMAT, (IntPtr)size, pBih);
+        }
+
+        public static unsafe bool capSetVideoFormat(
+            IntPtr hWnd, IntPtr pBih)
+        {
+            var pRawBih = (NativeMethods.RAW_BITMAPINFOHEADER*)pBih.ToPointer();
+            var result = SendMessage(
+                hWnd,
+                WM_CAP_SET_VIDEOFORMAT,
+                (IntPtr)pRawBih->CalculateRawSize(),
+                (IntPtr)pRawBih);
+            return result != IntPtr.Zero;
+        }
+
+        public static unsafe void capCaptureGetSetup(IntPtr hWnd, out CAPTUREPARMS cp)
+        {
+            fixed (CAPTUREPARMS* p = &cp)
             {
-                SendMessage(hWnd, WM_CAP_GET_VIDEOFORMAT, (IntPtr)size, buffer);
-                bih = NativeMethods.BITMAPINFOHEADER.ToManaged(buffer);
-            }
-            finally
-            {
-                Marshal.FreeCoTaskMem(buffer);
+                SendMessage(
+                    hWnd, WM_CAP_GET_SEQUENCE_SETUP, 
+                    (IntPtr)sizeof(CAPTUREPARMS), (IntPtr)p);
             }
         }
 
-        public static unsafe void capSetVideoFormat(
-            IntPtr hWnd, in NativeMethods.BITMAPINFOHEADER bih)
+        public static unsafe bool capCaptureSetSetup(IntPtr hWnd, in CAPTUREPARMS cp)
         {
-            var pRawBih = bih.ToNative();
-            try
+            fixed (CAPTUREPARMS* p = &cp)
             {
                 var result = SendMessage(
-                    hWnd,
-                    WM_CAP_SET_VIDEOFORMAT,
-                    (IntPtr)pRawBih->CalculateRawSize(),
-                    (IntPtr)pRawBih);
-
-                if (result == IntPtr.Zero)
-                {
-                    var code = Marshal.GetLastWin32Error();
-                    Marshal.ThrowExceptionForHR(code);
-                }
-            }
-            finally
-            {
-                Marshal.FreeCoTaskMem((IntPtr)pRawBih);
+                    hWnd, WM_CAP_SET_SEQUENCE_SETUP,
+                    (IntPtr)sizeof(CAPTUREPARMS), (IntPtr)p);
+                return result != IntPtr.Zero;
             }
         }
 
@@ -190,5 +216,27 @@ namespace FlashCap.Internal
             SendMessage(hWnd, WM_CAP_DLG_VIDEODISPLAY, IntPtr.Zero, IntPtr.Zero);
         public static void capDlgVideoCompression(IntPtr hWnd) =>
             SendMessage(hWnd, WM_CAP_DLG_VIDEOCOMPRESSION, IntPtr.Zero, IntPtr.Zero);
+
+        public static IntPtr CreateVideoSourceWindow(int index)
+        {
+            // HACK: VFW couldn't operate without any attached window resources.
+            //   * It's hider for moving outsite of desktop.
+            //   * And will make up transparent tool window.
+            var handle = capCreateCaptureWindow(
+                $"FlashCap_{index}", WS_POPUPWINDOW,
+                -100, -100, 10, 10, IntPtr.Zero, 0);
+            if (handle == IntPtr.Zero)
+            {
+                var code = Marshal.GetLastWin32Error();
+                Marshal.ThrowExceptionForHR(code);
+            }
+
+            var extyles = GetWindowLong(
+                handle, GWL_EXSTYLE);
+            SetWindowLong(
+                handle, GWL_EXSTYLE, extyles | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT);
+
+            return handle;
+        }
     }
 }

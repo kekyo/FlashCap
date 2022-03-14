@@ -16,16 +16,6 @@ namespace FlashCap.Devices
 {
     public sealed class DirectShowDevices : ICaptureDevices
     {
-        private static unsafe VideoCharacteristics CreateVideoCharacteristics(
-            IntPtr pih, long avgTimePerFrame)
-        {
-            var pBih = (NativeMethods.RAW_BITMAPINFOHEADER*)pih.ToPointer();
-            return new VideoCharacteristics(
-                pBih->biCompression, pBih->biBitCount,
-                pBih->biWidth, pBih->biHeight,
-                (int)(1.0 / avgTimePerFrame * 10_000_000_000.0));
-        }
-
         public IEnumerable<ICaptureDeviceDescriptor> EnumerateDescriptors() =>
             NativeMethods_DirectShow.EnumerateDeviceMoniker(
                 NativeMethods_DirectShow.CLSID_VideoInputDeviceCategory).
@@ -47,9 +37,9 @@ namespace FlashCap.Devices
                                             pin : null).
                                     SelectMany(pin =>
                                         pin.EnumerateFormats().
-                                        Select(format => CreateVideoCharacteristics(
+                                        Select(format => NativeMethods.CreateVideoCharacteristics(
                                             format.BitmapInfoHeader,
-                                            format.VideoInformation.AvgTimePerFrame))).
+                                            (int)(10_000_000_000.0 / format.VideoInformation.AvgTimePerFrame)))).
                                     Distinct().
                                     OrderByDescending(vc => vc).
                                     ToArray()) :
