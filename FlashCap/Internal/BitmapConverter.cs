@@ -9,12 +9,10 @@
 
 using System;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
-#if !(NET20 || NET35)
-using System.Linq;
-#endif
-#if !(NET20 || NET35)
+#if NET20 || NET35
+using System.Threading;
+#else
 using System.Threading.Tasks;
 #endif
 
@@ -53,11 +51,6 @@ namespace FlashCap.Internal
             {
                 raise.WaitOne();
             }
-#elif NETSTANDARD1_1
-            Task.WaitAll(
-                Enumerable.Range(0, height / step).
-                Select(ys => Task.Run(() => action(ys * step))).
-                ToArray());
 #else
             Parallel.For(0, height / step, ys => action(ys * step));
 #endif
@@ -146,33 +139,29 @@ namespace FlashCap.Internal
             (byte)value;
 
         public static int? GetRequiredBufferSize(
-            int width, int height, NativeMethods.CompressionModes compressionMode)
+            int width, int height, PixelFormats pixelFormat)
         {
-            switch (compressionMode)
+            switch (pixelFormat)
             {
-                case NativeMethods.CompressionModes.BI_UYVY:
-                case NativeMethods.CompressionModes.BI_YUY2:
+                case PixelFormats.UYVY:
+                case PixelFormats.YUY2:
                     return width * height * 3;
-                case NativeMethods.CompressionModes.BI_RGB:
-                case NativeMethods.CompressionModes.BI_JPEG:
-                case NativeMethods.CompressionModes.BI_PNG:
-                    return null;
                 default:
-                    throw new ArgumentException();
+                    return null;
             }
         }
 
         public static unsafe void Convert(
             int width, int height,
-            NativeMethods.CompressionModes compressionMode, bool performFullRange,
+            PixelFormats pixelFormat, bool performFullRange,
             byte* pFrom, byte* pTo)
         {
-            switch (compressionMode)
+            switch (pixelFormat)
             {
-                case NativeMethods.CompressionModes.BI_UYVY:
+                case PixelFormats.UYVY:
                     ConvertFromUYVY(width, height, performFullRange, pFrom, pTo, 32);
                     break;
-                case NativeMethods.CompressionModes.BI_YUY2:
+                case PixelFormats.YUY2:
                     ConvertFromYUY2(width, height, performFullRange, pFrom, pTo, 32);
                     break;
                 default:
