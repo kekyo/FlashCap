@@ -13,8 +13,6 @@ namespace FlashCap
 {
     public interface ICaptureDevices
     {
-        IEnumerable<CaptureDeviceDescription> Descriptions { get; }
-
-        ICaptureDevice Open(CaptureDeviceDescription description, bool holdRawData = false);
+        IEnumerable<ICaptureDeviceDescriptor> EnumerateDescriptors();
     }
 }

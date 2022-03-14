@@ -18,24 +18,29 @@ namespace FlashCap.Devices
         private IntPtr handle;
         private GCHandle pin;
         private readonly int identity;
-        private readonly NativeMethods.CAPVIDEOCALLBACK callback;
-        private readonly NativeMethods.BITMAPINFOHEADER bih;
-        private readonly bool holdRawData;
+        private readonly NativeMethods_VideoForWindows.CAPVIDEOCALLBACK callback;
+        private readonly IntPtr pBih;  // RAW_BITMAPINFOHEADER*
+        private readonly bool transcodeIfYUV;
 
-        internal VideoForWindowsDevice(IntPtr handle, int identity, bool holdRawData)
+        internal unsafe VideoForWindowsDevice(
+            IntPtr handle, int identity,
+            VideoCharacteristics characteristics,
+            bool transcodeIfYUV)
         {
             this.handle = handle;
             this.identity = identity;
-            this.holdRawData = holdRawData;
+            this.transcodeIfYUV = transcodeIfYUV;
 
-            NativeMethods.capDriverConnect(this.handle, this.identity);
+            NativeMethods_VideoForWindows.capDriverConnect(this.handle, this.identity);
 
             // https://stackoverflow.com/questions/4097235/is-it-necessary-to-gchandle-alloc-each-callback-in-a-class
             this.pin = GCHandle.Alloc(this, GCHandleType.Normal);
             this.callback = this.CallbackEntry;
 
-            NativeMethods.capSetCallbackFrame(this.handle, this.callback);
-            NativeMethods.capGetVideoFormat(this.handle, ref this.bih);
+            NativeMethods_VideoForWindows.capSetCallbackFrame(this.handle, this.callback);
+            NativeMethods_VideoForWindows.capGetVideoFormat(this.handle, out this.pBih);
+
+            this.Characteristics = characteristics;
         }
 
         ~VideoForWindowsDevice()
@@ -51,44 +56,38 @@ namespace FlashCap.Devices
             if (this.handle != IntPtr.Zero)
             {
                 this.Stop();
-                NativeMethods.capSetCallbackFrame(this.handle, null);
-                NativeMethods.capDriverDisconnect(this.handle, this.identity);
-                NativeMethods.DestroyWindow(this.handle);
+                NativeMethods_VideoForWindows.capSetCallbackFrame(this.handle, null);
+                NativeMethods_VideoForWindows.capDriverDisconnect(this.handle, this.identity);
+                NativeMethods_VideoForWindows.DestroyWindow(this.handle);
                 this.handle = IntPtr.Zero;
                 this.pin.Free();
+                Marshal.FreeCoTaskMem(this.pBih);
+                this.FrameArrived = null;
             }
         }
 
-        public int Width =>
-            this.bih.biWidth;
-        public int Height =>
-            this.bih.biHeight;
-        public int BitsPerPixel =>
-            this.bih.biBitCount;
-        public PixelFormats PixelFormat =>
-            (PixelFormats)this.bih.biCompression;
+        public VideoCharacteristics Characteristics { get; }
 
         public event EventHandler<FrameArrivedEventArgs>? FrameArrived;
 
-        private void CallbackEntry(IntPtr hWnd, in NativeMethods.VIDEOHDR hdr) =>
+        private void CallbackEntry(IntPtr hWnd, in NativeMethods_VideoForWindows.VIDEOHDR hdr) =>
             this.FrameArrived?.Invoke(
                 this, new FrameArrivedEventArgs(
                     hdr.lpData,
                     (int)hdr.dwBytesUsed,
-                    (int)hdr.dwTimeCaptured));
+                    TimeSpan.FromMilliseconds(hdr.dwTimeCaptured)));
 
         public void Start()
         {
-            NativeMethods.capSetPreviewScale(this.handle, false);    // TODO:
-            NativeMethods.capSetPreviewFPS(this.handle, 60);
-            NativeMethods.capShowPreview(this.handle, true);   // TODO:
-            //NativeMethods.capGrabFrameNonStop(this.handle);
+            NativeMethods_VideoForWindows.capSetPreviewScale(this.handle, false);
+            NativeMethods_VideoForWindows.capSetPreviewFPS(this.handle, 60);
+            NativeMethods_VideoForWindows.capShowPreview(this.handle, true);
         }
 
         public void Stop() =>
-            NativeMethods.capShowPreview(this.handle, false);   // TODO:
+            NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
 
         public void Capture(FrameArrivedEventArgs e, PixelBuffer buffer) =>
-            buffer.CopyIn(in this.bih, e.Data, e.Size, this.holdRawData);
+            buffer.CopyIn(this.pBih, e.Data, e.Size, this.transcodeIfYUV);
     }
 }

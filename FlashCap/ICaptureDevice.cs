@@ -15,9 +15,9 @@ namespace FlashCap
     {
         public readonly IntPtr Data;
         public readonly int Size;
-        public readonly int Timestamp;
+        public readonly TimeSpan Timestamp;
 
-        public FrameArrivedEventArgs(IntPtr pData, int size, int timestamp)
+        public FrameArrivedEventArgs(IntPtr pData, int size, TimeSpan timestamp)
         {
             this.Data = pData;
             this.Size = size;
@@ -25,21 +25,9 @@ namespace FlashCap
         }
     }
 
-    public enum PixelFormats
-    {
-        RGB = 0,
-        Jpeg = 4,
-        Png = 5,
-        YUY2 = 0x32595559,
-        UYVY = 0x59565955,
-    }
-
     public interface ICaptureDevice : IDisposable
     {
-        int Width { get; }
-        int Height { get; }
-        int BitsPerPixel { get; }
-        PixelFormats PixelFormat { get; }
+        VideoCharacteristics Characteristics { get; }
 
         event EventHandler<FrameArrivedEventArgs> FrameArrived;
 

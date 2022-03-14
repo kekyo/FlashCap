@@ -45,27 +45,37 @@ TODO:
 
 ## How to use
 
-For using Video For Windows API:
+Enumerate target devices and video characteristics:
 
 ```csharp
 using FlashCap;
-using FlashCap.Devices;
 
 // Capture device enumeration:
-var devices = new VideoForWindowsDevices();
+var devices = new CaptureDevices();
 
-foreach (var description in devices.Descriptions)
+foreach (var descriptor in devices.EnumerateDescriptors())
 {
-    Console.WriteLine($"{description.Name}, {description.Description}");
+    // "Logicool Webcam C930e: DirectShow device, Characteristics=34"
+    // "Default: VideoForWindows default, Characteristics=1"
+    Console.WriteLine(descriptor);
+
+    foreach (var characteristics in descriptor.Characteristics)
+    {
+        // "1920x1080 [MJPG, 24bits, 30fps]"
+        // "640x480 [YUY2, 16bits, 60fps]"
+        Console.WriteLine(characteristics);
+    }
 }
 ```
 
 Then, do capture:
 
 ```csharp
-// Open a device:
-var description0 = devices.Descriptions.ElementAt(0);
-using var device = devices.Open(description0);
+// Open a device with a video characteristics:
+var descriptor0 = devices.EnumerateDescriptors().ElementAt(0);
+
+using var device = descriptor0.Open(
+    descriptor0.Characteristics[0])
 
 // Reserved pixel buffer:
 var buffer = new PixelBuffer();
@@ -79,7 +89,7 @@ device.FrameArrived += (s, e) =>
     // Get image container:
     byte[] image = buffer.ExtractImage();
 
-    // Anything use it (Maybe contains RGB DIB format data)
+    // Anything use it:
     var ms = new MemoryStream(image);
     var bitmap = Bitmap.FromStream(ms);
 
@@ -229,4 +239,19 @@ Task.Run(() =>
 ## License
 
 Apache-v2.
+
+## History
+
+* 0.3.0:
+  * Implemented central device enumeration.
+  * Add supporting device characteristics enumeration.
+  * Brush up some interface members for DirectShow and V2L2.
+* 0.2.0:
+  * Applied YUV conversion formula with MS's technical article.
+  * Made PixelBuffer thread safe.
+* 0.1.10:
+  * Increased scatter height on parallel conversion.
+  * Fixed conversion overrun when height mod isn't just.
+* 0.1.0:
+  * Initial release.
 

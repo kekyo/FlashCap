@@ -10,6 +10,7 @@
 using FlashCap.Internal;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -17,54 +18,64 @@ namespace FlashCap.Devices
 {
     public sealed class VideoForWindowsDevices : ICaptureDevices
     {
-        public IEnumerable<CaptureDeviceDescription> Descriptions
+        private static unsafe VideoCharacteristics GetCharacteristics(int index)
         {
-            get
+            var handle = NativeMethods_VideoForWindows.CreateVideoSourceWindow(index);
+            try
             {
-                for (var index = 0; index < NativeMethods.MaxDevices; index++)
+                NativeMethods_VideoForWindows.capDriverConnect(handle, index);
+
+                // Try to set 30fps, but VFW API may cause ignoring it silently...
+                NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out var cp);
+                cp.dwRequestMicroSecPerFrame = (int)(1_000_000.0 / 30.0);
+                NativeMethods_VideoForWindows.capCaptureSetSetup(handle, cp);
+                NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out cp);
+
+                NativeMethods_VideoForWindows.capGetVideoFormat(handle, out var pih);
+                try
                 {
-                    var name = new StringBuilder(256);
-                    var description = new StringBuilder(256);
-
-                    if (NativeMethods.capGetDriverDescription(
-                        (uint)index, name, name.Length, description, description.Length))
-                    {
-                        var n = name.ToString().Trim();
-                        var d = description.ToString().Trim();
-
-                        yield return new CaptureDeviceDescription(
-                            index, n, d);
-                    }
+                    var pBih = (NativeMethods.RAW_BITMAPINFOHEADER*)pih.ToPointer();
+                    var characteristics = NativeMethods.CreateVideoCharacteristics(
+                        pih, (int)(1_000_000_000.0 / cp.dwRequestMicroSecPerFrame));
+                    return characteristics;
+                }
+                finally
+                {
+                    Marshal.FreeCoTaskMem(pih);
                 }
             }
-        }
-
-        public VideoForWindowsDevice Open(
-            CaptureDeviceDescription description, bool holdRawData = false)
-        {
-            var identity = (int)description.Identity;
-            var handle = NativeMethods.capCreateCaptureWindow(
-                $"FlashCap_{identity}", NativeMethods.WS_POPUPWINDOW,
-                -100, -100, 10, 10, IntPtr.Zero, 0);
-            if (handle == IntPtr.Zero)
+            finally
             {
-                var code = Marshal.GetLastWin32Error();
-                Marshal.ThrowExceptionForHR(code);
+                NativeMethods_VideoForWindows.capDriverDisconnect(handle, index);
+                NativeMethods_VideoForWindows.DestroyWindow(handle);
             }
-
-            var extyles = NativeMethods.GetWindowLong(
-                handle,
-                NativeMethods.GWL_EXSTYLE);
-            NativeMethods.SetWindowLong(
-                handle,
-                NativeMethods.GWL_EXSTYLE,
-                extyles | NativeMethods.WS_EX_TOOLWINDOW | NativeMethods.WS_EX_TRANSPARENT);
-
-            return new VideoForWindowsDevice(handle, identity, holdRawData);
         }
 
-        ICaptureDevice ICaptureDevices.Open(
-            CaptureDeviceDescription description, bool holdRawData) =>
-            this.Open(description, holdRawData);
+        public IEnumerable<ICaptureDeviceDescriptor> EnumerateDescriptors() =>
+            Enumerable.Range(0, NativeMethods_VideoForWindows.MaxVideoForWindowsDevices).
+            Collect(index =>
+            {
+                var name = new StringBuilder(256);
+                var description = new StringBuilder(256);
+
+                if (NativeMethods_VideoForWindows.capGetDriverDescription(
+                    (uint)index, name, name.Length, description, description.Length))
+                {
+                    var n = name.ToString().Trim();
+                    var d = description.ToString().Trim();
+
+                    return (ICaptureDeviceDescriptor)new VideoForWindowsDeviceDescriptor(   // Requires casting on net20
+                        index,
+                        string.IsNullOrEmpty(n) ? "Default" : n,
+                        string.IsNullOrEmpty(d) ? "VideoForWindows default" : d,
+                        new[] {
+                            GetCharacteristics(index),
+                        });
+                }
+                else
+                {
+                    return null;
+                }
+            });
     }
 }

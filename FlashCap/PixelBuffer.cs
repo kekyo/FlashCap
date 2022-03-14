@@ -10,28 +10,27 @@
 using FlashCap.Internal;
 using System;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 
 namespace FlashCap
 {
     public sealed class PixelBuffer
     {
         private byte[]? imageContainer;
-        private byte[]? alternateImageContainer = null;
-        private bool holdRawData;
-
-        public PixelBuffer()
-        {
-        }
+        private byte[]? transcodedImageContainer = null;
+        private bool transcodeIfYUV;
 
         internal unsafe void CopyIn(
-            in NativeMethods.BITMAPINFOHEADER bih, IntPtr pData, int size, bool holdRawData)
+            IntPtr pih, IntPtr pData, int size, bool transcodeIfYUV)
         {
-            var totalSize = bih.biCompression switch
+            var pBih = (NativeMethods.RAW_BITMAPINFOHEADER*)pih.ToPointer();
+
+            var totalSize = pBih->biCompression switch
             {
-                NativeMethods.CompressionModes.BI_JPEG => size,
-                NativeMethods.CompressionModes.BI_PNG => size,
-                _ => sizeof(NativeMethods.BITMAPFILEHEADER) + size
+                PixelFormats.MJPG => size,
+                PixelFormats.JPEG => size,
+                PixelFormats.PNG => size,
+                _ => sizeof(NativeMethods.RAW_BITMAPFILEHEADER) +
+                    pBih->biSize + size
             };
 
             lock (this)
@@ -40,39 +39,47 @@ namespace FlashCap
                     this.imageContainer.Length != totalSize)
                 {
                     this.imageContainer = new byte[totalSize];
-                    this.alternateImageContainer = null;
+                    this.transcodedImageContainer = null;
                 }
 
-                if (bih.biCompression == NativeMethods.CompressionModes.BI_JPEG ||
-                    bih.biCompression == NativeMethods.CompressionModes.BI_PNG)
+                fixed (byte* pImageContainer = this.imageContainer!)
                 {
-                    Marshal.Copy(
-                        pData,
-                        this.imageContainer!,
-                        0,
-                        size);
-
-                    this.holdRawData = true;
-                }
-                else
-                {
-                    fixed (byte* pImageContainer = &this.imageContainer![0])
+                    if (pBih->biCompression == PixelFormats.MJPG ||
+                        pBih->biCompression == PixelFormats.JPEG ||
+                        pBih->biCompression == PixelFormats.PNG)
                     {
-                        var pBfh = (NativeMethods.BITMAPFILEHEADER*)pImageContainer;
-                        pBfh->bfType0 = 0x42;
-                        pBfh->bfType1 = 0x4d;
-                        pBfh->bfSize = totalSize;
-                        pBfh->bfOffBits = sizeof(NativeMethods.BITMAPFILEHEADER);
-                        pBfh->bih = bih;
+                        NativeMethods.CopyMemory(
+                            (IntPtr)pImageContainer,
+                            pData,
+                            (IntPtr)size);
+
+                        this.transcodeIfYUV = false;
+                    }
+                    else
+                    {
+                        var pBfhTo = (NativeMethods.RAW_BITMAPFILEHEADER*)pImageContainer;
+                        pBfhTo->bfType0 = 0x42;
+                        pBfhTo->bfType1 = 0x4d;
+                        pBfhTo->bfSize = totalSize;
+
+                        pBfhTo->bfOffBits =
+                            sizeof(NativeMethods.RAW_BITMAPFILEHEADER) +
+                            pBih->biSize;
+
+                        var pBihTo = (NativeMethods.RAW_BITMAPINFOHEADER*)(pBfhTo + 1);
+
+                        NativeMethods.CopyMemory(
+                            (IntPtr)pBihTo,
+                            (IntPtr)pBih,
+                            (IntPtr)(pBih->biSize));
+
+                        NativeMethods.CopyMemory(
+                            (IntPtr)(pImageContainer + pBfhTo->bfOffBits),
+                            pData,
+                            (IntPtr)size);
                     }
 
-                    Marshal.Copy(
-                        pData,
-                        this.imageContainer!,
-                        sizeof(NativeMethods.BITMAPFILEHEADER),
-                        size);
-
-                    this.holdRawData = holdRawData;
+                    this.transcodeIfYUV = transcodeIfYUV;
                 }
             }
         }
@@ -81,57 +88,73 @@ namespace FlashCap
         {
             lock (this)
             {
-                if (!this.holdRawData)
+                if (this.imageContainer == null)
                 {
-                    fixed (byte* pImageContainer = &this.imageContainer![0])
+                    throw new InvalidOperationException("Extracted before capture.");
+                }
+
+                if (this.transcodeIfYUV)
+                {
+                    fixed (byte* pImageContainer = this.imageContainer)
                     {
-                        var pBfh = (NativeMethods.BITMAPFILEHEADER*)pImageContainer;
+                        var pBfh = (NativeMethods.RAW_BITMAPFILEHEADER*)pImageContainer;
+                        var pBih = (NativeMethods.RAW_BITMAPINFOHEADER*)(pBfh + 1);
 
                         if (BitmapConverter.GetRequiredBufferSize(
-                            pBfh->bih.biWidth, pBfh->bih.biHeight, pBfh->bih.biCompression) is { } size)
+                            pBih->biWidth, pBih->biHeight, pBih->biCompression) is { } sizeImage)
                         {
-                            var totalSize = sizeof(NativeMethods.BITMAPFILEHEADER) + size;
+                            var totalSize =
+                                sizeof(NativeMethods.RAW_BITMAPFILEHEADER) +
+                                sizeof(NativeMethods.RAW_BITMAPINFOHEADER) +
+                                sizeImage;
 
-                            if (this.alternateImageContainer == null ||
-                                this.alternateImageContainer.Length != totalSize)
+                            if (this.transcodedImageContainer == null ||
+                                this.transcodedImageContainer.Length != totalSize)
                             {
-                                this.alternateImageContainer = new byte[totalSize];
+                                this.transcodedImageContainer = new byte[totalSize];
                             }
 
-                            fixed (byte* pAlternateImageContainer = &this.alternateImageContainer![0])
+                            fixed (byte* pTranscodedImageContainer = this.transcodedImageContainer)
                             {
-                                var pBfhAlternate = (NativeMethods.BITMAPFILEHEADER*)pAlternateImageContainer;
+                                var pBfhTo = (NativeMethods.RAW_BITMAPFILEHEADER*)pTranscodedImageContainer;
+                                var pBihTo = (NativeMethods.RAW_BITMAPINFOHEADER*)(pBfhTo + 1);
 
-                                *pBfhAlternate = *pBfh;
+                                pBfhTo->bfType0 = 0x42;
+                                pBfhTo->bfType1 = 0x4d;
+                                pBfhTo->bfSize = totalSize;
 
-                                pBfhAlternate->bfSize = totalSize;
-                                pBfhAlternate->bih.biSize = sizeof(NativeMethods.BITMAPINFOHEADER);
-                                pBfhAlternate->bih.biPlanes = 1;
-                                pBfhAlternate->bih.biBitCount = 24;   // B8G8R8
-                                pBfhAlternate->bih.biCompression = NativeMethods.CompressionModes.BI_RGB;
-                                pBfhAlternate->bih.biSizeImage = size;
-                                pBfhAlternate->bih.biClrImportant = 0;
-                                pBfhAlternate->bih.biClrUsed = 0;
+                                pBfhTo->bfOffBits =
+                                    sizeof(NativeMethods.RAW_BITMAPFILEHEADER) +
+                                    sizeof(NativeMethods.RAW_BITMAPINFOHEADER);
+
+                                pBihTo->biSize = sizeof(NativeMethods.RAW_BITMAPINFOHEADER);
+                                pBihTo->biWidth = pBih->biWidth;
+                                pBihTo->biHeight = pBih->biHeight;
+                                pBihTo->biPlanes = 1;
+                                pBihTo->biBitCount = 24;   // B8G8R8
+                                pBihTo->biCompression = PixelFormats.RGB;
+                                pBihTo->biSizeImage = sizeImage;
 #if DEBUG
                                 var sw = new Stopwatch();
                                 sw.Start();
 #endif
                                 BitmapConverter.Convert(
-                                    pBfh->bih.biWidth, pBfh->bih.biHeight,
-                                    pBfh->bih.biCompression, false,
-                                    pImageContainer + sizeof(NativeMethods.BITMAPFILEHEADER),
-                                    pAlternateImageContainer + sizeof(NativeMethods.BITMAPFILEHEADER));
+                                    pBih->biWidth, pBih->biHeight,
+                                    pBih->biCompression, false,
+                                    pImageContainer + pBfh->bfOffBits,
+                                    pTranscodedImageContainer + pBfhTo->bfOffBits);
 
 #if DEBUG
                                 Debug.WriteLine($"Convert: {sw.Elapsed}");
 #endif
                             }
 
-                            return this.alternateImageContainer!;
+                            return this.transcodedImageContainer!;
                         }
                     }
                 }
-                return this.imageContainer!;
+
+                return this.imageContainer;
             }
         }
     }
