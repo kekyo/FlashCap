@@ -330,13 +330,20 @@ namespace FlashCap.Internal
             public int dwReserved2;
         }
 
-        public static unsafe VideoCharacteristics CreateVideoCharacteristics(
+        public static unsafe VideoCharacteristics? CreateVideoCharacteristics(
             IntPtr pih, int framesPer1000Second)
         {
             var pBih = (RAW_BITMAPINFOHEADER*)pih.ToPointer();
-            return new VideoCharacteristics(
-                pBih->biCompression, pBih->biBitCount,
-                pBih->biWidth, pBih->biHeight, framesPer1000Second);
+            if (Enum.IsDefined(typeof(PixelFormats), pBih->biCompression))
+            {
+                return new VideoCharacteristics(
+                    pBih->biCompression, pBih->biBitCount,
+                    pBih->biWidth, pBih->biHeight, framesPer1000Second);
+            }
+            else
+            {
+                return null;
+            }
         }
     }
 }

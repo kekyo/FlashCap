@@ -9,6 +9,7 @@
 
 using FlashCap.Internal;
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace FlashCap.Devices
@@ -38,9 +39,47 @@ namespace FlashCap.Devices
             this.callback = this.CallbackEntry;
 
             NativeMethods_VideoForWindows.capSetCallbackFrame(this.handle, this.callback);
-            NativeMethods_VideoForWindows.capGetVideoFormat(this.handle, out this.pBih);
 
-            this.Characteristics = characteristics;
+            // Try to set fps, but VFW API may cause ignoring it silently...
+            NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out var cp);
+            cp.dwRequestMicroSecPerFrame = (int)(1_000_000_000.0 / characteristics.FramesPer1000Second);
+            NativeMethods_VideoForWindows.capCaptureSetSetup(handle, cp);
+            NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out cp);
+
+            var pih = Marshal.AllocCoTaskMem(sizeof(NativeMethods.RAW_BITMAPINFOHEADER));
+            try
+            {
+                var pBih = (NativeMethods.RAW_BITMAPINFOHEADER*)pih.ToPointer();
+
+                pBih->biSize = sizeof(NativeMethods.RAW_BITMAPINFOHEADER);
+                pBih->biCompression = characteristics.PixelFormat;
+                pBih->biPlanes = 1;
+                pBih->biBitCount = (short)characteristics.BitsPerPixel;
+                pBih->biWidth = characteristics.Width;
+                pBih->biHeight = characteristics.Height;
+                pBih->biSizeImage = pBih->CalculateImageSize();
+
+                if (!NativeMethods_VideoForWindows.capSetVideoFormat(handle, pih))
+                {
+                    Trace.WriteLine("FlashCap: Couldn't set bitmap format to VFW device.");
+                }
+            }
+            finally
+            {
+                Marshal.FreeCoTaskMem(pih);
+            }
+
+            NativeMethods_VideoForWindows.capGetVideoFormat(handle, out this.pBih);
+
+            if (NativeMethods.CreateVideoCharacteristics(
+                this.pBih, (int)(1_000_000_000.0 / cp.dwRequestMicroSecPerFrame)) is { } vc)
+            {
+                this.Characteristics = vc;
+            }
+            else
+            {
+                throw new InvalidOperationException("Couldn't set bitmap format to VFW device.");
+            }
         }
 
         ~VideoForWindowsDevice()

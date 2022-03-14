@@ -37,7 +37,7 @@ namespace FlashCap.Devices
                                             pin : null).
                                     SelectMany(pin =>
                                         pin.EnumerateFormats().
-                                        Select(format => NativeMethods.CreateVideoCharacteristics(
+                                        Collect(format => NativeMethods.CreateVideoCharacteristics(
                                             format.BitmapInfoHeader,
                                             (int)(10_000_000_000.0 / format.VideoInformation.AvgTimePerFrame)))).
                                     Distinct().

@@ -18,7 +18,7 @@ namespace FlashCap.Devices
 {
     public sealed class VideoForWindowsDevices : ICaptureDevices
     {
-        private static unsafe VideoCharacteristics GetCharacteristics(int index)
+        private static unsafe VideoCharacteristics? GetCharacteristics(int index)
         {
             var handle = NativeMethods_VideoForWindows.CreateVideoSourceWindow(index);
             try
@@ -68,9 +68,7 @@ namespace FlashCap.Devices
                         index,
                         string.IsNullOrEmpty(n) ? "Default" : n,
                         string.IsNullOrEmpty(d) ? "VideoForWindows default" : d,
-                        new[] {
-                            GetCharacteristics(index),
-                        });
+                        new[] { new VideoCharacteristics(PixelFormats.MJPG, 0, 640, 480, 15000) });
                 }
                 else
                 {
