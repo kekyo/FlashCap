@@ -34,12 +34,6 @@ namespace FlashCap.Devices
 
             NativeMethods_VideoForWindows.capDriverConnect(this.handle, this.identity);
 
-            // https://stackoverflow.com/questions/4097235/is-it-necessary-to-gchandle-alloc-each-callback-in-a-class
-            this.pin = GCHandle.Alloc(this, GCHandleType.Normal);
-            this.callback = this.CallbackEntry;
-
-            NativeMethods_VideoForWindows.capSetCallbackFrame(this.handle, this.callback);
-
             // Try to set fps, but VFW API may cause ignoring it silently...
             NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out var cp);
             cp.dwRequestMicroSecPerFrame = (int)(1_000_000_000.0 / characteristics.FramesPer1000Second);
@@ -80,6 +74,12 @@ namespace FlashCap.Devices
             {
                 throw new InvalidOperationException("Couldn't set bitmap format to VFW device.");
             }
+
+            // https://stackoverflow.com/questions/4097235/is-it-necessary-to-gchandle-alloc-each-callback-in-a-class
+            this.pin = GCHandle.Alloc(this, GCHandleType.Normal);
+            this.callback = this.CallbackEntry;
+
+            NativeMethods_VideoForWindows.capSetCallbackFrame(this.handle, this.callback);
         }
 
         ~VideoForWindowsDevice()
@@ -119,7 +119,7 @@ namespace FlashCap.Devices
         public void Start()
         {
             NativeMethods_VideoForWindows.capSetPreviewScale(this.handle, false);
-            NativeMethods_VideoForWindows.capSetPreviewFPS(this.handle, 60);
+            NativeMethods_VideoForWindows.capSetPreviewFPS(this.handle, 30);
             NativeMethods_VideoForWindows.capShowPreview(this.handle, true);
         }
 

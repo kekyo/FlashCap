@@ -25,6 +25,7 @@ namespace FlashCap.Internal
         public const int WS_VISIBLE = 0x10000000;
         public const int WS_EX_TOOLWINDOW = 0x00000080;
         public const int WS_EX_TRANSPARENT = 0x00000020;
+        public const int WS_EX_LAYERED = 0x00080000;
 
         public const int GWL_STYLE = -16;
         public const int GWL_EXSTYLE = -20;
@@ -217,14 +218,25 @@ namespace FlashCap.Internal
         public static void capDlgVideoCompression(IntPtr hWnd) =>
             SendMessage(hWnd, WM_CAP_DLG_VIDEOCOMPRESSION, IntPtr.Zero, IntPtr.Zero);
 
+        [Flags]
+        public enum LayeredWindowFlags
+        {
+            LWA_ALPHA = 0x00000002,
+            LWA_COLORKEY = 0x00000001,
+        }
+
+        [DllImport("user32")]
+        private static extern bool SetLayeredWindowAttributes(
+            IntPtr hwnd, uint crKey, byte bAlpha, LayeredWindowFlags dwFlags);
+
         public static IntPtr CreateVideoSourceWindow(int index)
         {
             // HACK: VFW couldn't operate without any attached window resources.
             //   * It's hider for moving outsite of desktop.
-            //   * And will make up transparent tool window.
+            //   * And will make up transparent tool window with tiny opaque value.
             var handle = capCreateCaptureWindow(
                 $"FlashCap_{index}", WS_POPUPWINDOW,
-                -100, -100, 10, 10, IntPtr.Zero, 0);
+                0, 0, 100, 100, IntPtr.Zero, 0);
             if (handle == IntPtr.Zero)
             {
                 var code = Marshal.GetLastWin32Error();
@@ -234,7 +246,9 @@ namespace FlashCap.Internal
             var extyles = GetWindowLong(
                 handle, GWL_EXSTYLE);
             SetWindowLong(
-                handle, GWL_EXSTYLE, extyles | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT);
+                handle, GWL_EXSTYLE, extyles | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT);
+            SetLayeredWindowAttributes(
+                handle, 0, 1, LayeredWindowFlags.LWA_ALPHA);
 
             return handle;
         }
