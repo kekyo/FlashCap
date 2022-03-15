@@ -228,6 +228,8 @@ namespace FlashCap.Devices
             throw new NotImplementedException();
 
         public void Capture(FrameArrivedEventArgs e, PixelBuffer buffer) =>
-            buffer.CopyIn(this.pBih, e.Data, e.Size, this.transcodeIfYUV);
+            buffer.CopyIn(
+                this.pBih, e.pData, e.size,
+                e.timestampMilliseconds, this.transcodeIfYUV);
     }
 }

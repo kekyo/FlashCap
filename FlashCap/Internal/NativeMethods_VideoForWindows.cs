@@ -53,6 +53,10 @@ namespace FlashCap.Internal
         public static extern int SetWindowLong(
             IntPtr hWnd, int nIndex, int dwNewLong);
 
+        [DllImport("user32")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool WaitMessage();
+
         ////////////////////////////////////////////////////////////////////////
 
         [DllImport("avicap32", EntryPoint = "capCreateCaptureWindowW", CharSet = CharSet.Unicode)]
@@ -137,9 +141,11 @@ namespace FlashCap.Internal
         public static void capDriverDisconnect(IntPtr hWnd, int nDevice) =>
             SendMessage(hWnd, WM_CAP_DRIVER_DISCONNECT, (IntPtr)nDevice, IntPtr.Zero);
 
+        public static void capSetOverlay(IntPtr hWnd, bool enable) =>
+            SendMessage(hWnd, WM_CAP_SET_OVERLAY, (IntPtr)(enable ? 1 : 0), IntPtr.Zero);
+
         public static void capShowPreview(IntPtr hWnd, bool isShow)
         {
-            SendMessage(hWnd, WM_CAP_SET_OVERLAY, (IntPtr)1, IntPtr.Zero);
             SendMessage(hWnd, WM_CAP_SET_PREVIEW, (IntPtr)(isShow ? 1 : 0), IntPtr.Zero);
             ShowWindow(hWnd, isShow ? SW_SHOWNORMAL : SW_HIDE);
         }
@@ -155,7 +161,7 @@ namespace FlashCap.Internal
         public static unsafe bool capSetVideoFormat(
             IntPtr hWnd, IntPtr pBih)
         {
-            var pRawBih = (NativeMethods.RAW_BITMAPINFOHEADER*)pBih.ToPointer();
+            var pRawBih = (NativeMethods.BITMAPINFOHEADER*)pBih.ToPointer();
             var result = SendMessage(
                 hWnd,
                 WM_CAP_SET_VIDEOFORMAT,

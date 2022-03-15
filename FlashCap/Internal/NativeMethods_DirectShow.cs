@@ -765,12 +765,12 @@ namespace FlashCap.Internal
                     if (mediaType.formattype == FORMAT_VideoInfo &&
                         mediaType.formatSize >=
                         (sizeof(NativeMethods.VIDEOINFOHEADER) +
-                         sizeof(NativeMethods.RAW_BITMAPINFOHEADER)))
+                         sizeof(NativeMethods.BITMAPINFOHEADER)))
                     {
                         var pVih = (NativeMethods.VIDEOINFOHEADER*)mediaType.pFormat.ToPointer();
                         vih = *pVih;
 
-                        var pBih = (NativeMethods.RAW_BITMAPINFOHEADER*)(pVih + 1);
+                        var pBih = (NativeMethods.BITMAPINFOHEADER*)(pVih + 1);
                         pBihResult = Marshal.AllocCoTaskMem(pBih->biSize);
                         NativeMethods.CopyMemory(pBihResult, (IntPtr)pBih, (IntPtr)pBih->biSize);
 
@@ -779,13 +779,13 @@ namespace FlashCap.Internal
                     if (mediaType.formattype == FORMAT_VideoInfo2 &&
                         mediaType.formatSize >=
                         (sizeof(NativeMethods.VIDEOINFOHEADER2) +
-                         sizeof(NativeMethods.RAW_BITMAPINFOHEADER)))
+                         sizeof(NativeMethods.BITMAPINFOHEADER)))
                     {
                         var pVih = (NativeMethods.VIDEOINFOHEADER*)mediaType.pFormat.ToPointer();
                         vih = *pVih;
 
                         var pVih2 = (NativeMethods.VIDEOINFOHEADER2*)mediaType.pFormat.ToPointer();
-                        var pBih = (NativeMethods.RAW_BITMAPINFOHEADER*)(pVih2 + 1);
+                        var pBih = (NativeMethods.BITMAPINFOHEADER*)(pVih2 + 1);
                         pBihResult = Marshal.AllocCoTaskMem(pBih->biSize);
                         NativeMethods.CopyMemory(pBihResult, (IntPtr)pBih, (IntPtr)pBih->biSize);
 

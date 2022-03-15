@@ -130,15 +130,22 @@ namespace FlashCap.Internal
         [SuppressUnmanagedCodeSecurity]
         private static unsafe int CalculateRawSize(
             PixelFormats pixelFormat, short biPlanes, short biBitCount) =>
-            sizeof(RAW_BITMAPINFOHEADER) +
+            sizeof(BITMAPINFOHEADER) +
             CalculateClrUsed(pixelFormat, biPlanes, biBitCount) * sizeof(RGBQUAD);
 
         private static unsafe int CalculateImageSize(
+            PixelFormats pixelFormat,
             int biWidth, int biHeight, short biPlanes, short biBitCount) =>
-            ((biWidth * GetClrBits(biPlanes, biBitCount) + 31) & ~31) / 8 * biHeight;
+            pixelFormat switch
+            {
+                PixelFormats.JPEG => 0,
+                PixelFormats.PNG => 0,
+                PixelFormats.MJPG => 0,
+                _ => ((biWidth * GetClrBits(biPlanes, biBitCount) + 31) & ~31) / 8 * biHeight,
+            };
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct RAW_BITMAPINFOHEADER
+        public struct BITMAPINFOHEADER
         {
             public int biSize;
             public int biWidth;
@@ -159,126 +166,13 @@ namespace FlashCap.Internal
             public int CalculateRawSize() =>
                 NativeMethods.CalculateRawSize(this.biCompression, this.biPlanes, this.biBitCount);
             public int CalculateImageSize() =>
-                NativeMethods.CalculateImageSize(this.biWidth, this.biHeight, this.biPlanes, this.biBitCount);
-        }
-
-        public struct BITMAPINFOHEADER
-        {
-            public int biWidth;
-            public int biHeight;
-            public short biPlanes;
-            public short biBitCount;
-            public PixelFormats biCompression;
-            public RGBQUAD[]? bmiColors;
-
-            // https://docs.microsoft.com/en-us/windows/win32/gdi/storing-an-image
-
-            public int GetClrBits() =>
-                NativeMethods.GetClrBits(this.biPlanes, this.biBitCount);
-            public int CalculateClrUsed() =>
-                NativeMethods.CalculateClrUsed(this.biCompression, this.biPlanes, this.biBitCount);
-            public int CalculateRawSize() =>
-                NativeMethods.CalculateRawSize(this.biCompression, this.biPlanes, this.biBitCount);
-            public int CalculateImageSize() =>
-                NativeMethods.CalculateImageSize(this.biWidth, this.biHeight, this.biPlanes, this.biBitCount);
-
-            public unsafe RAW_BITMAPINFOHEADER* ToNative()
-            {
-                var biClrUsed = this.CalculateClrUsed();
-
-                if (biClrUsed != (this.bmiColors?.Length ?? 0))
-                {
-                    throw new ArgumentException(
-                        $"Invalid BITMAPINFOHEADER format: biClrUsed: {biClrUsed} != {this.bmiColors?.Length ?? 0}");
-                }
-
-                var biSize = this.CalculateRawSize();
-                var pBih = Marshal.AllocCoTaskMem(biSize);
-
-                var pBihRaw = (RAW_BITMAPINFOHEADER*)pBih;
-                pBihRaw->biSize = biSize;
-                pBihRaw->biWidth = this.biWidth;
-                pBihRaw->biHeight = this.biHeight;
-                pBihRaw->biPlanes = this.biPlanes;
-                pBihRaw->biBitCount = this.biBitCount;
-                pBihRaw->biCompression = this.biCompression;
-                pBihRaw->biSizeImage = this.CalculateImageSize();
-                pBihRaw->biXPelsPerMeter = 0;
-                pBihRaw->biYPelsPerMeter = 0;
-                pBihRaw->biClrUsed = this.bmiColors?.Length ?? 0;
-                pBihRaw->biClrImportant = 0;
-
-                if (pBihRaw->biClrUsed >= 1)
-                {
-                    fixed (RGBQUAD* pColor = this.bmiColors)
-                    {
-                        CopyMemory(
-                            (IntPtr)(pBihRaw + 1),
-                            (IntPtr)pColor,
-                            (IntPtr)(biClrUsed * sizeof(RGBQUAD)));
-                    }
-                }
-
-                return pBihRaw;
-            }
-
-            public static unsafe BITMAPINFOHEADER ToManaged(IntPtr p)
-            {
-                var pRawBih = (RAW_BITMAPINFOHEADER*)p.ToPointer();
-
-                if (pRawBih->biSize < sizeof(RAW_BITMAPINFOHEADER))
-                {
-                    throw new ArgumentException(
-                        $"Invalid BITMAPINFOHEADER format: biSize: {pRawBih->biSize} < {sizeof(RAW_BITMAPINFOHEADER)}");
-                }
-
-                var biSize = pRawBih->CalculateRawSize();
-                if (pRawBih->biSize != biSize)
-                {
-                    throw new ArgumentException(
-                        $"Invalid BITMAPINFOHEADER format: biSize: {biSize} != {pRawBih->biSize}");
-                }
-
-                var biClrUsed = pRawBih->CalculateClrUsed();
-                if (biClrUsed != pRawBih->biClrUsed)
-                {
-                    throw new ArgumentException(
-                        $"Invalid BITMAPINFOHEADER format: biClrUsed: {biClrUsed} != {pRawBih->biClrUsed}");
-                }
-
-                var biSizeImage = pRawBih->CalculateImageSize();
-                if (biSizeImage != pRawBih->biSizeImage)
-                {
-                    throw new ArgumentException(
-                        $"Invalid BITMAPINFOHEADER format: biSizeImage: {biSizeImage} != {pRawBih->biSizeImage}");
-                }
-
-                var bih = new BITMAPINFOHEADER();
-                bih.biWidth = pRawBih->biWidth;
-                bih.biHeight = pRawBih->biHeight;
-                bih.biPlanes = pRawBih->biPlanes;
-                bih.biBitCount = pRawBih->biBitCount;
-                bih.biCompression = pRawBih->biCompression;
-
-                bih.bmiColors = new RGBQUAD[biClrUsed];
-
-                if (biClrUsed >= 1)
-                {
-                    fixed (RGBQUAD* pColor = bih.bmiColors)
-                    {
-                        CopyMemory(
-                            (IntPtr)pColor,
-                            (IntPtr)(pRawBih + 1),
-                            (IntPtr)(biClrUsed * sizeof(RGBQUAD)));
-                    }
-                }
-
-                return bih;
-            }
+                NativeMethods.CalculateImageSize(
+                    this.biCompression, this.biWidth, this.biHeight,
+                    this.biPlanes, this.biBitCount);
         }
 
         [StructLayout(LayoutKind.Sequential, Pack=2)]
-        public struct RAW_BITMAPFILEHEADER
+        public struct BITMAPFILEHEADER
         {
             public byte bfType0;
             public byte bfType1;
@@ -333,7 +227,7 @@ namespace FlashCap.Internal
         public static unsafe VideoCharacteristics? CreateVideoCharacteristics(
             IntPtr pih, int framesPer1000Second)
         {
-            var pBih = (RAW_BITMAPINFOHEADER*)pih.ToPointer();
+            var pBih = (BITMAPINFOHEADER*)pih.ToPointer();
             if (Enum.IsDefined(typeof(PixelFormats), pBih->biCompression))
             {
                 return new VideoCharacteristics(

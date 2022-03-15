@@ -13,21 +13,22 @@ namespace FlashCap
 {
     public sealed class FrameArrivedEventArgs : EventArgs
     {
-        private double timestampMilliseconds;
-        private IntPtr pData;
-        private int size;
+        internal double timestampMilliseconds;
+        internal IntPtr pData;
+        internal int size;
 
         internal FrameArrivedEventArgs()
         {
         }
 
-        public FrameArrivedEventArgs(IntPtr pData, int size, double timestampMilliseconds)
+        public FrameArrivedEventArgs(IntPtr pData, int size, TimeSpan timestamp)
         {
             this.pData = pData;
             this.size = size;
-            this.timestampMilliseconds = timestampMilliseconds;
+            this.timestampMilliseconds = timestamp.TotalMilliseconds;
         }
 
+        // HACK: Zero allocation backdoor.
         internal void Update(IntPtr pData, int size, double timestampMilliseconds)
         {
             this.pData = pData;
