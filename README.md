@@ -307,6 +307,12 @@ Apache-v2.
 
 ## History
 
+* 0.4.0:
+  * Implemented using DirectShow API (But still working progress, this version is disabled. Wait next release.)
+  * Improved buffer handling.
+  * Eliminated allocation at frame arrived event.
+  * Fixed invalid transcoded data when arrived image is jpeg/mjpeg.
+  * Fixed didn't invoke frame arrived event when VFW hosted window is truly outside of desktop area.
 * 0.3.0:
   * Implemented central device enumeration.
   * Add supporting device characteristics enumeration.
