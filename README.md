@@ -22,10 +22,12 @@ FlashCap - Independent camera capture library.
 
 ## What is this?
 
-This is a simple camera image capture library.
-By specializing only image capture, it is simple and has no any other library dependencies, [see NuGet summary page.](https://www.nuget.org/packages/FlashCap)
+Do you need to get camera capturing ability on .NET?
 
-.NET platforms supported are as follows:
+This is a camera image capture library by specializing only capturing image data.
+It has simple API, easy to use, simple architecture and has no any other library dependencies, [see NuGet summary page.](https://www.nuget.org/packages/FlashCap)
+
+.NET platforms supported are as follows (almost all!):
 
 * .NET 6, 5 (net6.0, net5.0)
 * .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (netcoreapp3.1 and etc)
@@ -34,11 +36,14 @@ By specializing only image capture, it is simple and has no any other library de
 
 Platforms on which camera devices can be used:
 
-* Windows (around Video For Windows API)
+* Windows (Video for Windows API)
+
+WIP:
+
+* Windows (DirectShow API)
 
 TODO:
 
-* Windows (DirectShow API)
 * Linux (V2L2 API)
 
 ---
@@ -68,7 +73,7 @@ foreach (var descriptor in devices.EnumerateDescriptors())
 }
 ```
 
-Then, do capture:
+Then, capture it:
 
 ```csharp
 // Open a device with a video characteristics:
@@ -86,12 +91,12 @@ device.FrameArrived += (s, e) =>
     // Capture a frame into pixel buffer:
     device.Capture(e, buffer);
 
-    // Get image container:
+    // Get image data binary:
     byte[] image = buffer.ExtractImage();
 
     // Anything use it:
     var ms = new MemoryStream(image);
-    var bitmap = Bitmap.FromStream(ms);
+    var bitmap = System.Drawing.Image.FromStream(ms);
 
     // ...
 };
@@ -116,7 +121,7 @@ TODO:
 
 ---
 
-## Advanced: About pixel buffer
+## Advanced topic: Master pixel buffer
 
 Pixel buffer (`PixelBuffer` class) is controlled about
 image data allocation and buffering.
@@ -131,25 +136,28 @@ can be performed in a separate thread.
 This method minimizes the cost of frame arrival events and avoids frame dropping.
 
 There is one more important feature that is relevant.
-When calling `ExtractImage`, it automatically converts from unique image format
+When calling `ExtractImage`, it automatically transcodes from unique image format
 used by the imaging device to `RGB DIB` format.
 
 For example, many image capture devices return frame data in
-formats such as `YUY2` or `UYVY`, but these formats are not common.
+"YUV" formats such as `YUY2` or `UYVY`, but these formats are not common.
 
-The conversion code is multi-threaded for fast conversion.
+The transcoder is faster with multi-threaded.
 However, in order to offload as much as possible,
-the conversion is performed when the `PixelBuffer.ExtractImage` method is called.
+the transcoder is performed when the `PixelBuffer.ExtractImage` method is called.
 
 Therefore, the following method is recommended:
 
-1. `device.Capture(e, buffer)` is handled in the `FrameArrived` event.
-2. When the image is actually needed, use `buffer.ExtractImage` to extract the image data.
-This operation can be performed in a separate thread.
+1. `device.Capture(e, buffer)` is (only) handled when the `FrameArrived` event.
+2. When the image data is actually needed, use `buffer.ExtractImage` to extract the image data.
+This operation can be offloaded in a separate thread.
 
 ### Enable queuing
 
 This is illustrated for it strategy:
+
+* These sample code contains using [SkiaSharp](https://github.com/mono/SkiaSharp).
+  Because it is faster and not needed to assume any thread context difficulty.
 
 ```csharp
 using System.Collections.Concurrent;
@@ -175,18 +183,18 @@ Task.Run(() =>
 {
     foreach (var buffer in queue.GetConsumingEnumerable())
     {
-        // Get image container:
+        // Get image data binary:
         byte[] image = buffer.ExtractImage();
 
         // Decode by SkiaSharp:
-        var bitmap = SKBitmap.Decode(image);
+        var bitmap = SkiaSharp.SKBitmap.Decode(image);
 
         // (Anything use of it...)
     }
 });
 ```
 
-### More optimization
+### Reuse pixel buffers
 
 We can reuse `PixelBuffer` instance when it is not needed.
 These code completes reusing:
@@ -199,7 +207,7 @@ var queue = new BlockingCollection<PixelBuffer>();
 // Hook frame arrived event:
 device.FrameArrived += (s, e) =>
 {
-    // Try despence a pixel buffer:
+    // Try dispence a pixel buffer:
     if (!reserver.TryPop(out var buffer))
     {
         // If empty, create now:
@@ -218,20 +226,46 @@ Task.Run(() =>
 {
     foreach (var buffer in queue.GetConsumingEnumerable())
     {
-        // Get image container:
-        byte[] image = buffer.ExtractImage();
+        // Get image data binary with copy:
+        byte[] image = buffer.CopyImage();  // Need to copy.
 
         // Now, the pixel buffer isn't needed.
         // So we can push it into reserver.
         reserver.Push(buffer);
 
         // Decode by SkiaSharp:
-        var bitmap = SKBitmap.Decode(image);
+        var bitmap = SkiaSharp.SKBitmap.Decode(image);
 
         // (Anything use of it...)
     }
 });
 ```
+
+### Decode with multiple worker threads
+
+Furthermore, it is possible to consider offloading
+with multiple worker threads each scattering pixel buffers:
+
+```csharp
+// Scattering each pixel buffers.
+Parallel.ForEach(
+    queue.GetConsumingEnumerable(),
+    buffer =>
+    {
+        byte[] image = buffer.CopyImage();  // Need to copy.
+        reserver.Push(buffer);
+        var bitmap = SkiaSharp.SKBitmap.Decode(image);
+
+        // (Anything use of it...)
+    });
+```
+
+### Zero-copy when applicable
+
+Another topic, `PixelBuffer.ReferImage()` method will return `ArraySegment<byte>`.
+We can use it zero-copy referring image data (when transcode is not applicable).
+
+**Caution**: The resulting array segment is valid until the next `Capture()` is executed.
 
 ---
 

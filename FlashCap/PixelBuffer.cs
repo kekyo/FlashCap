@@ -16,7 +16,9 @@ namespace FlashCap
     public sealed class PixelBuffer
     {
         private byte[]? imageContainer;
+        private int imageContainerSize;
         private byte[]? transcodedImageContainer = null;
+        private bool isValidTranscodedImage;
         private double timestampMilliseconds;
         private bool transcodeIfYUV;
 
@@ -40,11 +42,15 @@ namespace FlashCap
             lock (this)
             {
                 if (this.imageContainer == null ||
-                    this.imageContainer.Length != totalSize)
+                    this.imageContainer.Length < totalSize)
                 {
+                    Debug.WriteLine($"Allocated: CurrentSize={this.imageContainer?.Length ?? 0}, Size={totalSize}");
+
                     this.imageContainer = new byte[totalSize];
-                    this.transcodedImageContainer = null;
                 }
+
+                this.imageContainerSize = totalSize;
+                this.isValidTranscodedImage = false;
 
                 fixed (byte* pImageContainer = this.imageContainer!)
                 {
@@ -91,7 +97,14 @@ namespace FlashCap
         public TimeSpan Timestamp =>
             TimeSpan.FromMilliseconds(this.timestampMilliseconds);
 
-        public unsafe byte[] ExtractImage()
+        private enum BufferStrategies
+        {
+            ForceCopy,
+            CopyWhenDifferentSizeOrReuse,
+            ForceReuse,
+        }
+
+        private unsafe ArraySegment<byte> InternalExtractImage(BufferStrategies strategy)
         {
             lock (this)
             {
@@ -102,6 +115,20 @@ namespace FlashCap
 
                 if (this.transcodeIfYUV)
                 {
+                    if (this.isValidTranscodedImage && this.transcodedImageContainer != null)
+                    {
+                        if (strategy == BufferStrategies.ForceReuse)
+                        {
+                            return new ArraySegment<byte>(this.transcodedImageContainer);
+                        }
+                        else
+                        {
+                            var copied1 = new byte[this.transcodedImageContainer.Length];
+                            Array.Copy(this.transcodedImageContainer, copied1, copied1.Length);
+                            return new ArraySegment<byte>(copied1);
+                        }
+                    }
+
                     fixed (byte* pImageContainer = this.imageContainer)
                     {
                         var pBfh = (NativeMethods.BITMAPFILEHEADER*)pImageContainer;
@@ -156,13 +183,49 @@ namespace FlashCap
 #endif
                             }
 
-                            return this.transcodedImageContainer!;
+                            if (strategy == BufferStrategies.ForceReuse)
+                            {
+                                this.isValidTranscodedImage = true;
+                                return new ArraySegment<byte>(this.transcodedImageContainer);
+                            }
+                            else
+                            {
+                                var copied1 = this.transcodedImageContainer;
+                                this.transcodedImageContainer = null;
+                                return new ArraySegment<byte>(copied1);
+                            }
                         }
                     }
                 }
 
-                return this.imageContainer;
+                switch (strategy)
+                {
+                    case BufferStrategies.ForceReuse:
+                        return new ArraySegment<byte>(this.imageContainer, 0, this.imageContainerSize);
+                    case BufferStrategies.CopyWhenDifferentSizeOrReuse:
+                        if (this.imageContainer.Length == this.imageContainerSize)
+                        {
+                            return new ArraySegment<byte>(this.imageContainer);
+                        }
+                        break;
+                }
+
+                var copied = new byte[this.imageContainerSize];
+                Array.Copy(this.imageContainer, copied, copied.Length);
+
+                Debug.WriteLine($"Copied: CurrentSize={this.imageContainer.Length}, Size={this.imageContainerSize}");
+
+                return new ArraySegment<byte>(copied);
             }
         }
+
+        public byte[] ExtractImage() =>
+            this.InternalExtractImage(BufferStrategies.CopyWhenDifferentSizeOrReuse).Array!;
+
+        public byte[] CopyImage() =>
+            this.InternalExtractImage(BufferStrategies.ForceCopy).Array!;
+
+        public ArraySegment<byte> ReferImage() =>
+            this.InternalExtractImage(BufferStrategies.ForceReuse);
     }
 }
