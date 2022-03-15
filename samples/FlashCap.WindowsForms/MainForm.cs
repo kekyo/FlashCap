@@ -57,7 +57,8 @@ namespace FlashCap.WindowsForms
 
                     var image = this.buffer.ExtractImage();
 
-                    var bitmap = Bitmap.FromStream(new MemoryStream(image));
+                    var ms = new MemoryStream(image);
+                    var bitmap = Image.FromStream(ms);
 
                     // HACK: on .NET Core, will be leaked (or delayed GC?)
                     //   updating background image with new Bitmap's.
