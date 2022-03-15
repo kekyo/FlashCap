@@ -7,9 +7,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-using FlashCap.Internal;
-using System.Linq;
-
 namespace FlashCap.Devices
 {
     public sealed class DirectShowDeviceDescriptor : CaptureDeviceDescriptor
@@ -30,26 +27,7 @@ namespace FlashCap.Devices
 
         public override ICaptureDevice Open(
             VideoCharacteristics characteristics,
-            bool transcodeIfYUV = true)
-        {
-            if (NativeMethods_DirectShow.EnumerateDeviceMoniker(
-                NativeMethods_DirectShow.CLSID_VideoInputDeviceCategory).
-                Where(moniker =>
-                    moniker.GetPropertyBag() is { } pb &&
-                    pb.SafeReleaseBlock(pb =>
-                        pb.GetValue("DevicePath", default(string))?.Trim() is { } devicePath &&
-                        devicePath.Equals(this.devicePath))).
-                Collect(moniker =>
-                    moniker.BindToObject(null, null, in NativeMethods_DirectShow.IID_IBaseFilter, out var bf) == 0 ?
-                    bf as NativeMethods_DirectShow.IBaseFilter : null).
-                FirstOrDefault() is { } baseFilter)
-            {
-                baseFilter.SafeReleaseBlock(baseFilter =>
-                {
-                });
-            }
-
-            return null!;
-        }
+            bool transcodeIfYUV = true) =>
+            new DirectShowDevice(this.devicePath, characteristics, transcodeIfYUV);
     }
 }

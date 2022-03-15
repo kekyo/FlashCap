@@ -53,12 +53,12 @@ namespace FlashCap.Internal
                 System.Runtime.InteropServices.ComTypes.IBindCtx? bindContext,
                 IMoniker? makeToLeft,
                 in Guid riidResult,
-                [MarshalAs(UnmanagedType.Interface)] out object result);
+                [MarshalAs(UnmanagedType.Interface)] out object? result);
             [PreserveSig] int BindToStorage(
                 System.Runtime.InteropServices.ComTypes.IBindCtx? bindContext,
                 IMoniker? makeToLeft,
                 in Guid riidResult,
-                [MarshalAs(UnmanagedType.Interface)] out object result);
+                [MarshalAs(UnmanagedType.Interface)] out object? result);
 
             // truncated.
         }
@@ -70,11 +70,11 @@ namespace FlashCap.Internal
         {
             [PreserveSig] int Next(
                 int request,
-                [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex=0)] IMoniker[] monikers,
+                [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex=0)] IMoniker?[] monikers,
                 out int fetched);
             [PreserveSig] int Skip(int count);
             [PreserveSig] int Reset();
-            [PreserveSig] int Clone(out IEnumMoniker enumMoniker);
+            [PreserveSig] int Clone(out IEnumMoniker? enumMoniker);
         }
 
         [SuppressUnmanagedCodeSecurity]
@@ -84,7 +84,7 @@ namespace FlashCap.Internal
         {
             [PreserveSig] int CreateClassEnumerator(
                 in Guid type,
-                out IEnumMoniker enumMoniker,
+                out IEnumMoniker? enumMoniker,
                 uint flags);
         }
 
@@ -126,7 +126,7 @@ namespace FlashCap.Internal
             [PreserveSig] int Run(long tStart);
             [PreserveSig] int GetState(uint milliSecsTimeout, out FILTER_STATE state);
             [PreserveSig] int SetSyncSource(IReferenceClock clock);
-            [PreserveSig] int GetSyncSource(out IReferenceClock clock);
+            [PreserveSig] int GetSyncSource(out IReferenceClock? clock);
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -168,7 +168,7 @@ namespace FlashCap.Internal
                 out int fetched);
             [PreserveSig] int Skip(int count);
             [PreserveSig] int Reset();
-            [PreserveSig] int Clone(out IEnumMediaTypes enumMediaTypes);
+            [PreserveSig] int Clone(out IEnumMediaTypes? enumMediaTypes);
         }
 
         [SuppressUnmanagedCodeSecurity]
@@ -183,15 +183,15 @@ namespace FlashCap.Internal
                 IPin pReceivePin,
                 in AM_MEDIA_TYPE mt);
             [PreserveSig] int Disconnect();
-            [PreserveSig] int ConnectedTo(out IPin pin);
+            [PreserveSig] int ConnectedTo(out IPin? pin);
             [PreserveSig] int ConnectionMediaType(out AM_MEDIA_TYPE mt);
             [PreserveSig] int QueryPinInfo(out PIN_INFO info);
             [PreserveSig] int QueryDirection(out PIN_DIRECTION pinDir);
             [PreserveSig] int QueryId([MarshalAs(UnmanagedType.LPWStr)] out string id);
             [PreserveSig] int QueryAccept(in AM_MEDIA_TYPE mt);
-            [PreserveSig] int EnumMediaTypes(out IEnumMediaTypes enumMediaTypes);
+            [PreserveSig] int EnumMediaTypes(out IEnumMediaTypes? enumMediaTypes);
             [PreserveSig] int QueryInternalConnections(
-                [MarshalAs(UnmanagedType.LPArray, SizeParamIndex=1)] out IPin[] pins,
+                [MarshalAs(UnmanagedType.LPArray, SizeParamIndex=1)] out IPin?[] pins,
                 ref int pin);
             [PreserveSig] int EndOfStream();
             [PreserveSig] int BeginFlush();
@@ -209,11 +209,11 @@ namespace FlashCap.Internal
         {
             [PreserveSig] int Next(
                 int request,
-                [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex=0)] IPin[] pins,
+                [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex=0)] IPin?[] pins,
                 out int fetched);
             [PreserveSig] int Skip(int count);
             [PreserveSig] int Reset();
-            [PreserveSig] int Clone(out IEnumPins enumPins);
+            [PreserveSig] int Clone(out IEnumPins? enumPins);
         }
 
         [SuppressUnmanagedCodeSecurity]
@@ -223,11 +223,11 @@ namespace FlashCap.Internal
         {
             [PreserveSig] int Next(
                 int request,
-                [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex=0)] IPin[] filters,
+                [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex=0)] IPin?[] filters,
                 out int fetched);
             [PreserveSig] int Skip(int count);
             [PreserveSig] int Reset();
-            [PreserveSig] int Clone(out IEnumPins enumPins);
+            [PreserveSig] int Clone(out IEnumPins? enumPins);
         }
 
         [SuppressUnmanagedCodeSecurity]
@@ -239,10 +239,10 @@ namespace FlashCap.Internal
                 IBaseFilter filter,
                 [MarshalAs(UnmanagedType.LPWStr)] string name);
             [PreserveSig] int RemoveFilter(IBaseFilter filter);
-            [PreserveSig] int EnumFilters(out IEnumFilters ppEnum);
+            [PreserveSig] int EnumFilters(out IEnumFilters? ppEnum);
             [PreserveSig] int FindFilterByName(
                 [MarshalAs(UnmanagedType.LPWStr)] string name,
-                out IBaseFilter filter);
+                out IBaseFilter? filter);
             [PreserveSig] int ConnectDirect(
                 IPin pinOut, IPin pinIn, in AM_MEDIA_TYPE mt);
             [PreserveSig] int Reconnect(IPin pin);
@@ -268,12 +268,12 @@ namespace FlashCap.Internal
             [PreserveSig] new int Run(long tStart);
             [PreserveSig] new int GetState(uint milliSecsTimeout, out FILTER_STATE state);
             [PreserveSig] new int SetSyncSource(IReferenceClock clock);
-            [PreserveSig] new int GetSyncSource(out IReferenceClock clock);
+            [PreserveSig] new int GetSyncSource(out IReferenceClock? clock);
 
-            [PreserveSig] int EnumPins(out IEnumPins enumPins);
+            [PreserveSig] int EnumPins(out IEnumPins? enumPins);
             [PreserveSig] int FindPin(
                 [MarshalAs(UnmanagedType.LPWStr)] string id,
-                out IPin pin);
+                out IPin? pin);
             [PreserveSig] int QueryFilterInfo(out FILTER_INFO info);
             [PreserveSig] int JoinFilterGraph(
                 IFilterGraph graph,
@@ -344,19 +344,199 @@ namespace FlashCap.Internal
                 int index, out IntPtr pMediaType, out VIDEO_STREAM_CONFIG_CAPS scc);
         }
 
+        [SuppressUnmanagedCodeSecurity]
+        [Guid("56a868a9-0ad4-11ce-b03a-0020af0ba770")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        public interface IGraphBuilder : IFilterGraph
+        {
+            [PreserveSig] new int AddFilter(
+                IBaseFilter filter,
+                [MarshalAs(UnmanagedType.LPWStr)] string name);
+            [PreserveSig] new int RemoveFilter(IBaseFilter filter);
+            [PreserveSig] new int EnumFilters(out IEnumFilters? ppEnum);
+            [PreserveSig] new int FindFilterByName(
+                [MarshalAs(UnmanagedType.LPWStr)] string name,
+                out IBaseFilter? filter);
+            [PreserveSig] new int ConnectDirect(
+                IPin pinOut, IPin pinIn, in AM_MEDIA_TYPE mt);
+            [PreserveSig] new int Reconnect(IPin pin);
+            [PreserveSig] new int Disconnect(IPin pin);
+            [PreserveSig] new int SetDefaultSyncSource();
+
+            [PreserveSig] int Connect(
+                IPin pinOut, IPin pinIn);
+            [PreserveSig] int Render(
+                IPin pinOut);
+            [PreserveSig] int RenderFile(
+                [MarshalAs(UnmanagedType.LPWStr)] string strFile,
+                [MarshalAs(UnmanagedType.LPWStr)] string strPlayList);
+            [PreserveSig] int AddSourceFilter(
+                [MarshalAs(UnmanagedType.LPWStr)] string strFileName,
+                [MarshalAs(UnmanagedType.LPWStr)] string strFilterName,
+                out IBaseFilter? filter);
+            [PreserveSig] int SetLogFile(
+                IntPtr hFile);
+            [PreserveSig] int Abort();
+            [PreserveSig] int ShouldOperationContinue();
+        }
+
+        [SuppressUnmanagedCodeSecurity]
+        [Guid("56a8689a-0ad4-11ce-b03a-0020af0ba770")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        public interface IMediaSample
+        {
+            [PreserveSig] int GetPointer(ref IntPtr ppBuffer);
+            [PreserveSig] int GetSize();
+            [PreserveSig] int GetTime(
+                out long timeStart, out long timeEnd);
+            [PreserveSig] int SetTime(
+                in long timeStart, in long timeEnd);
+            [PreserveSig] int IsSyncPoint();
+            [PreserveSig] int SetSyncPoint([MarshalAs(UnmanagedType.Bool)] bool isSyncPoint);
+            [PreserveSig] int IsPreroll();
+            [PreserveSig] int SetPreroll([MarshalAs(UnmanagedType.Bool)] bool isPreroll);
+            [PreserveSig] int GetActualDataLength();
+            [PreserveSig] int SetActualDataLength(int length);
+            [PreserveSig] int GetMediaType(out IntPtr pMediaType);  // AM_MEDIA_TYPE**
+            [PreserveSig] int SetMediaType(in AM_MEDIA_TYPE mediaType);
+            [PreserveSig] int IsDiscontinuity();
+            [PreserveSig] int SetDiscontinuity([MarshalAs(UnmanagedType.Bool)] bool discontinuity);
+            [PreserveSig] int GetMediaTime(out long pTimeStart, out long pTimeEnd);
+            [PreserveSig] int SetMediaTime(in long timeStart, in long timeEnd);
+        }
+
+        [SuppressUnmanagedCodeSecurity]
+        [Guid("0579154a-2b53-4994-b0d0-e773148eff85")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        public interface ISampleGrabberCB
+        {
+            [PreserveSig] int SampleCB(
+                double sampleTime,
+                IMediaSample sample);
+            [PreserveSig] int BufferCB(
+                double sampleTime,
+                IntPtr pBuffer,
+                int bufferLen);
+        }
+
+        [SuppressUnmanagedCodeSecurity]
+        [Guid("6b652fff-11fe-4fce-92ad-0266b5d7c78f")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        public interface ISampleGrabber : IBaseFilter
+        {
+            [PreserveSig] new int GetClassID(out Guid classID);
+            [PreserveSig] new int Stop();
+            [PreserveSig] new int Pause();
+            [PreserveSig] new int Run(long tStart);
+            [PreserveSig] new int GetState(uint milliSecsTimeout, out FILTER_STATE state);
+            [PreserveSig] new int SetSyncSource(IReferenceClock clock);
+            [PreserveSig] new int GetSyncSource(out IReferenceClock? clock);
+
+            [PreserveSig] int SetOneShot(
+                int oneShot);
+            [PreserveSig] int SetMediaType(
+                in AM_MEDIA_TYPE type);
+            [PreserveSig] int GetConnectedMediaType(
+                out AM_MEDIA_TYPE type);
+            [PreserveSig] int SetBufferSamples(
+                [MarshalAs(UnmanagedType.Bool)] bool bufferThem);
+            [PreserveSig] int GetCurrentBuffer(
+                ref int bufferSize,
+                IntPtr pBuffer);
+            [PreserveSig, Obsolete] int GetCurrentSample(
+                out IMediaSample? sample);
+            [PreserveSig] int SetCallback(
+                ISampleGrabberCB callback,
+                int whichMethodToCallback);
+        }
+
+        [SuppressUnmanagedCodeSecurity]
+        [Guid("93E5A4E0-2D50-11d2-ABFA-00A0C9C6E38D")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        public interface ICaptureGraphBuilder2
+        {
+            [PreserveSig] int SetFiltergraph(
+                IGraphBuilder gb);
+
+            [PreserveSig] int GetFiltergraph(
+                out IGraphBuilder? gb);
+
+            [PreserveSig] int SetOutputFileName(
+                in Guid type,
+                [MarshalAs(UnmanagedType.LPWStr)] string strFile,
+                out IBaseFilter? filter,
+                out object? sink);   // IFileSinkFilter
+
+            [PreserveSig] int FindInterface(
+                in Guid category,
+                in Guid type,
+                IBaseFilter pf,
+                in Guid riid,
+                out object? intf);
+
+            [PreserveSig] int RenderStream(
+                in Guid category,
+                in Guid type,
+                object source,
+                IBaseFilter? compressor,
+                IBaseFilter? renderer);
+
+            [PreserveSig] int ControlStream(
+                in Guid category,
+                in Guid type,
+                IBaseFilter? filter,
+                in long start,
+                in long stop,
+                short startCookie,
+                short stopCookie);
+
+            [PreserveSig] int AllocCapFile(
+                [MarshalAs(UnmanagedType.LPWStr)] string str,
+                long size);
+        
+            [PreserveSig] int CopyCaptureFile(
+                [MarshalAs(UnmanagedType.LPWStr)] string strOld,
+                [MarshalAs(UnmanagedType.LPWStr)] string strNew,
+                int fAllowEscAbort,
+                object? callback);   // IAMCopyCaptureFileProgress
+
+            [PreserveSig] int FindPin(
+                object source,
+                PIN_DIRECTION pindir,
+                in Guid category,
+                in Guid type,
+                [MarshalAs(UnmanagedType.Bool)] bool unconnected,
+                int num,
+                out IPin? pin);
+        }
+
         ////////////////////////////////////////////////////////////////////////
 
         public static readonly Guid CLSID_SystemDeviceEnum =
             new Guid("62BE5D10-60EB-11d0-BD3B-00A0C911CE86");
-        public static readonly Guid IID_ICreateDevEnum =
-            new Guid("29840822-5B84-11D0-BD3B-00A0C911CE86");
-
         public static readonly Guid CLSID_VideoInputDeviceCategory =
             new Guid("860BB310-5D01-11d0-BD3B-00A0C911CE86");
+        public static readonly Guid CLSID_GraphBuilder =
+            new Guid("E436EBB3-524F-11CE-9F53-0020AF0BA770");
+        public static readonly Guid CLSID_SampleGrabber =
+            new Guid("C1F400A0-3F08-11D3-9F0B-006008039E37");
+        public static readonly Guid CLSID_NullRenderer =
+            new Guid("C1F400A4-3F08-11D3-9F0B-006008039E37");
+        public static readonly Guid CLSID_CaptureGraphBuilder2 =
+            new Guid("BF87B6E1-8C27-11d0-B3F0-00AA003761C5");
+
+        public static readonly Guid IID_ICreateDevEnum =
+            new Guid("29840822-5B84-11D0-BD3B-00A0C911CE86");
         public static readonly Guid IID_IBaseFilter =
             new Guid("56a86895-0ad4-11ce-b03a-0020af0ba770");
         public static readonly Guid IID_IPropertyBag =
             new Guid("55272A00-42CB-11CE-8135-00AA004BB851");
+        public static readonly Guid IID_IGraphBuilder =
+            new Guid("56a868a9-0ad4-11ce-b03a-0020af0ba770");
+        public static readonly Guid IID_ISampleGrabber =
+            new Guid("6B652FFF-11FE-4fce-92AD-0266B5D7C78F");
+        public static readonly Guid IID_ICaptureGraphBuilder2 =
+            new Guid("93E5A4E0-2D50-11d2-ABFA-00A0C9C6E38D");
 
         public static readonly Guid FORMAT_VideoInfo =
             new Guid("05589F80-C356-11CE-BF01-00AA0055595A");
@@ -365,6 +545,9 @@ namespace FlashCap.Internal
 
         public static readonly Guid MEDIATYPE_Video =
             new Guid("73646976-0000-0010-8000-00AA00389B71");
+
+        public static readonly Guid PIN_CATEGORY_CAPTURE =
+            new Guid("fb6c4281-0353-11d1-905f-0000c0cc16ba");
 
         ////////////////////////////////////////////////////////////////////////
 
@@ -424,14 +607,16 @@ namespace FlashCap.Internal
                 {
                     if (deviceEnumCreator.CreateClassEnumerator(
                         in deviceCategory,
-                        out var enumMoniker, 0) == 0)
+                        out var enumMoniker, 0) == 0 &&
+                        enumMoniker is { })
                     {
-                        var monikers = new IMoniker[1];
+                        var monikers = new IMoniker?[1];
                         while (enumMoniker.Next(monikers.Length, monikers, out var fetched) == 0 &&
-                            fetched == monikers.Length)
+                            fetched == monikers.Length &&
+                            monikers[0] is { })
                         {
-                            yield return monikers[0];
-                            Marshal.ReleaseComObject(monikers[0]);
+                            yield return monikers[0]!;
+                            Marshal.ReleaseComObject(monikers[0]!);
                         }
                         Marshal.ReleaseComObject(enumMoniker);
                     }
@@ -456,13 +641,15 @@ namespace FlashCap.Internal
         public static IEnumerable<IPin> EnumeratePins(
             this IBaseFilter baseFilter)
         {
-            if (baseFilter.EnumPins(out var enumPins) == 0)
+            if (baseFilter.EnumPins(out var enumPins) == 0 &&
+                enumPins is { })
             {
-                var pins = new IPin[1];
+                var pins = new IPin?[1];
                 while (enumPins.Next(pins.Length, pins, out var fetched) == 0 &&
-                    fetched == pins.Length)
+                    fetched == pins.Length &&
+                    pins[0] is { })
                 {
-                    yield return pins[0];
+                    yield return pins[0]!;
                 }
                 Marshal.ReleaseComObject(enumPins);
             }
@@ -479,7 +666,7 @@ namespace FlashCap.Internal
             public readonly NativeMethods.VIDEOINFOHEADER VideoInformation;
             public readonly VIDEO_STREAM_CONFIG_CAPS Capabilities;
             
-            private IntPtr pBih;
+            private IntPtr pBih_;
 
             public VideoMediaFormat(
                 AM_MEDIA_TYPE mediaType,
@@ -489,7 +676,7 @@ namespace FlashCap.Internal
             {
                 this.MediaType = mediaType;
                 this.VideoInformation = information;
-                this.pBih = pBih;
+                this.pBih_ = pBih;
                 this.Capabilities = capabilities;
             }
 
@@ -498,19 +685,65 @@ namespace FlashCap.Internal
 
             public void Dispose()
             {
-                if (this.pBih != IntPtr.Zero)
+                if (this.pBih_ != IntPtr.Zero)
                 {
-                    Marshal.FreeCoTaskMem(this.pBih);
-                    this.pBih = IntPtr.Zero;
+                    Marshal.FreeCoTaskMem(this.pBih_);
+                    this.pBih_ = IntPtr.Zero;
                 }
             }
 
-            public IntPtr BitmapInfoHeader =>
-                this.pBih;
+            public IntPtr pBih =>
+                this.pBih_;
         }
 
         private static unsafe readonly int videoStreamConfigCapsSize =
             sizeof(VIDEO_STREAM_CONFIG_CAPS);
+
+        public static unsafe bool SetFormat(this IPin pin, VideoMediaFormat format)
+        {
+            if (pin is IAMStreamConfig streamConfig)
+            {
+                // Copy.
+                var mediaType = format.MediaType;
+
+                try
+                {
+                    if (mediaType.formattype == FORMAT_VideoInfo)
+                    {
+                        mediaType.formatSize = sizeof(NativeMethods.VIDEOINFOHEADER);
+                        mediaType.pFormat = Marshal.AllocCoTaskMem(sizeof(NativeMethods.VIDEOINFOHEADER));
+                        var pVih = (NativeMethods.VIDEOINFOHEADER*)mediaType.pFormat;
+                        *pVih = format.VideoInformation;
+                    }
+                    else if (mediaType.formattype == FORMAT_VideoInfo2)
+                    {
+                        mediaType.formatSize = sizeof(NativeMethods.VIDEOINFOHEADER2);
+                        mediaType.pFormat = Marshal.AllocCoTaskMem(sizeof(NativeMethods.VIDEOINFOHEADER2));
+                        var pVih = (NativeMethods.VIDEOINFOHEADER*)mediaType.pFormat;   // VIH2 layout same as VIH
+                        *pVih = format.VideoInformation;
+                    }
+                    else
+                    {
+                        throw new ArgumentException();
+                    }
+
+                    if (streamConfig.SetFormat(in mediaType) == 0)
+                    {
+                        return true;
+                    }
+                }
+                finally
+                {
+                    if (mediaType.pFormat != IntPtr.Zero)
+                    {
+                        Marshal.FreeCoTaskMem(mediaType.pFormat);
+                    }
+                    Marshal.ReleaseComObject(streamConfig);
+                }
+            }
+
+            return false;
+        }
 
         public static IEnumerable<VideoMediaFormat> EnumerateFormats(
             this IPin pin)
@@ -567,39 +800,123 @@ namespace FlashCap.Internal
 
             if (pin is IAMStreamConfig streamConfig)
             {
-                if (streamConfig.GetNumberOfCapabilities(out var count, out var size) == 0 &&
-                    size == videoStreamConfigCapsSize)
+                try
                 {
-                    for (var index = 0; index < count; index++)
+                    if (streamConfig.GetNumberOfCapabilities(out var count, out var size) == 0 &&
+                        size == videoStreamConfigCapsSize)
                     {
-                        if (streamConfig.GetStreamCaps(index, out var pMediaType, out var caps) == 0 &&
-                            pMediaType != IntPtr.Zero)
+                        for (var index = 0; index < count; index++)
                         {
-                            var mediaType = CloneAndRelease(pMediaType);
-                            try
+                            if (streamConfig.GetStreamCaps(index, out var pMediaType, out var caps) == 0 &&
+                                pMediaType != IntPtr.Zero)
                             {
-                                if (Extract(in mediaType, out var vih, out var pBih))
+                                var mediaType = CloneAndRelease(pMediaType);
+                                try
                                 {
-                                    var mt = mediaType;
-                                    mt.pFormat = IntPtr.Zero;
-                                    yield return new VideoMediaFormat(mt, vih, pBih, caps);
+                                    if (Extract(in mediaType, out var vih, out var pBih))
+                                    {
+                                        var mt = mediaType;
+                                        mt.pFormat = IntPtr.Zero;
+                                        yield return new VideoMediaFormat(mt, vih, pBih, caps);
+                                    }
                                 }
-                            }
-                            finally
-                            {
-                                if (mediaType.pUnk != IntPtr.Zero)
+                                finally
                                 {
-                                    Marshal.Release(mediaType.pUnk);
-                                }
-                                if (mediaType.pFormat != IntPtr.Zero)
-                                {
-                                    Marshal.FreeCoTaskMem(mediaType.pFormat);
+                                    if (mediaType.pUnk != IntPtr.Zero)
+                                    {
+                                        Marshal.Release(mediaType.pUnk);
+                                    }
+                                    if (mediaType.pFormat != IntPtr.Zero)
+                                    {
+                                        Marshal.FreeCoTaskMem(mediaType.pFormat);
+                                    }
                                 }
                             }
                         }
                     }
                 }
-                Marshal.ReleaseComObject(streamConfig);
+                finally
+                {
+                    Marshal.ReleaseComObject(streamConfig);
+                }
+            }
+        }
+
+        public static IGraphBuilder CreateGraphBuilder()
+        {
+            if (CoCreateInstance(
+                in CLSID_GraphBuilder,
+                null,
+                CLSCTX.CLSCTX_INPROC_SERVER,
+                in IID_IGraphBuilder,
+                out var gb) == 0 &&
+                gb is IGraphBuilder graphBuilder)
+            {
+                return graphBuilder;
+            }
+            else
+            {
+                throw new InvalidOperationException("FlashCap: Couldn't create graph builder.");
+            }
+        }
+
+        public static ISampleGrabber CreateSampleGrabber()
+        {
+            // OMG, the sample grabber is deplicated.
+            // It isn't removed now, but feel remove in Windows future release...
+            // https://docs.microsoft.com/en-us/windows/win32/directshow/isamplegrabber
+            if (CoCreateInstance(
+                in CLSID_SampleGrabber,
+                null,
+                CLSCTX.CLSCTX_INPROC_SERVER,
+                in IID_ISampleGrabber,
+                out var sg) == 0 &&
+                sg is ISampleGrabber sampleGrabber)
+            {
+                return sampleGrabber;
+            }
+            else
+            {
+                throw new InvalidOperationException("FlashCap: Couldn't create sample grabber.");
+            }
+        }
+
+        public static IBaseFilter CreateNullRenderer()
+        {
+            // OMG, the null renderer is deplicated.
+            // It isn't removed now, but feel remove in Windows future release...
+            // https://docs.microsoft.com/en-us/windows/win32/directshow/null-renderer-filter
+            if (CoCreateInstance(
+                in CLSID_NullRenderer,
+                null,
+                CLSCTX.CLSCTX_INPROC_SERVER,
+                in IID_IBaseFilter,
+                out var nr) == 0 &&
+                nr is IBaseFilter nullRenderer)
+            {
+                return nullRenderer;
+            }
+            else
+            {
+                throw new InvalidOperationException("FlashCap: Couldn't create null renderer.");
+            }
+        }
+
+        public static ICaptureGraphBuilder2 CreateCaptureGraphBuilder()
+        {
+            if (CoCreateInstance(
+                in CLSID_CaptureGraphBuilder2,
+                null,
+                CLSCTX.CLSCTX_INPROC_SERVER,
+                in IID_ICaptureGraphBuilder2,
+                out var cgb) == 0 &&
+                cgb is ICaptureGraphBuilder2 captureGraphBuilder)
+            {
+                return captureGraphBuilder;
+            }
+            else
+            {
+                throw new InvalidOperationException("FlashCap: Couldn't create capture graph builder.");
             }
         }
     }

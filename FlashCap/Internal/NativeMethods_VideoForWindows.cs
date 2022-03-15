@@ -119,8 +119,8 @@ namespace FlashCap.Internal
         public struct VIDEOHDR
         {
             public IntPtr lpData;
-            public uint dwBufferLength;
-            public uint dwBytesUsed;
+            public int dwBufferLength;
+            public int dwBytesUsed;
             public uint dwTimeCaptured;
             public UIntPtr dwUser;
             public uint dwFlags;

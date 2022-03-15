@@ -8,10 +8,8 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using FlashCap.Internal;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
 
 namespace FlashCap.Devices
@@ -36,14 +34,14 @@ namespace FlashCap.Devices
                         string.IsNullOrEmpty(n) ? "Default" : n,
                         string.IsNullOrEmpty(d) ? "VideoForWindows default" : d,
                         new[] {
-                            new VideoCharacteristics(PixelFormats.YUY2, 16, 640, 480, 30000),
-                            new VideoCharacteristics(PixelFormats.YUY2, 16, 640, 480, 15000),
                             new VideoCharacteristics(PixelFormats.MJPG, 24, 1920, 1080, 30000),
                             new VideoCharacteristics(PixelFormats.MJPG, 24, 1600, 1200, 30000),
                             new VideoCharacteristics(PixelFormats.MJPG, 24, 1280, 960, 30000),
                             new VideoCharacteristics(PixelFormats.MJPG, 24, 1024, 768, 30000),
                             new VideoCharacteristics(PixelFormats.MJPG, 24, 640, 480, 30000),
                             new VideoCharacteristics(PixelFormats.MJPG, 24, 640, 480, 15000),
+                            new VideoCharacteristics(PixelFormats.YUY2, 16, 640, 480, 30000),
+                            new VideoCharacteristics(PixelFormats.YUY2, 16, 640, 480, 15000),
                         });
                 }
                 else

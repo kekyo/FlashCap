@@ -13,16 +13,20 @@ namespace FlashCap
 {
     public sealed class FrameArrivedEventArgs : EventArgs
     {
+        private readonly double timestampMilliseconds;
+
         public readonly IntPtr Data;
         public readonly int Size;
-        public readonly TimeSpan Timestamp;
 
-        public FrameArrivedEventArgs(IntPtr pData, int size, TimeSpan timestamp)
+        public FrameArrivedEventArgs(IntPtr pData, int size, double timestampMilliseconds)
         {
             this.Data = pData;
             this.Size = size;
-            this.Timestamp = timestamp;
+            this.timestampMilliseconds = timestampMilliseconds;
         }
+
+        public TimeSpan Timestamp =>
+            TimeSpan.FromMilliseconds(this.timestampMilliseconds);
     }
 
     public interface ICaptureDevice : IDisposable

@@ -16,23 +16,25 @@ namespace FlashCap.Devices
 {
     public sealed class VideoForWindowsDevice : ICaptureDevice
     {
-        private IntPtr handle;
-        private GCHandle pin;
-        private readonly int identity;
-        private readonly NativeMethods_VideoForWindows.CAPVIDEOCALLBACK callback;
-        private readonly IntPtr pBih;  // RAW_BITMAPINFOHEADER*
+        private readonly int deviceIndex;
         private readonly bool transcodeIfYUV;
 
+        private IntPtr handle;
+        private GCHandle thisPin;
+        private NativeMethods_VideoForWindows.CAPVIDEOCALLBACK? callback;
+        private IntPtr pBih;
+
         internal unsafe VideoForWindowsDevice(
-            IntPtr handle, int identity,
+            int deviceIndex,
             VideoCharacteristics characteristics,
             bool transcodeIfYUV)
         {
-            this.handle = handle;
-            this.identity = identity;
+            this.deviceIndex = deviceIndex;
             this.transcodeIfYUV = transcodeIfYUV;
 
-            NativeMethods_VideoForWindows.capDriverConnect(this.handle, this.identity);
+            this.handle = NativeMethods_VideoForWindows.CreateVideoSourceWindow(deviceIndex);
+
+            NativeMethods_VideoForWindows.capDriverConnect(this.handle, this.deviceIndex);
 
             // Try to set fps, but VFW API may cause ignoring it silently...
             NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out var cp);
@@ -73,19 +75,14 @@ namespace FlashCap.Devices
             }
 
             // https://stackoverflow.com/questions/4097235/is-it-necessary-to-gchandle-alloc-each-callback-in-a-class
-            this.pin = GCHandle.Alloc(this, GCHandleType.Normal);
+            this.thisPin = GCHandle.Alloc(this, GCHandleType.Normal);
             this.callback = this.CallbackEntry;
 
             NativeMethods_VideoForWindows.capSetCallbackFrame(this.handle, this.callback);
         }
 
-        ~VideoForWindowsDevice()
-        {
-            if (this.pin.IsAllocated)
-            {
-                this.Dispose();
-            }
-        }
+        ~VideoForWindowsDevice() =>
+            this.Dispose();
 
         public void Dispose()
         {
@@ -93,11 +90,13 @@ namespace FlashCap.Devices
             {
                 this.Stop();
                 NativeMethods_VideoForWindows.capSetCallbackFrame(this.handle, null);
-                NativeMethods_VideoForWindows.capDriverDisconnect(this.handle, this.identity);
+                NativeMethods_VideoForWindows.capDriverDisconnect(this.handle, this.deviceIndex);
                 NativeMethods_VideoForWindows.DestroyWindow(this.handle);
                 this.handle = IntPtr.Zero;
-                this.pin.Free();
+                this.thisPin.Free();
+                this.callback = null;
                 Marshal.FreeCoTaskMem(this.pBih);
+                this.pBih = IntPtr.Zero;
                 this.FrameArrived = null;
             }
         }
@@ -106,12 +105,23 @@ namespace FlashCap.Devices
 
         public event EventHandler<FrameArrivedEventArgs>? FrameArrived;
 
-        private void CallbackEntry(IntPtr hWnd, in NativeMethods_VideoForWindows.VIDEOHDR hdr) =>
-            this.FrameArrived?.Invoke(
-                this, new FrameArrivedEventArgs(
-                    hdr.lpData,
-                    (int)hdr.dwBytesUsed,
-                    TimeSpan.FromMilliseconds(hdr.dwTimeCaptured)));
+        private void CallbackEntry(IntPtr hWnd, in NativeMethods_VideoForWindows.VIDEOHDR hdr)
+        {
+            if (this.FrameArrived is { } fa)
+            {
+                try
+                {
+                    // TODO: dwTimeCaptured always zero??
+                    fa(this, new FrameArrivedEventArgs(
+                        hdr.lpData, (int)hdr.dwBytesUsed, hdr.dwTimeCaptured));
+                }
+                // DANGER: Stop leaking exception around outside of unmanaged area...
+                catch (Exception ex)
+                {
+                    Trace.WriteLine(ex);
+                }
+            }
+        }
 
         public void Start()
         {
