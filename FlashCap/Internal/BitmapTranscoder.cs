@@ -15,20 +15,17 @@ namespace FlashCap.Internal
 {
     internal static class BitmapTranscoder
     {
-        private static void ParallelRun(int height, int step, Action<int> action)
-        {
-            Parallel.For(0, height / step, ys => action(ys * step));
-        }
-
         // Preffered article: https://docs.microsoft.com/en-us/windows/win32/medfound/recommended-8-bit-yuv-formats-for-video-rendering#420-formats-16-bits-per-pixel
 
         private static unsafe void TranscodeFromUYVY(
             int width, int height, bool performFullRange,
             byte* pFrom, byte* pTo, int scatter)
         {
-            ParallelRun(height, scatter, y =>
+            Parallel.For(0, height / scatter, ys =>
             {
+                var y = ys * scatter;
                 var myi = Math.Min(height - y, scatter);
+
                 for (var yi = 0; yi < myi; yi++)
                 {
                     byte* pFromBase = pFrom + (height - (y + yi) - 1) * width * 2;
@@ -62,9 +59,11 @@ namespace FlashCap.Internal
             int width, int height, bool performFullRange,
             byte* pFrom, byte* pTo, int scatter)
         {
-            ParallelRun(height, scatter, y =>
+            Parallel.For(0, height / scatter, ys =>
             {
+                var y = ys * scatter;
                 var myi = Math.Min(height - y, scatter);
+
                 for (var yi = 0; yi < myi; yi++)
                 {
                     byte* pFromBase = pFrom + (height - (y + yi) - 1) * width * 2;
