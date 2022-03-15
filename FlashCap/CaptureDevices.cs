@@ -21,8 +21,12 @@ namespace FlashCap
             NativeMethods.GetRuntimePlatform() switch
             {
                 NativeMethods.Platforms.Windows =>
+#if true  // TODO:
+                    new VideoForWindowsDevices().EnumerateDescriptors(),
+#else
                     new DirectShowDevices().EnumerateDescriptors().
                     Concat(new VideoForWindowsDevices().EnumerateDescriptors()),
+#endif
                 NativeMethods.Platforms.Linux =>
                     // TODO: V2L2
                     ArrayEx.Empty<CaptureDeviceDescriptor>(),
