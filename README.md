@@ -267,16 +267,7 @@ We can use it dodge copying image data (when transcode is not applicable).
 
 **Caution**: The resulting array segment is valid until the next `Capture()` is executed.
 
-And disable transcoding when become "YUV" format, it performs referring image data absolutely raw:
-
 ```csharp
-// Open device with disable transcoder:
-using var device = descriptor0.Open(
-    descriptor0.Characteristics[0],
-    false);    // transcodeIfYUV == false
-
-// ...
-
 // Perform decode:
 ArraySegment<byte> image = buffer.ReferImage();
 var bitmap = SkiaSharp.SKBitmap.Decode(image);
@@ -285,6 +276,18 @@ var bitmap = SkiaSharp.SKBitmap.Decode(image);
 reserver.Push(buffer);
 
 // (Anything use of it...)
+```
+
+And disable transcoding when become "YUV" format, it performs referring image data absolutely raw.
+(Of course, it is your responsibility to decode the raw data...)
+
+```csharp
+// Open device with disable transcoder:
+using var device = descriptor0.Open(
+    descriptor0.Characteristics[0],
+    false);    // transcodeIfYUV == false
+
+// ...
 ```
 
 ---
