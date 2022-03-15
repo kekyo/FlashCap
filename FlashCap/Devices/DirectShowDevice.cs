@@ -21,6 +21,7 @@ namespace FlashCap.Devices
             NativeMethods_DirectShow.ISampleGrabberCB, IDisposable
         {
             private DirectShowDevice? parent;
+            private FrameArrivedEventArgs? e = new();
 
             public SampleGrabberSink(DirectShowDevice parent) =>
                 this.parent = parent;
@@ -28,6 +29,7 @@ namespace FlashCap.Devices
             public void Dispose()
             {
                 this.FrameArrived = null;
+                this.e = null;
                 this.parent = null;
             }
 
@@ -46,8 +48,8 @@ namespace FlashCap.Devices
                 {
                     try
                     {
-                        fa(this.parent, new FrameArrivedEventArgs(
-                            pBuffer, bufferLen, sampleTime * 1000));
+                        e!.Update(pBuffer, bufferLen, sampleTime * 1000);
+                        fa(this.parent, e);
                     }
                     // DANGER: Stop leaking exception around outside of unmanaged area...
                     catch (Exception ex)

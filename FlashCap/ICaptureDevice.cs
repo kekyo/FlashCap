@@ -13,18 +13,32 @@ namespace FlashCap
 {
     public sealed class FrameArrivedEventArgs : EventArgs
     {
-        private readonly double timestampMilliseconds;
+        private double timestampMilliseconds;
+        private IntPtr pData;
+        private int size;
 
-        public readonly IntPtr Data;
-        public readonly int Size;
+        internal FrameArrivedEventArgs()
+        {
+        }
 
         public FrameArrivedEventArgs(IntPtr pData, int size, double timestampMilliseconds)
         {
-            this.Data = pData;
-            this.Size = size;
+            this.pData = pData;
+            this.size = size;
             this.timestampMilliseconds = timestampMilliseconds;
         }
 
+        internal void Update(IntPtr pData, int size, double timestampMilliseconds)
+        {
+            this.pData = pData;
+            this.size = size;
+            this.timestampMilliseconds = timestampMilliseconds;
+        }
+
+        public IntPtr Data =>
+            this.pData;
+        public int Size =>
+            this.size;
         public TimeSpan Timestamp =>
             TimeSpan.FromMilliseconds(this.timestampMilliseconds);
     }

@@ -23,6 +23,7 @@ namespace FlashCap.Devices
         private GCHandle thisPin;
         private NativeMethods_VideoForWindows.CAPVIDEOCALLBACK? callback;
         private IntPtr pBih;
+        private FrameArrivedEventArgs? e = new();
 
         internal unsafe VideoForWindowsDevice(
             int deviceIndex,
@@ -98,6 +99,7 @@ namespace FlashCap.Devices
                 Marshal.FreeCoTaskMem(this.pBih);
                 this.pBih = IntPtr.Zero;
                 this.FrameArrived = null;
+                this.e = null;
             }
         }
 
@@ -112,8 +114,8 @@ namespace FlashCap.Devices
                 try
                 {
                     // TODO: dwTimeCaptured always zero??
-                    fa(this, new FrameArrivedEventArgs(
-                        hdr.lpData, (int)hdr.dwBytesUsed, hdr.dwTimeCaptured));
+                    e!.Update(hdr.lpData, (int)hdr.dwBytesUsed, hdr.dwTimeCaptured);
+                    fa(this, e);
                 }
                 // DANGER: Stop leaking exception around outside of unmanaged area...
                 catch (Exception ex)
