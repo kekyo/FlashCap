@@ -58,19 +58,59 @@ namespace FlashCap.Internal
         }
 
         // https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/aa366535(v=vs.85)
-        [DllImport("ntdll", EntryPoint = "RtlCopyMemory")]
-        private static extern unsafe void RtlCopyMemory(IntPtr dest, IntPtr src, IntPtr length);
+        [DllImport("ntdll")]
+        private static extern void RtlCopyMemory(IntPtr dest, IntPtr src, IntPtr length);
 
-        [DllImport("libc", EntryPoint = "memcpy")]
-        private static extern unsafe void memcpy(IntPtr dest, IntPtr src, IntPtr length);
+        [DllImport("libc")]
+        private static extern void memcpy(IntPtr dest, IntPtr src, IntPtr length);
 
-        public unsafe delegate void CopyMemoryDelegate(
+        public delegate void CopyMemoryDelegate(
             IntPtr pDestination, IntPtr pSource, IntPtr length);
 
         public static unsafe readonly CopyMemoryDelegate CopyMemory =
             Environment.OSVersion.Platform == PlatformID.Win32NT ?
-                new CopyMemoryDelegate(RtlCopyMemory) :
-                new CopyMemoryDelegate(memcpy);
+                RtlCopyMemory : memcpy;
+
+        ////////////////////////////////////////////////////////////////////////
+
+        [DllImport("ole32")]
+        private static extern IntPtr CoTaskMemAlloc(IntPtr size);
+        [DllImport("ole32")]
+        private static extern void CoTaskMemFree(IntPtr ptr);
+        [DllImport("ntdll")]
+        private static extern void RtlZeroMemory(IntPtr ptr, IntPtr size);
+
+        [DllImport("libc")]
+        private static extern IntPtr malloc(IntPtr size);
+        [DllImport("libc")]
+        private static extern void free(IntPtr ptr);
+        [DllImport("libc")]
+        private static extern IntPtr memset(IntPtr ptr, int c, IntPtr size);
+
+        public delegate IntPtr AllocateMemoryDelegate(
+            IntPtr size);
+        public delegate void FreeMemoryDelegate(
+            IntPtr ptr);
+
+        private static IntPtr AllocateWindows(IntPtr size)
+        {
+            var ptr = CoTaskMemAlloc(size);
+            RtlZeroMemory(ptr, size);
+            return ptr;
+        }
+        private static IntPtr AllocatePosix(IntPtr size)
+        {
+            var ptr = malloc(size);
+            memset(ptr, 0, size);
+            return ptr;
+        }
+
+        public static unsafe readonly AllocateMemoryDelegate AllocateMemory =
+            Environment.OSVersion.Platform == PlatformID.Win32NT ?
+                AllocateWindows : AllocatePosix;
+        public static unsafe readonly FreeMemoryDelegate FreeMemory =
+            Environment.OSVersion.Platform == PlatformID.Win32NT ?
+                CoTaskMemFree : free;
 
         ////////////////////////////////////////////////////////////////////////
 

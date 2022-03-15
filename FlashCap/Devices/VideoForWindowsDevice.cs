@@ -52,7 +52,7 @@ namespace FlashCap.Devices
             NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out cp);
 
             var setFormatResult = false;
-            var pih = Marshal.AllocCoTaskMem(sizeof(NativeMethods.BITMAPINFOHEADER));
+            var pih = NativeMethods.AllocateMemory((IntPtr)sizeof(NativeMethods.BITMAPINFOHEADER));
             try
             {
                 var pBih = (NativeMethods.BITMAPINFOHEADER*)pih.ToPointer();
@@ -75,7 +75,7 @@ namespace FlashCap.Devices
             }
             finally
             {
-                Marshal.FreeCoTaskMem(pih);
+                NativeMethods.FreeMemory(pih);
             }
 
             // Get final video format.
@@ -125,7 +125,7 @@ namespace FlashCap.Devices
                 this.handle = IntPtr.Zero;
                 this.thisPin.Free();
                 this.callback = null;
-                Marshal.FreeCoTaskMem(this.pBih);
+                NativeMethods.FreeMemory(this.pBih);
                 this.pBih = IntPtr.Zero;
                 this.FrameArrived = null;
                 this.e = null;

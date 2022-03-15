@@ -96,7 +96,7 @@ device.FrameArrived += (s, e) =>
 
     // Anything use of it:
     var ms = new MemoryStream(image);
-    var bitmap = System.Drawing.Image.FromStream(ms);
+    var bitmap = Bitmap.FromStream(ms);
 
     // ...
 };

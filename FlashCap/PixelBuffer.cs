@@ -219,11 +219,19 @@ namespace FlashCap
             }
         }
 
-        public byte[] ExtractImage() =>
-            this.InternalExtractImage(BufferStrategies.CopyWhenDifferentSizeOrReuse).Array!;
+        public byte[] ExtractImage()
+        {
+            var image = this.InternalExtractImage(BufferStrategies.CopyWhenDifferentSizeOrReuse);
+            Debug.Assert(image.Array!.Length == image.Count);
+            return image.Array;
+        }
 
-        public byte[] CopyImage() =>
-            this.InternalExtractImage(BufferStrategies.ForceCopy).Array!;
+        public byte[] CopyImage()
+        {
+            var image = InternalExtractImage(BufferStrategies.ForceCopy);
+            Debug.Assert(image.Array!.Length == image.Count);
+            return image.Array;
+        }
 
         public ArraySegment<byte> ReferImage() =>
             this.InternalExtractImage(BufferStrategies.ForceReuse);

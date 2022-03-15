@@ -80,33 +80,29 @@ namespace FlashCap.Devices
                         pb.GetValue("DevicePath", default(string))?.Trim() is { } dp &&
                         dp.Equals(devicePath))).
                 Collect(moniker =>
-                    moniker.BindToObject(null, null, in NativeMethods_DirectShow.IID_IBaseFilter, out var cs) == 0 ?
-                    cs as NativeMethods_DirectShow.IBaseFilter : null).
+                    moniker.BindToObject(null, null, in NativeMethods_DirectShow.IID_IBaseFilter, out var captureSource) == 0 ?
+                    captureSource as NativeMethods_DirectShow.IBaseFilter : null).
                 FirstOrDefault() is { } captureSource)
             {
                 try
                 {
-                    var found = false;
-                    foreach (var pin in captureSource.EnumeratePins().
+                    if (captureSource.EnumeratePins().
                         Collect(pin =>
                             pin.GetPinInfo() is { } pinInfo &&
                             pinInfo.dir == NativeMethods_DirectShow.PIN_DIRECTION.Output ?
-                                pin : null))
-                    {
-                        foreach (var format in pin.EnumerateFormats().
+                                pin : null).
+                        SelectMany(pin => pin.EnumerateFormats().
                             Collect(format =>
                                 characteristics.Equals(
                                     NativeMethods.CreateVideoCharacteristics(
                                         format.pBih,
                                         (int)(10_000_000_000.0 / format.VideoInformation.AvgTimePerFrame))) ?
-                                format : null))
-                        {
-                            pin.SetFormat(format);
-                            found = true;
-                        }
+                                new { pin, format } : null)).
+                        FirstOrDefault() is { } entry)
+                    {
+                        entry.pin.SetFormat(entry.format);
                     }
-
-                    if (!found)
+                    else
                     {
                         throw new ArgumentException($"FlashCap: Couldn't set video format: DevicePath={devicePath}");
                     }
@@ -114,52 +110,69 @@ namespace FlashCap.Devices
                     ///////////////////////////////
 
                     this.graphBuilder = NativeMethods_DirectShow.CreateGraphBuilder();
-                    if (this.graphBuilder.AddFilter(captureSource, "Capture source") != 0)
+                    if (this.graphBuilder.AddFilter(captureSource, "Capture source") < 0)
                     {
                         throw new ArgumentException($"FlashCap: Couldn't add capture source: DevicePath={devicePath}");
                     }
 
+                    ///////////////////////////////
+
                     var sampleGrabber = NativeMethods_DirectShow.CreateSampleGrabber();
-                    if (this.graphBuilder.AddFilter(sampleGrabber, "Sample grabber") != 0)
+                    if (this.graphBuilder.AddFilter(sampleGrabber, "Sample grabber") < 0)
                     {
                         throw new ArgumentException($"FlashCap: Couldn't add sample grabber: DevicePath={devicePath}");
                     }
 
+                    if (sampleGrabber.SetOneShot(false) < 0)
+                    {
+                        throw new ArgumentException($"FlashCap: Couldn't set oneshot mode: DevicePath={devicePath}");
+                    }
+                    if (sampleGrabber.SetBufferSamples(true) < 0)
+                    {
+                        throw new ArgumentException($"FlashCap: Couldn't start sampling: DevicePath={devicePath}");
+                    }
+
+                    ///////////////////////////////
+
                     var nullRenderer = NativeMethods_DirectShow.CreateNullRenderer();
-                    if (this.graphBuilder.AddFilter(nullRenderer, "Null renderer") != 0)
+                    if (this.graphBuilder.AddFilter(nullRenderer, "Null renderer") < 0)
                     {
                         throw new ArgumentException($"FlashCap: Couldn't add null renderer: DevicePath={devicePath}");
                     }
 
+                    ///////////////////////////////
+
                     var captureGraphBuilder = NativeMethods_DirectShow.CreateCaptureGraphBuilder();
-                    if (captureGraphBuilder.SetFiltergraph(this.graphBuilder) != 0)
+                    if (captureGraphBuilder.SetFiltergraph(this.graphBuilder) < 0)
                     {
                         throw new ArgumentException($"FlashCap: Couldn't set graph builder: DevicePath={devicePath}");
                     }
 
-                    if (sampleGrabber.SetBufferSamples(true) != 0)
-                    {
-                        throw new ArgumentException($"FlashCap: Couldn't start sampling: DevicePath={devicePath}");
-                    }
+                    ///////////////////////////////
 
                     if (captureGraphBuilder.RenderStream(
                         in NativeMethods_DirectShow.PIN_CATEGORY_CAPTURE,
                         in NativeMethods_DirectShow.MEDIATYPE_Video,
                         captureSource,
                         sampleGrabber,
-                        nullRenderer) != 0)
+                        nullRenderer) < 0)
                     {
                         throw new ArgumentException($"FlashCap: Couldn't set render stream: DevicePath={devicePath}");
                     }
 
                     ///////////////////////////////
-                    // Get pBih
 
+                    if (sampleGrabber.GetConnectedMediaType(out var mediaType) < 0)
+                    {
+                        throw new ArgumentException($"FlashCap: Couldn't get media type: DevicePath={devicePath}");
+                    }
+
+                    this.pBih = mediaType.AllocateAndGetBih();
 
                     ///////////////////////////////
 
                     this.sampleGrabberSink = new SampleGrabberSink(this);
-                    if (sampleGrabber.SetCallback(this.sampleGrabberSink, 1) != 0)
+                    if (sampleGrabber.SetCallback(this.sampleGrabberSink, 1) < 0)
                     {
                         throw new ArgumentException($"FlashCap: Couldn't get grabbing media type: DevicePath={devicePath}");
                     }
@@ -171,10 +184,6 @@ namespace FlashCap.Devices
                         Marshal.ReleaseComObject(this.graphBuilder);
                     }
                     throw;
-                }
-                finally
-                {
-                    Marshal.ReleaseComObject(captureSource);
                 }
             }
             else
@@ -194,7 +203,7 @@ namespace FlashCap.Devices
                 this.graphBuilder = null!;
                 this.sampleGrabberSink!.Dispose();
                 this.sampleGrabberSink = null!;
-                Marshal.FreeCoTaskMem(this.pBih);
+                NativeMethods.FreeMemory(this.pBih);
                 this.pBih = IntPtr.Zero;
             }
         }
@@ -221,11 +230,27 @@ namespace FlashCap.Devices
 
         public void Start()
         {
-            throw new NotImplementedException();
+            if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
+            {
+                mediaControl.Run();
+            }
+            else
+            {
+                throw new InvalidOperationException();
+            }
         }
 
-        public void Stop() =>
-            throw new NotImplementedException();
+        public void Stop()
+        {
+            if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
+            {
+                mediaControl.Stop();
+            }
+            else
+            {
+                throw new InvalidOperationException();
+            }
+        }
 
         public void Capture(FrameArrivedEventArgs e, PixelBuffer buffer) =>
             buffer.CopyIn(

@@ -153,9 +153,9 @@ namespace FlashCap.Internal
         public static void capGetVideoFormat(
             IntPtr hWnd, out IntPtr pBih)
         {
-            var size = SendMessage(hWnd, WM_CAP_GET_VIDEOFORMAT, IntPtr.Zero, IntPtr.Zero).ToInt32();
-            pBih = Marshal.AllocCoTaskMem(size);
-            SendMessage(hWnd, WM_CAP_GET_VIDEOFORMAT, (IntPtr)size, pBih);
+            var size = SendMessage(hWnd, WM_CAP_GET_VIDEOFORMAT, IntPtr.Zero, IntPtr.Zero);
+            pBih = NativeMethods.AllocateMemory(size);
+            SendMessage(hWnd, WM_CAP_GET_VIDEOFORMAT, size, pBih);
         }
 
         public static unsafe bool capSetVideoFormat(

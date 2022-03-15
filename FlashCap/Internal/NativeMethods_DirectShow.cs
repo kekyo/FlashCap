@@ -9,6 +9,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security;
 
@@ -141,6 +142,44 @@ namespace FlashCap.Internal
             public IntPtr pUnk;
             public int formatSize;
             public IntPtr pFormat;   // VIDEOINFOHEADER / VIDEOINFOHEADER2
+
+            public void Release()
+            {
+                if (this.pUnk != IntPtr.Zero)
+                {
+                    Marshal.Release(this.pUnk);
+                    this.pUnk = IntPtr.Zero;
+                }
+                if (this.pFormat != IntPtr.Zero)
+                {
+                    NativeMethods.FreeMemory(this.pFormat);
+                    this.pFormat = IntPtr.Zero;
+                }
+            }
+
+            public unsafe IntPtr AllocateAndGetBih()
+            {
+                if (this.formattype == FORMAT_VideoInfo)
+                {
+                    var pVih = (NativeMethods.VIDEOINFOHEADER*)this.pFormat.ToPointer();
+                    var pBih = (NativeMethods.BITMAPINFOHEADER*)(pVih + 1);
+                    var pBihCopied = NativeMethods.AllocateMemory((IntPtr)pBih->biSize);
+                    NativeMethods.CopyMemory(pBihCopied, (IntPtr)pBih, (IntPtr)pBih->biSize);
+                    return pBihCopied;
+                }
+                else if (this.formattype == FORMAT_VideoInfo2)
+                {
+                    var pVih = (NativeMethods.VIDEOINFOHEADER2*)this.pFormat.ToPointer();
+                    var pBih = (NativeMethods.BITMAPINFOHEADER*)(pVih + 1);
+                    var pBihCopied = NativeMethods.AllocateMemory((IntPtr)pBih->biSize);
+                    NativeMethods.CopyMemory(pBihCopied, (IntPtr)pBih, (IntPtr)pBih->biSize);
+                    return pBihCopied;
+                }
+                else
+                {
+                    throw new ArgumentException();
+                }
+            }
         }
 
         public enum PIN_DIRECTION
@@ -422,18 +461,11 @@ namespace FlashCap.Internal
         [SuppressUnmanagedCodeSecurity]
         [Guid("6b652fff-11fe-4fce-92ad-0266b5d7c78f")]
         [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-        public interface ISampleGrabber : IBaseFilter
+        public interface ISampleGrabber :
+            IBaseFilter  // ISampleGrabber isn't derived from IBaseFilter, but CLSID_SampleGrabber is implemented it.
         {
-            [PreserveSig] new int GetClassID(out Guid classID);
-            [PreserveSig] new int Stop();
-            [PreserveSig] new int Pause();
-            [PreserveSig] new int Run(long tStart);
-            [PreserveSig] new int GetState(uint milliSecsTimeout, out FILTER_STATE state);
-            [PreserveSig] new int SetSyncSource(IReferenceClock clock);
-            [PreserveSig] new int GetSyncSource(out IReferenceClock? clock);
-
             [PreserveSig] int SetOneShot(
-                int oneShot);
+                [MarshalAs(UnmanagedType.Bool)] bool oneShot);
             [PreserveSig] int SetMediaType(
                 in AM_MEDIA_TYPE type);
             [PreserveSig] int GetConnectedMediaType(
@@ -465,19 +497,19 @@ namespace FlashCap.Internal
                 in Guid type,
                 [MarshalAs(UnmanagedType.LPWStr)] string strFile,
                 out IBaseFilter? filter,
-                out object? sink);   // IFileSinkFilter
+                [MarshalAs(UnmanagedType.Interface)] out object? sink);   // IFileSinkFilter
 
             [PreserveSig] int FindInterface(
                 in Guid category,
                 in Guid type,
                 IBaseFilter pf,
-                in Guid riid,
-                out object? intf);
+                in Guid riidResult,
+                [MarshalAs(UnmanagedType.Interface)] out object? intf);
 
             [PreserveSig] int RenderStream(
                 in Guid category,
                 in Guid type,
-                object source,
+                [MarshalAs(UnmanagedType.Interface)] object source,
                 IBaseFilter? compressor,
                 IBaseFilter? renderer);
 
@@ -498,16 +530,45 @@ namespace FlashCap.Internal
                 [MarshalAs(UnmanagedType.LPWStr)] string strOld,
                 [MarshalAs(UnmanagedType.LPWStr)] string strNew,
                 int fAllowEscAbort,
-                object? callback);   // IAMCopyCaptureFileProgress
+                [MarshalAs(UnmanagedType.Interface)] object? callback);   // IAMCopyCaptureFileProgress
 
             [PreserveSig] int FindPin(
-                object source,
+                [MarshalAs(UnmanagedType.IUnknown)] object source,
                 PIN_DIRECTION pindir,
                 in Guid category,
                 in Guid type,
                 [MarshalAs(UnmanagedType.Bool)] bool unconnected,
                 int num,
                 out IPin? pin);
+        }
+
+        [SuppressUnmanagedCodeSecurity]
+        [Guid("56a868b1-0ad4-11ce-b03a-0020af0ba770")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        public interface IMediaControl
+        {
+            // These entries are IDispatch members.
+            // Couldn't use InterfaceIsIDispatch or InterfaceIsDual, because there're obsoleted.
+            [PreserveSig] int vptr_IDispatch_GetTypeInfoCount();
+            [PreserveSig] int vptr_IDispatch_GetTypeInfo();
+            [PreserveSig] int vptr_IDispatch_GetIDsOfNames();
+            [PreserveSig] int vptr_IDispatch_Invoke();
+
+            [PreserveSig] int Run();
+            [PreserveSig] int Pause();
+            [PreserveSig] int Stop();
+            [PreserveSig] int GetState(
+                int msTimeout, out FILTER_STATE state);
+            [PreserveSig] int RenderFile(
+                [MarshalAs(UnmanagedType.BStr)] string strFilename);
+            [PreserveSig] int AddSourceFilter(
+                [MarshalAs(UnmanagedType.BStr)] string strFilename,
+                [MarshalAs(UnmanagedType.IUnknown)] out object? unk);
+            [PreserveSig] int get_FilterCollection(
+                [MarshalAs(UnmanagedType.IUnknown)] out object? unk);
+            [PreserveSig] int get_RegFilterCollection(
+                [MarshalAs(UnmanagedType.IUnknown)] out object? unk);
+            [PreserveSig] int StopWhenReady();
         }
 
         ////////////////////////////////////////////////////////////////////////
@@ -620,7 +681,6 @@ namespace FlashCap.Internal
                         }
                         Marshal.ReleaseComObject(enumMoniker);
                     }
-                    Marshal.ReleaseComObject(deviceEnumCreator);
                 }
                 Marshal.ReleaseComObject(cde);
             }
@@ -662,19 +722,22 @@ namespace FlashCap.Internal
 
         public sealed class VideoMediaFormat : IDisposable
         {
-            public readonly AM_MEDIA_TYPE MediaType;
+            public readonly AM_MEDIA_TYPE PartialMediaType;
             public readonly NativeMethods.VIDEOINFOHEADER VideoInformation;
             public readonly VIDEO_STREAM_CONFIG_CAPS Capabilities;
             
             private IntPtr pBih_;
 
             public VideoMediaFormat(
-                AM_MEDIA_TYPE mediaType,
+                AM_MEDIA_TYPE partialMediaType,
                 in NativeMethods.VIDEOINFOHEADER information,
                 IntPtr pBih,
                 in VIDEO_STREAM_CONFIG_CAPS capabilities)
             {
-                this.MediaType = mediaType;
+                Debug.Assert(partialMediaType.pFormat == IntPtr.Zero);
+                Debug.Assert(partialMediaType.pUnk == IntPtr.Zero);
+
+                this.PartialMediaType = partialMediaType;
                 this.VideoInformation = information;
                 this.pBih_ = pBih;
                 this.Capabilities = capabilities;
@@ -687,13 +750,54 @@ namespace FlashCap.Internal
             {
                 if (this.pBih_ != IntPtr.Zero)
                 {
-                    Marshal.FreeCoTaskMem(this.pBih_);
+                    NativeMethods.FreeMemory(this.pBih_);
                     this.pBih_ = IntPtr.Zero;
                 }
             }
 
             public IntPtr pBih =>
                 this.pBih_;
+
+            public unsafe AM_MEDIA_TYPE AllocateFormalMediaType()
+            {
+                // Copy.
+                var mediaType = this.PartialMediaType;
+
+                if (mediaType.formattype == FORMAT_VideoInfo)
+                {
+                    var pBihFrom = (NativeMethods.BITMAPINFOHEADER*)this.pBih.ToPointer();
+                    var bihFromSize = pBihFrom->CalculateRawSize();
+
+                    mediaType.formatSize = sizeof(NativeMethods.VIDEOINFOHEADER) + bihFromSize;
+                    mediaType.pFormat = NativeMethods.AllocateMemory((IntPtr)mediaType.formatSize);
+
+                    var pVihTo = (NativeMethods.VIDEOINFOHEADER*)mediaType.pFormat;
+                    *pVihTo = this.VideoInformation;
+
+                    var pBihTo = (NativeMethods.BITMAPINFOHEADER*)(pVihTo + 1);
+                    NativeMethods.CopyMemory((IntPtr)pBihTo, (IntPtr)pBihFrom, (IntPtr)bihFromSize);
+                }
+                else if (mediaType.formattype == FORMAT_VideoInfo2)
+                {
+                    var pBihFrom = (NativeMethods.BITMAPINFOHEADER*)this.pBih.ToPointer();
+                    var bihFromSize = pBihFrom->CalculateRawSize();
+
+                    mediaType.formatSize = sizeof(NativeMethods.VIDEOINFOHEADER2) + bihFromSize;
+                    mediaType.pFormat = NativeMethods.AllocateMemory((IntPtr)mediaType.formatSize);
+
+                    var pVihTo = (NativeMethods.VIDEOINFOHEADER*)mediaType.pFormat;
+                    *pVihTo = this.VideoInformation;
+
+                    var pBihTo = (NativeMethods.BITMAPINFOHEADER*)(((byte*)pVihTo) + sizeof(NativeMethods.VIDEOINFOHEADER2));
+                    NativeMethods.CopyMemory((IntPtr)pBihTo, (IntPtr)pBihFrom, (IntPtr)bihFromSize);
+                }
+                else
+                {
+                    throw new ArgumentException();
+                }
+
+                return mediaType;
+            }
         }
 
         private static unsafe readonly int videoStreamConfigCapsSize =
@@ -703,30 +807,9 @@ namespace FlashCap.Internal
         {
             if (pin is IAMStreamConfig streamConfig)
             {
-                // Copy.
-                var mediaType = format.MediaType;
-
+                var mediaType = format.AllocateFormalMediaType();
                 try
                 {
-                    if (mediaType.formattype == FORMAT_VideoInfo)
-                    {
-                        mediaType.formatSize = sizeof(NativeMethods.VIDEOINFOHEADER);
-                        mediaType.pFormat = Marshal.AllocCoTaskMem(sizeof(NativeMethods.VIDEOINFOHEADER));
-                        var pVih = (NativeMethods.VIDEOINFOHEADER*)mediaType.pFormat;
-                        *pVih = format.VideoInformation;
-                    }
-                    else if (mediaType.formattype == FORMAT_VideoInfo2)
-                    {
-                        mediaType.formatSize = sizeof(NativeMethods.VIDEOINFOHEADER2);
-                        mediaType.pFormat = Marshal.AllocCoTaskMem(sizeof(NativeMethods.VIDEOINFOHEADER2));
-                        var pVih = (NativeMethods.VIDEOINFOHEADER*)mediaType.pFormat;   // VIH2 layout same as VIH
-                        *pVih = format.VideoInformation;
-                    }
-                    else
-                    {
-                        throw new ArgumentException();
-                    }
-
                     if (streamConfig.SetFormat(in mediaType) == 0)
                     {
                         return true;
@@ -734,14 +817,9 @@ namespace FlashCap.Internal
                 }
                 finally
                 {
-                    if (mediaType.pFormat != IntPtr.Zero)
-                    {
-                        Marshal.FreeCoTaskMem(mediaType.pFormat);
-                    }
-                    Marshal.ReleaseComObject(streamConfig);
+                    mediaType.Release();
                 }
             }
-
             return false;
         }
 
@@ -751,7 +829,7 @@ namespace FlashCap.Internal
             static AM_MEDIA_TYPE CloneAndRelease(IntPtr pMediaType)
             {
                 var mt = (AM_MEDIA_TYPE)Marshal.PtrToStructure(pMediaType, typeof(AM_MEDIA_TYPE))!;
-                Marshal.FreeCoTaskMem(pMediaType);
+                NativeMethods.FreeMemory(pMediaType);
                 return mt;
             }
 
@@ -771,7 +849,7 @@ namespace FlashCap.Internal
                         vih = *pVih;
 
                         var pBih = (NativeMethods.BITMAPINFOHEADER*)(pVih + 1);
-                        pBihResult = Marshal.AllocCoTaskMem(pBih->biSize);
+                        pBihResult = NativeMethods.AllocateMemory((IntPtr)pBih->biSize);
                         NativeMethods.CopyMemory(pBihResult, (IntPtr)pBih, (IntPtr)pBih->biSize);
 
                         return true;
@@ -786,7 +864,7 @@ namespace FlashCap.Internal
 
                         var pVih2 = (NativeMethods.VIDEOINFOHEADER2*)mediaType.pFormat.ToPointer();
                         var pBih = (NativeMethods.BITMAPINFOHEADER*)(pVih2 + 1);
-                        pBihResult = Marshal.AllocCoTaskMem(pBih->biSize);
+                        pBihResult = NativeMethods.AllocateMemory((IntPtr)pBih->biSize);
                         NativeMethods.CopyMemory(pBihResult, (IntPtr)pBih, (IntPtr)pBih->biSize);
 
                         return true;
@@ -800,44 +878,31 @@ namespace FlashCap.Internal
 
             if (pin is IAMStreamConfig streamConfig)
             {
-                try
+                if (streamConfig.GetNumberOfCapabilities(out var count, out var size) == 0 &&
+                    size == videoStreamConfigCapsSize)
                 {
-                    if (streamConfig.GetNumberOfCapabilities(out var count, out var size) == 0 &&
-                        size == videoStreamConfigCapsSize)
+                    for (var index = 0; index < count; index++)
                     {
-                        for (var index = 0; index < count; index++)
+                        if (streamConfig.GetStreamCaps(index, out var pMediaType, out var caps) == 0 &&
+                            pMediaType != IntPtr.Zero)
                         {
-                            if (streamConfig.GetStreamCaps(index, out var pMediaType, out var caps) == 0 &&
-                                pMediaType != IntPtr.Zero)
+                            var mediaType = CloneAndRelease(pMediaType);
+                            try
                             {
-                                var mediaType = CloneAndRelease(pMediaType);
-                                try
+                                if (Extract(in mediaType, out var vih, out var pBih))
                                 {
-                                    if (Extract(in mediaType, out var vih, out var pBih))
-                                    {
-                                        var mt = mediaType;
-                                        mt.pFormat = IntPtr.Zero;
-                                        yield return new VideoMediaFormat(mt, vih, pBih, caps);
-                                    }
+                                    // Copy.
+                                    var partialMediaType = mediaType;
+                                    partialMediaType.pFormat = IntPtr.Zero;
+                                    yield return new VideoMediaFormat(partialMediaType, vih, pBih, caps);
                                 }
-                                finally
-                                {
-                                    if (mediaType.pUnk != IntPtr.Zero)
-                                    {
-                                        Marshal.Release(mediaType.pUnk);
-                                    }
-                                    if (mediaType.pFormat != IntPtr.Zero)
-                                    {
-                                        Marshal.FreeCoTaskMem(mediaType.pFormat);
-                                    }
-                                }
+                            }
+                            finally
+                            {
+                                mediaType.Release();
                             }
                         }
                     }
-                }
-                finally
-                {
-                    Marshal.ReleaseComObject(streamConfig);
                 }
             }
         }
