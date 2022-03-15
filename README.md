@@ -236,6 +236,15 @@ Task.Run(() =>
 
 ---
 
+## Limitation
+
+* In Video for Windows, "Source device" is not selectable by programmable. VFW logical structure is:
+  1. VFW device driver (always only 1 driver, defaulted WDM device on latest Windows): ICaptureDevices.EnumerateDevices() iterate it.
+  2. Source devices (truly real camera devices) each drivers. But we could not select programmable.
+     Will show up selection dialog automatically when multiple camera devices found.
+
+---
+
 ## License
 
 Apache-v2.
