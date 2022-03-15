@@ -26,7 +26,7 @@ namespace FlashCap.Internal
             Other,
         }
 
-        public static Platforms GetRuntimePlatform()
+        private static Platforms GetRuntimePlatform()
         {
             var windir = Environment.GetEnvironmentVariable("windir");
             if (!string.IsNullOrEmpty(windir) &&
@@ -57,6 +57,11 @@ namespace FlashCap.Internal
             }
         }
 
+        public static readonly Platforms CurrentPlatform =
+            GetRuntimePlatform();
+
+        ////////////////////////////////////////////////////////////////////////
+
         // https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/aa366535(v=vs.85)
         [DllImport("ntdll")]
         private static extern void RtlCopyMemory(IntPtr dest, IntPtr src, IntPtr length);
@@ -68,7 +73,7 @@ namespace FlashCap.Internal
             IntPtr pDestination, IntPtr pSource, IntPtr length);
 
         public static unsafe readonly CopyMemoryDelegate CopyMemory =
-            Environment.OSVersion.Platform == PlatformID.Win32NT ?
+            CurrentPlatform == Platforms.Windows ?
                 RtlCopyMemory : memcpy;
 
         ////////////////////////////////////////////////////////////////////////
@@ -106,11 +111,30 @@ namespace FlashCap.Internal
         }
 
         public static unsafe readonly AllocateMemoryDelegate AllocateMemory =
-            Environment.OSVersion.Platform == PlatformID.Win32NT ?
+            CurrentPlatform == Platforms.Windows ?
                 AllocateWindows : AllocatePosix;
         public static unsafe readonly FreeMemoryDelegate FreeMemory =
-            Environment.OSVersion.Platform == PlatformID.Win32NT ?
+            CurrentPlatform == Platforms.Windows ?
                 CoTaskMemFree : free;
+
+        ////////////////////////////////////////////////////////////////////////
+
+#if NETSTANDARD1_3
+        public delegate int THREAD_START_ROUTINE(IntPtr parameter);
+        public delegate void QueueUserWorkItemDelegate(THREAD_START_ROUTINE function, IntPtr parameter, int flags);
+
+        [DllImport("kernel32", EntryPoint="QueueUserWorkItem")]
+        private static extern void WindowsQueueUserWorkItem(
+            THREAD_START_ROUTINE function, IntPtr parameter, int flags);
+
+        private static void PosixQueueUserWorkItem(
+            THREAD_START_ROUTINE function, IntPtr parameter, int flags) =>
+            System.Threading.Tasks.Task.Run(() => function(parameter));
+
+        public static readonly QueueUserWorkItemDelegate QueueUserWorkItem =
+            CurrentPlatform == Platforms.Windows ?
+                WindowsQueueUserWorkItem : PosixQueueUserWorkItem;
+#endif
 
         ////////////////////////////////////////////////////////////////////////
 

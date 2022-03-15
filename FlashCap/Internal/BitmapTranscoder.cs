@@ -9,12 +9,7 @@
 
 using System;
 using System.Runtime.CompilerServices;
-
-#if NET20 || NET35
-using System.Threading;
-#else
 using System.Threading.Tasks;
-#endif
 
 namespace FlashCap.Internal
 {
@@ -22,38 +17,7 @@ namespace FlashCap.Internal
     {
         private static void ParallelRun(int height, int step, Action<int> action)
         {
-#if NET20 || NET35
-            using var raise = new ManualResetEvent(false);
-            var count = 1;
-            void Entry(object? state)
-            {
-                try
-                {
-                    action((int)state!);
-                }
-                finally
-                {
-                    if (Interlocked.Decrement(ref count) == 0)
-                    {
-                        raise.Set();
-                    }
-                }
-            }
-            WaitCallback entry = Entry;
-
-            for (var y = 0; y < height; y += step)
-            {
-                Interlocked.Increment(ref count);
-                ThreadPool.QueueUserWorkItem(entry, y);
-            }
-
-            if (Interlocked.Decrement(ref count) >= 1)
-            {
-                raise.WaitOne();
-            }
-#else
             Parallel.For(0, height / step, ys => action(ys * step));
-#endif
         }
 
         // Preffered article: https://docs.microsoft.com/en-us/windows/win32/medfound/recommended-8-bit-yuv-formats-for-video-rendering#420-formats-16-bits-per-pixel

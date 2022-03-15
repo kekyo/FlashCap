@@ -826,9 +826,10 @@ namespace FlashCap.Internal
         public static IEnumerable<VideoMediaFormat> EnumerateFormats(
             this IPin pin)
         {
-            static AM_MEDIA_TYPE CloneAndRelease(IntPtr pMediaType)
+            static unsafe AM_MEDIA_TYPE CloneAndRelease(IntPtr pMediaType)
             {
-                var mt = (AM_MEDIA_TYPE)Marshal.PtrToStructure(pMediaType, typeof(AM_MEDIA_TYPE))!;
+                var pmt = (AM_MEDIA_TYPE*)pMediaType.ToPointer();
+                var mt = *pmt;   // Copy.
                 NativeMethods.FreeMemory(pMediaType);
                 return mt;
             }

@@ -7,7 +7,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.Internal;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 #if NET20
 namespace System.Runtime.CompilerServices
@@ -175,3 +177,68 @@ namespace System.Linq
         }
     }
 }
+
+#if NETSTANDARD1_3
+namespace System.Security
+{
+    // HACK: dummy
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Method)]
+    internal sealed class SuppressUnmanagedCodeSecurityAttribute : Attribute
+    {
+    }
+}
+
+namespace System.Diagnostics
+{
+    internal static class Trace
+    {
+        public static void WriteLine(object? obj) =>
+            Debug.WriteLine(obj);
+    }
+}
+
+namespace System.Threading
+{
+    internal delegate void WaitCallback(object? state);
+
+    internal static class ThreadPool
+    {
+        public static void QueueUserWorkItem(WaitCallback callback, object? state)
+        {
+            NativeMethods.QueueUserWorkItem(parameter =>
+            {
+                try
+                {
+                    callback(state);
+                }
+                catch (Exception ex)
+                {
+                    Trace.WriteLine(ex);
+                }
+                return 0;
+            }, IntPtr.Zero, 0);
+        }
+    }
+}
+#endif
+
+#if NET20 || NET35 || NETSTANDARD1_3
+namespace System.Threading.Tasks
+{
+    internal static class Parallel
+    {
+        public static void For(int fromInclusive, int toExclusive, Action<int> body)
+        {
+            var trampoline = new WaitCallback(parameter =>
+            {
+                body((int)parameter!);
+            });
+
+            for (var index = fromInclusive; index < toExclusive; index++)
+            {
+                ThreadPool.QueueUserWorkItem(trampoline, index);
+            }
+        }
+    }
+}
+#endif

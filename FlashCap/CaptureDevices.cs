@@ -18,7 +18,7 @@ namespace FlashCap
     public sealed class CaptureDevices : ICaptureDevices
     {
         public IEnumerable<ICaptureDeviceDescriptor> EnumerateDescriptors() =>
-            NativeMethods.GetRuntimePlatform() switch
+            NativeMethods.CurrentPlatform switch
             {
                 NativeMethods.Platforms.Windows =>
 #if true  // TODO:
