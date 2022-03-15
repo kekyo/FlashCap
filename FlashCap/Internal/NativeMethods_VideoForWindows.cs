@@ -25,6 +25,7 @@ namespace FlashCap.Internal
         public const int WS_VISIBLE = 0x10000000;
         public const int WS_EX_TOOLWINDOW = 0x00000080;
         public const int WS_EX_TRANSPARENT = 0x00000020;
+        public const int WS_EX_LAYERED = 0x00080000;
 
         public const int GWL_STYLE = -16;
         public const int GWL_EXSTYLE = -20;
@@ -51,6 +52,10 @@ namespace FlashCap.Internal
         [DllImport("user32")]
         public static extern int SetWindowLong(
             IntPtr hWnd, int nIndex, int dwNewLong);
+
+        [DllImport("user32")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool WaitMessage();
 
         ////////////////////////////////////////////////////////////////////////
 
@@ -118,8 +123,8 @@ namespace FlashCap.Internal
         public struct VIDEOHDR
         {
             public IntPtr lpData;
-            public uint dwBufferLength;
-            public uint dwBytesUsed;
+            public int dwBufferLength;
+            public int dwBytesUsed;
             public uint dwTimeCaptured;
             public UIntPtr dwUser;
             public uint dwFlags;
@@ -136,9 +141,11 @@ namespace FlashCap.Internal
         public static void capDriverDisconnect(IntPtr hWnd, int nDevice) =>
             SendMessage(hWnd, WM_CAP_DRIVER_DISCONNECT, (IntPtr)nDevice, IntPtr.Zero);
 
+        public static void capSetOverlay(IntPtr hWnd, bool enable) =>
+            SendMessage(hWnd, WM_CAP_SET_OVERLAY, (IntPtr)(enable ? 1 : 0), IntPtr.Zero);
+
         public static void capShowPreview(IntPtr hWnd, bool isShow)
         {
-            SendMessage(hWnd, WM_CAP_SET_OVERLAY, (IntPtr)1, IntPtr.Zero);
             SendMessage(hWnd, WM_CAP_SET_PREVIEW, (IntPtr)(isShow ? 1 : 0), IntPtr.Zero);
             ShowWindow(hWnd, isShow ? SW_SHOWNORMAL : SW_HIDE);
         }
@@ -146,15 +153,15 @@ namespace FlashCap.Internal
         public static void capGetVideoFormat(
             IntPtr hWnd, out IntPtr pBih)
         {
-            var size = SendMessage(hWnd, WM_CAP_GET_VIDEOFORMAT, IntPtr.Zero, IntPtr.Zero).ToInt32();
-            pBih = Marshal.AllocCoTaskMem(size);
-            SendMessage(hWnd, WM_CAP_GET_VIDEOFORMAT, (IntPtr)size, pBih);
+            var size = SendMessage(hWnd, WM_CAP_GET_VIDEOFORMAT, IntPtr.Zero, IntPtr.Zero);
+            pBih = NativeMethods.AllocateMemory(size);
+            SendMessage(hWnd, WM_CAP_GET_VIDEOFORMAT, size, pBih);
         }
 
         public static unsafe bool capSetVideoFormat(
             IntPtr hWnd, IntPtr pBih)
         {
-            var pRawBih = (NativeMethods.RAW_BITMAPINFOHEADER*)pBih.ToPointer();
+            var pRawBih = (NativeMethods.BITMAPINFOHEADER*)pBih.ToPointer();
             var result = SendMessage(
                 hWnd,
                 WM_CAP_SET_VIDEOFORMAT,
@@ -217,14 +224,25 @@ namespace FlashCap.Internal
         public static void capDlgVideoCompression(IntPtr hWnd) =>
             SendMessage(hWnd, WM_CAP_DLG_VIDEOCOMPRESSION, IntPtr.Zero, IntPtr.Zero);
 
+        [Flags]
+        public enum LayeredWindowFlags
+        {
+            LWA_ALPHA = 0x00000002,
+            LWA_COLORKEY = 0x00000001,
+        }
+
+        [DllImport("user32")]
+        private static extern bool SetLayeredWindowAttributes(
+            IntPtr hwnd, uint crKey, byte bAlpha, LayeredWindowFlags dwFlags);
+
         public static IntPtr CreateVideoSourceWindow(int index)
         {
             // HACK: VFW couldn't operate without any attached window resources.
             //   * It's hider for moving outsite of desktop.
-            //   * And will make up transparent tool window.
+            //   * And will make up transparent tool window with tiny opaque value.
             var handle = capCreateCaptureWindow(
                 $"FlashCap_{index}", WS_POPUPWINDOW,
-                -100, -100, 10, 10, IntPtr.Zero, 0);
+                0, 0, 100, 100, IntPtr.Zero, 0);
             if (handle == IntPtr.Zero)
             {
                 var code = Marshal.GetLastWin32Error();
@@ -234,7 +252,9 @@ namespace FlashCap.Internal
             var extyles = GetWindowLong(
                 handle, GWL_EXSTYLE);
             SetWindowLong(
-                handle, GWL_EXSTYLE, extyles | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT);
+                handle, GWL_EXSTYLE, extyles | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT);
+            SetLayeredWindowAttributes(
+                handle, 0, 1, LayeredWindowFlags.LWA_ALPHA);
 
             return handle;
         }

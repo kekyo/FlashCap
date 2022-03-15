@@ -7,34 +7,27 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-using FlashCap.Internal;
-
 namespace FlashCap.Devices
 {
     public sealed class VideoForWindowsDeviceDescriptor : CaptureDeviceDescriptor
     {
-        private readonly int index;
+        private readonly int deviceIndex;
 
         internal VideoForWindowsDeviceDescriptor(
-            int index, string name, string description,
+            int deviceIndex, string name, string description,
             VideoCharacteristics[] characteristics) :
             base(name, description, characteristics) =>
-            this.index = index;
+            this.deviceIndex = deviceIndex;
 
         public override object Identity =>
-            this.index;
+            this.deviceIndex;
 
         public override DeviceTypes DeviceType =>
             DeviceTypes.VideoForWindows;
 
         public override unsafe ICaptureDevice Open(
             VideoCharacteristics characteristics,
-            bool transcodeIfYUV = true)
-        {
-            var handle = NativeMethods_VideoForWindows.CreateVideoSourceWindow(this.index);
-
-            return new VideoForWindowsDevice(
-                handle, this.index, characteristics, transcodeIfYUV);
-        }
+            bool transcodeIfYUV = true) =>
+            new VideoForWindowsDevice(this.deviceIndex, characteristics, transcodeIfYUV);
     }
 }
