@@ -11,6 +11,7 @@ using FlashCap.Devices;
 using FlashCap.Internal;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace FlashCap
 {
@@ -20,9 +21,12 @@ namespace FlashCap
             NativeMethods.GetRuntimePlatform() switch
             {
                 NativeMethods.Platforms.Windows =>
+#if true  // TODO:
                     new VideoForWindowsDevices().EnumerateDescriptors(),
-                    //new DirectShowDevices().EnumerateDescriptors().
-                    //Concat(new VideoForWindowsDevices().EnumerateDescriptors()),
+#else
+                    new DirectShowDevices().EnumerateDescriptors().
+                    Concat(new VideoForWindowsDevices().EnumerateDescriptors()),
+#endif
                 NativeMethods.Platforms.Linux =>
                     // TODO: V2L2
                     ArrayEx.Empty<CaptureDeviceDescriptor>(),

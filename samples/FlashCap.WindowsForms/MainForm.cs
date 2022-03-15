@@ -11,7 +11,7 @@ using System;
 using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace FlashCap.WindowsForms
@@ -20,7 +20,7 @@ namespace FlashCap.WindowsForms
     {
         private ICaptureDevice? captureDevice;
         private PixelBuffer buffer = new();
-        private bool isin;
+        private int isin;
 
         public MainForm() =>
             InitializeComponent();
@@ -30,7 +30,7 @@ namespace FlashCap.WindowsForms
             var devices = new CaptureDevices();
             var descriptors = devices.EnumerateDescriptors().
                 //Where(d => d.DeviceType == DeviceTypes.DirectShow).
-                //Where(d => d.DeviceType == DeviceTypes.VideoForWindows).
+                Where(d => d.DeviceType == DeviceTypes.VideoForWindows).
                 ToArray();
 
             if (descriptors.ElementAtOrDefault(0) is { } descriptor0)
@@ -42,39 +42,52 @@ namespace FlashCap.WindowsForms
             }
         }
 
-        private async void OnFrameArrived(object sender, FrameArrivedEventArgs e)
+        private void OnFrameArrived(object sender, FrameArrivedEventArgs e)
         {
-            // Windows Forms is too slow, so there's making throttling...
-
-            if (!this.isin)
+            // Windows Forms is too slow, so there's making throttle...
+            if (Interlocked.Increment(ref this.isin) == 1)
             {
-                this.isin = true;
-                try
+                // Capture into a pixel buffer:
+                this.captureDevice?.Capture(e, this.buffer);
+
+                // Caution: Perhaps `FrameArrived` event is on the worker thread context.
+                // You have to switch main thread context before manipulates user interface.
+                this.BeginInvoke(() =>
                 {
-                    this.captureDevice?.Capture(e, this.buffer);
-
-                    await TaskEx.Delay(100);
-
-                    var image = this.buffer.ExtractImage();
-
-                    var bitmap = Bitmap.FromStream(new MemoryStream(image));
-
-#if NETCOREAPP
-                    // HACK: on .NET Core, will be leaked (or delayed GC?)
-                    //   updating background image with new Bitmap's.
-                    if (this.BackgroundImage is { } oldImage)
+                    try
                     {
-                        this.BackgroundImage = null;
-                        oldImage.Dispose();
-                    }
-#endif
+                        // Get image data binary:
+                        var image = this.buffer.ExtractImage();
+                        var ms = new MemoryStream(image);
 
-                    this.BackgroundImage = bitmap;
-                }
-                finally
-                {
-                    this.isin = false;
-                }
+                        // Or, refer image data binary directly.
+                        // (Advanced manipulation, see README.)
+                        //var image = this.buffer.ReferImage();
+                        //var ms = new MemoryStream(image.Array!, image.Offset, image.Count);
+
+                        // Decode image data to a bitmap:
+                        var bitmap = Image.FromStream(ms);
+
+                        // HACK: on .NET Core, will be leaked (or delayed GC?)
+                        //   So we could release manually before updates.
+                        if (this.BackgroundImage is { } oldImage)
+                        {
+                            this.BackgroundImage = null;
+                            oldImage.Dispose();
+                        }
+
+                        // Update a bitmap.
+                        this.BackgroundImage = bitmap;
+                    }
+                    finally
+                    {
+                        Interlocked.Decrement(ref this.isin);
+                    }
+                });
+            }
+            else
+            {
+                Interlocked.Decrement(ref this.isin);
             }
         }
 

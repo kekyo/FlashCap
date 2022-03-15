@@ -13,16 +13,35 @@ namespace FlashCap
 {
     public sealed class FrameArrivedEventArgs : EventArgs
     {
-        public readonly IntPtr Data;
-        public readonly int Size;
-        public readonly TimeSpan Timestamp;
+        internal double timestampMilliseconds;
+        internal IntPtr pData;
+        internal int size;
+
+        internal FrameArrivedEventArgs()
+        {
+        }
 
         public FrameArrivedEventArgs(IntPtr pData, int size, TimeSpan timestamp)
         {
-            this.Data = pData;
-            this.Size = size;
-            this.Timestamp = timestamp;
+            this.pData = pData;
+            this.size = size;
+            this.timestampMilliseconds = timestamp.TotalMilliseconds;
         }
+
+        // HACK: Zero allocation backdoor.
+        internal void Update(IntPtr pData, int size, double timestampMilliseconds)
+        {
+            this.pData = pData;
+            this.size = size;
+            this.timestampMilliseconds = timestampMilliseconds;
+        }
+
+        public IntPtr Data =>
+            this.pData;
+        public int Size =>
+            this.size;
+        public TimeSpan Timestamp =>
+            TimeSpan.FromMilliseconds(this.timestampMilliseconds);
     }
 
     public interface ICaptureDevice : IDisposable

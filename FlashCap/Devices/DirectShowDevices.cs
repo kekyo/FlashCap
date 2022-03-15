@@ -28,17 +28,18 @@ namespace FlashCap.Devices
                             devicePath, name,
                             pb.GetValue("Description", default(string))?.Trim() ?? name,
                             moniker.BindToObject(
-                                null, null, in NativeMethods_DirectShow.IID_IBaseFilter, out var bf) == 0 &&
-                            bf is NativeMethods_DirectShow.IBaseFilter baseFilter ?
-                                baseFilter.SafeReleaseBlock(bf => baseFilter.EnumeratePins().
+                                null, null, in NativeMethods_DirectShow.IID_IBaseFilter, out var cs) == 0 &&
+                            cs is NativeMethods_DirectShow.IBaseFilter captureSource ?
+                                captureSource.SafeReleaseBlock(
+                                    captureSource => captureSource.EnumeratePins().
                                     Collect(pin =>
                                         pin.GetPinInfo() is { } pinInfo &&
                                         pinInfo.dir == NativeMethods_DirectShow.PIN_DIRECTION.Output ?
                                             pin : null).
                                     SelectMany(pin =>
                                         pin.EnumerateFormats().
-                                        Select(format => NativeMethods.CreateVideoCharacteristics(
-                                            format.BitmapInfoHeader,
+                                        Collect(format => NativeMethods.CreateVideoCharacteristics(
+                                            format.pBih,
                                             (int)(10_000_000_000.0 / format.VideoInformation.AvgTimePerFrame)))).
                                     Distinct().
                                     OrderByDescending(vc => vc).

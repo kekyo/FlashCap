@@ -18,7 +18,7 @@ using System.Threading.Tasks;
 
 namespace FlashCap.Internal
 {
-    internal static class BitmapConverter
+    internal static class BitmapTranscoder
     {
         private static void ParallelRun(int height, int step, Action<int> action)
         {
@@ -58,7 +58,7 @@ namespace FlashCap.Internal
 
         // Preffered article: https://docs.microsoft.com/en-us/windows/win32/medfound/recommended-8-bit-yuv-formats-for-video-rendering#420-formats-16-bits-per-pixel
 
-        private static unsafe void ConvertFromUYVY(
+        private static unsafe void TranscodeFromUYVY(
             int width, int height, bool performFullRange,
             byte* pFrom, byte* pTo, int scatter)
         {
@@ -94,7 +94,7 @@ namespace FlashCap.Internal
             });
         }
 
-        private static unsafe void ConvertFromYUY2(
+        private static unsafe void TranscodeFromYUY2(
             int width, int height, bool performFullRange,
             byte* pFrom, byte* pTo, int scatter)
         {
@@ -151,7 +151,7 @@ namespace FlashCap.Internal
             }
         }
 
-        public static unsafe void Convert(
+        public static unsafe void Transcode(
             int width, int height,
             PixelFormats pixelFormat, bool performFullRange,
             byte* pFrom, byte* pTo)
@@ -159,10 +159,10 @@ namespace FlashCap.Internal
             switch (pixelFormat)
             {
                 case PixelFormats.UYVY:
-                    ConvertFromUYVY(width, height, performFullRange, pFrom, pTo, 32);
+                    TranscodeFromUYVY(width, height, performFullRange, pFrom, pTo, 32);
                     break;
                 case PixelFormats.YUY2:
-                    ConvertFromYUY2(width, height, performFullRange, pFrom, pTo, 32);
+                    TranscodeFromYUY2(width, height, performFullRange, pFrom, pTo, 32);
                     break;
                 default:
                     throw new ArgumentException();
