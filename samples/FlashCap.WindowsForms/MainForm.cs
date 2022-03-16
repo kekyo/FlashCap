@@ -18,8 +18,10 @@ namespace FlashCap.WindowsForms
 {
     public partial class MainForm : Form
     {
-        private ICaptureDevice? captureDevice;
         private int isin;
+
+        // Constructed capture device.
+        private ICaptureDevice? captureDevice;
 
         // Preallocated pixel buffer.
         private PixelBuffer buffer = new();
@@ -29,24 +31,51 @@ namespace FlashCap.WindowsForms
 
         private void Form1_Load(object sender, EventArgs e)
         {
-            // Enumerate devices:
+            ////////////////////////////////////////////////
+            // Initialize and start capture device
+
+            // Enumerate capture devices:
             var devices = new CaptureDevices();
             var descriptors = devices.EnumerateDescriptors().
+                // You could filter by device type.
                 //Where(d => d.DeviceType == DeviceTypes.DirectShow).
-                Where(d => d.DeviceType == DeviceTypes.VideoForWindows).
                 ToArray();
 
+            // Use first device.
             if (descriptors.ElementAtOrDefault(0) is { } descriptor0)
             {
-                this.captureDevice = descriptor0.Open(descriptor0.Characteristics[0]);
+#if false
+                // Request video characteristics strictly:
+                var characteristics = new VideoCharacteristics(
+                    PixelFormats.MJPG, 24, 1920, 1080, 30000);
+#else
+                // Or, you could choice from device descriptor:
+                // Hint: Show up video characteristics into ComboBox and like.
+                var characteristics = descriptor0.Characteristics[0];
+#endif
+                // Video characteristics tips:
+                // * DirectShow:
+                //   Supported only listing video characteristics,
+                //   will raise exception when use invalid parameter combination.
+                // * Video for Windows:
+                //   Will ignore silently when use invalid parameter combination.
+
+                // Open capture device:
+                this.captureDevice = descriptor0.Open(characteristics);
+
+                // Hook frame arrived event:
                 this.captureDevice.FrameArrived += this.OnFrameArrived!;
 
+                // Start capturing.
                 this.captureDevice.Start();
             }
         }
 
         private void OnFrameArrived(object sender, FrameArrivedEventArgs e)
         {
+            ////////////////////////////////////////////////
+            // Image frame has arrived
+
             // Windows Forms is too slow, so there's making throttle...
             if (Interlocked.Increment(ref this.isin) == 1)
             {
@@ -98,6 +127,7 @@ namespace FlashCap.WindowsForms
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
+            // Discard capture device.
             this.captureDevice?.Dispose();
             this.captureDevice = null;
         }
