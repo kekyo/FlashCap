@@ -63,10 +63,6 @@ namespace FlashCap
 
         public int CompareTo(VideoCharacteristics? other)
         {
-            if (PixelFormatComparer.Instance.Compare(this.PixelFormat, other!.PixelFormat) is { } c4 && c4 != 0)
-            {
-                return c4;
-            }
             if (this.Width.CompareTo(other!.Width) is { } c1 && c1 != 0)
             {
                 return c1;
@@ -78,6 +74,10 @@ namespace FlashCap
             if (this.FramesPer1000Second.CompareTo(other!.FramesPer1000Second) is { } c3 && c3 != 0)
             {
                 return c3;
+            }
+            if (PixelFormatComparer.Instance.Compare(this.PixelFormat, other!.PixelFormat) is { } c4 && c4 != 0)
+            {
+                return c4;
             }
             if (this.BitsPerPixel.CompareTo(other!.BitsPerPixel) is { } c5 && c5 != 0)
             {

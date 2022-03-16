@@ -197,6 +197,57 @@ namespace System.Diagnostics
             Debug.WriteLine(obj);
     }
 }
+
+namespace System.Threading
+{
+    internal enum ApartmentState
+    {
+        STA,
+    }
+
+    internal sealed class Thread
+    {
+        private readonly Action entryPoint;
+        private Tasks.Task? task;
+
+        public Thread(Action entryPoint) =>
+            this.entryPoint = entryPoint;
+
+        public bool IsBackground { get; set; }
+
+        public void SetApartmentState(ApartmentState state)
+        {
+        }
+
+        public void Start() =>
+            this.task = Tasks.Task.Run(this.entryPoint);
+
+        public void Join() =>
+            this.task?.Wait();
+    }
+}
+#endif
+
+#if NET20 || NET35
+namespace System.Threading
+{
+    internal sealed class ManualResetEventSlim : IDisposable
+    {
+        private readonly ManualResetEvent mre;
+
+        public ManualResetEventSlim(bool initialState) =>
+            this.mre = new(initialState);
+
+        public void Dispose() =>
+            this.mre.Close();
+
+        public void Set() =>
+            this.mre.Set();
+
+        public void Wait() =>
+            this.mre.WaitOne();
+    }
+}
 #endif
 
 #if NET20 || NET35 || NETSTANDARD1_3
@@ -206,7 +257,7 @@ namespace System.Threading.Tasks
     {
         public static void For(int fromInclusive, int toExclusive, Action<int> body)
         {
-            using var waiter = new ManualResetEvent(false);
+            using var waiter = new ManualResetEventSlim(false);
             var running = 1;
 
 #if NETSTANDARD1_3
@@ -241,7 +292,7 @@ namespace System.Threading.Tasks
 
             if (Interlocked.Decrement(ref running) >= 1)
             {
-                waiter.WaitOne();
+                waiter.Wait();
             }
         }
     }
