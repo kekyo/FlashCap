@@ -13,7 +13,7 @@ using System.Diagnostics;
 
 namespace FlashCap
 {
-    public sealed class PixelBuffer
+    public sealed class PixelBuffer : IPixelBuffer
     {
         private byte[]? imageContainer;
         private int imageContainerSize;

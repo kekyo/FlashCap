@@ -14,6 +14,9 @@ using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 
+using FlashCap;
+using FlashCap.Utilities;
+
 namespace FlashCap.WindowsForms
 {
     public partial class MainForm : Form
@@ -61,16 +64,17 @@ namespace FlashCap.WindowsForms
                     {
 #if false
                         // Get image data binary:
-                        var image = this.buffer.ExtractImage();
-                        var ms = new MemoryStream(image);
+                        byte[] image = this.buffer.ExtractImage();
 #else
                         // Or, refer image data binary directly.
                         // (Advanced manipulation, see README.)
-                        var image = this.buffer.ReferImage();
-                        var ms = new MemoryStream(image.Array!, image.Offset, image.Count);
+                        ArraySegment<byte> image = this.buffer.ReferImage();
 #endif
+                        // Convert to Stream (using FlashCap.Utilities)
+                        using var stream = image.AsStream();
+
                         // Decode image data to a bitmap:
-                        var bitmap = Image.FromStream(ms);
+                        var bitmap = Image.FromStream(stream);
 
                         // HACK: on .NET Core, will be leaked (or delayed GC?)
                         //   So we could release manually before updates.

@@ -122,7 +122,16 @@ TODO:
 
 ---
 
-## Advanced topic: Master pixel buffer
+## Limitation
+
+* In Video for Windows, "Source device" is not selectable by programmable. VFW logical structure is:
+  1. VFW device driver (always only 1 driver, defaulted WDM device on latest Windows): ICaptureDevices.EnumerateDevices() iterate it.
+  2. Source devices (truly real camera devices) each drivers. But we could not select programmable.
+     Will show up selection dialog automatically when multiple camera devices are found.
+
+---
+
+## Master for pixel buffer (Advanced topic)
 
 Pixel buffer (`PixelBuffer` class) is controlled about
 image data allocation and buffering.
@@ -153,11 +162,11 @@ Therefore, the following method is recommended:
 2. When the image data is actually needed, use `buffer.ExtractImage` to extract the image data.
 This operation can be offloaded in a separate thread.
 
-### Enable queuing
+### 1. Enable queuing
 
 This is illustrated for it strategy:
 
-* These sample code contains using [SkiaSharp](https://github.com/mono/SkiaSharp).
+* These sample code contain using [SkiaSharp](https://github.com/mono/SkiaSharp).
   Because it is faster and not needed to assume any thread context difficulty.
 
 ```csharp
@@ -195,7 +204,7 @@ Task.Run(() =>
 });
 ```
 
-### Reuse pixel buffers
+### 2. Reuse pixel buffers
 
 We can reuse `PixelBuffer` instance when it is not needed.
 These code completes reusing:
@@ -242,7 +251,7 @@ Task.Run(() =>
 });
 ```
 
-### Decode with multiple worker threads
+### 3. Decode with multiple worker threads
 
 Furthermore, it is possible to consider offloading
 with multiple worker threads each scattering pixel buffers:
@@ -261,7 +270,7 @@ Parallel.ForEach(
     });
 ```
 
-### Reduce data copy
+### 4. Reduce data copy
 
 Another topic, `PixelBuffer.ReferImage()` method will return `ArraySegment<byte>`.
 We can use it dodge copying image data (when transcode is not applicable).
@@ -279,6 +288,14 @@ reserver.Push(buffer);
 // (Anything use of it...)
 ```
 
+There is a table for overall image extractions:
+
+|Method|Speed|Thread safe|Image data type|
+|:---|:---|:---|
+|`CopyImage()`|Slow|Safe|`byte[]`|
+|`ExtractImage()`|Sometimes slower|Protection needed|`byte[]`|
+|`ReferImage()`|Fastest|Protection needed|`ArraySegment<byte>`|
+
 And disable transcoding when become "YUV" format, it performs referring image data absolutely raw.
 (Of course, it is your responsibility to decode the raw data...)
 
@@ -290,15 +307,6 @@ using var device = descriptor0.Open(
 
 // ...
 ```
-
----
-
-## Limitation
-
-* In Video for Windows, "Source device" is not selectable by programmable. VFW logical structure is:
-  1. VFW device driver (always only 1 driver, defaulted WDM device on latest Windows): ICaptureDevices.EnumerateDevices() iterate it.
-  2. Source devices (truly real camera devices) each drivers. But we could not select programmable.
-     Will show up selection dialog automatically when multiple camera devices are found.
 
 ---
 
