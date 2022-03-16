@@ -23,16 +23,17 @@ FlashCap - Independent camera capture library.
 ## What is this?
 
 Do you need to get camera capturing ability on .NET?
+Is you tired for camera capturing library solutions on .NET?
 
 This is a camera image capture library by specializing only capturing image data.
 It has simple API, easy to use, simple architecture and has no any other library dependencies, [see NuGet summary page.](https://www.nuget.org/packages/FlashCap)
 
 .NET platforms supported are as follows (almost all!):
 
-* .NET 6, 5 (net6.0, net5.0)
-* .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (netcoreapp3.1 and etc)
-* .NET Standard 2.1, 2.0, 1.1 (netstandard2.1 and etc)
-* .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5, 2.0 (net45 and etc)
+* .NET 6, 5 (`net6.0`, `net5.0`)
+* .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (`netcoreapp3.1` and etc)
+* .NET Standard 2.1, 2.0, 1.3 (`netstandard2.1` and etc)
+* .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5, 2.0 (`net48` and etc)
 
 Platforms on which camera devices can be used:
 

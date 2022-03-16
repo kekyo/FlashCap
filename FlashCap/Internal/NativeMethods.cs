@@ -119,25 +119,6 @@ namespace FlashCap.Internal
 
         ////////////////////////////////////////////////////////////////////////
 
-#if NETSTANDARD1_3
-        public delegate int THREAD_START_ROUTINE(IntPtr parameter);
-        public delegate void QueueUserWorkItemDelegate(THREAD_START_ROUTINE function, IntPtr parameter, int flags);
-
-        [DllImport("kernel32", EntryPoint="QueueUserWorkItem")]
-        private static extern void WindowsQueueUserWorkItem(
-            THREAD_START_ROUTINE function, IntPtr parameter, int flags);
-
-        private static void PosixQueueUserWorkItem(
-            THREAD_START_ROUTINE function, IntPtr parameter, int flags) =>
-            System.Threading.Tasks.Task.Run(() => function(parameter));
-
-        public static readonly QueueUserWorkItemDelegate QueueUserWorkItem =
-            CurrentPlatform == Platforms.Windows ?
-                WindowsQueueUserWorkItem : PosixQueueUserWorkItem;
-#endif
-
-        ////////////////////////////////////////////////////////////////////////
-
         [StructLayout(LayoutKind.Sequential, Pack=1)]
         public struct RGBQUAD
         {

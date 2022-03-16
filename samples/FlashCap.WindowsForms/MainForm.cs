@@ -19,18 +19,21 @@ namespace FlashCap.WindowsForms
     public partial class MainForm : Form
     {
         private ICaptureDevice? captureDevice;
-        private PixelBuffer buffer = new();
         private int isin;
+
+        // Preallocated pixel buffer.
+        private PixelBuffer buffer = new();
 
         public MainForm() =>
             InitializeComponent();
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            // Enumerate devices:
             var devices = new CaptureDevices();
             var descriptors = devices.EnumerateDescriptors().
-                //Where(d => d.DeviceType == DeviceTypes.DirectShow).
-                Where(d => d.DeviceType == DeviceTypes.VideoForWindows).
+                Where(d => d.DeviceType == DeviceTypes.DirectShow).
+                //Where(d => d.DeviceType == DeviceTypes.VideoForWindows).
                 ToArray();
 
             if (descriptors.ElementAtOrDefault(0) is { } descriptor0)
@@ -56,7 +59,7 @@ namespace FlashCap.WindowsForms
                 {
                     try
                     {
-#if true
+#if false
                         // Get image data binary:
                         var image = this.buffer.ExtractImage();
                         var ms = new MemoryStream(image);

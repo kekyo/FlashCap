@@ -10,6 +10,7 @@
 using FlashCap.Internal;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 #if NET20
 namespace System.Runtime.CompilerServices
@@ -196,30 +197,6 @@ namespace System.Diagnostics
             Debug.WriteLine(obj);
     }
 }
-
-namespace System.Threading
-{
-    internal delegate void WaitCallback(object? state);
-
-    internal static class ThreadPool
-    {
-        public static void QueueUserWorkItem(WaitCallback callback, object? state)
-        {
-            NativeMethods.QueueUserWorkItem(parameter =>
-            {
-                try
-                {
-                    callback(state);
-                }
-                catch (Exception ex)
-                {
-                    Trace.WriteLine(ex);
-                }
-                return 0;
-            }, IntPtr.Zero, 0);
-        }
-    }
-}
 #endif
 
 #if NET20 || NET35 || NETSTANDARD1_3
@@ -229,14 +206,42 @@ namespace System.Threading.Tasks
     {
         public static void For(int fromInclusive, int toExclusive, Action<int> body)
         {
+            using var waiter = new ManualResetEvent(false);
+            var running = 1;
+
+#if NETSTANDARD1_3
+            var taskFactory = Task.Factory;
+            var trampoline = new Action<object?>(parameter =>
+#else
             var trampoline = new WaitCallback(parameter =>
+#endif
             {
-                body((int)parameter!);
+                try
+                {
+                    body((int)parameter!);
+                }
+                finally
+                {
+                    if (Interlocked.Decrement(ref running) <= 0)
+                    {
+                        waiter.Set();
+                    }
+                }
             });
 
             for (var index = fromInclusive; index < toExclusive; index++)
             {
+                Interlocked.Increment(ref running);
+#if NETSTANDARD1_3
+                taskFactory.StartNew(trampoline, index);
+#else
                 ThreadPool.QueueUserWorkItem(trampoline, index);
+#endif
+            }
+
+            if (Interlocked.Decrement(ref running) >= 1)
+            {
+                waiter.WaitOne();
             }
         }
     }
