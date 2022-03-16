@@ -288,7 +288,7 @@ reserver.Push(buffer);
 There is a table for overall image extractions:
 
 |Method|Speed|Thread safe|Image data type|
-|:---|:---|:---|
+|:---|:---|:---|:---|
 |`CopyImage()`|Slow|Safe|`byte[]`|
 |`ExtractImage()`|Sometimes slower|Protection needed|`byte[]`|
 |`ReferImage()`|Fastest|Protection needed|`ArraySegment<byte>`|
