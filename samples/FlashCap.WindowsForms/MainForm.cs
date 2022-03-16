@@ -37,7 +37,7 @@ namespace FlashCap.WindowsForms
             // Enumerate capture devices:
             var devices = new CaptureDevices();
             var descriptors = devices.EnumerateDescriptors().
-                // You could filter by device type.
+                // You could filter by device type and characteristics.
                 //Where(d => d.DeviceType == DeviceTypes.DirectShow).
                 ToArray();
 
