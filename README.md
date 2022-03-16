@@ -37,15 +37,12 @@ It has simple API, easy to use, simple architecture and has no any other library
 
 Platforms on which camera devices can be used:
 
-* Windows (Video for Windows API)
-
-WIP:
-
-* Windows (DirectShow API)
+* Windows (DirectShow devices)
+* Windows (Video for Windows devices)
 
 TODO:
 
-* Linux (V2L2 API)
+* Linux (V2L2 devices)
 
 ---
 
@@ -111,7 +108,7 @@ device.Start();
 device.Stop();
 ```
 
-Full sample code and another library combination usage are here:
+Fully sample code is here:
 
 * [Windows Forms application](samples/FlashCap.WindowsForms/)
 
@@ -316,6 +313,9 @@ Apache-v2.
 
 ## History
 
+* 0.6.0:
+  * Supported DirectShow devices 🎉
+  * Improved and made stability for VFW, using separated STA thread.
 * 0.5.0:
   * Reenabled netstandard1.3.
   * Added more useful methods and interfaces.

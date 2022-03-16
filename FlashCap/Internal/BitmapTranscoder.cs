@@ -21,7 +21,7 @@ namespace FlashCap.Internal
             int width, int height, bool performFullRange,
             byte* pFrom, byte* pTo, int scatter)
         {
-            Parallel.For(0, height / scatter, ys =>
+            Parallel.For(0, (height + scatter - 1) / scatter, ys =>
             {
                 var y = ys * scatter;
                 var myi = Math.Min(height - y, scatter);
@@ -59,7 +59,7 @@ namespace FlashCap.Internal
             int width, int height, bool performFullRange,
             byte* pFrom, byte* pTo, int scatter)
         {
-            Parallel.For(0, height / scatter, ys =>
+            Parallel.For(0, (height + scatter - 1) / scatter, ys =>
             {
                 var y = ys * scatter;
                 var myi = Math.Min(height - y, scatter);
