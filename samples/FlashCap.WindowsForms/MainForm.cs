@@ -56,15 +56,16 @@ namespace FlashCap.WindowsForms
                 {
                     try
                     {
+#if true
                         // Get image data binary:
                         var image = this.buffer.ExtractImage();
                         var ms = new MemoryStream(image);
-
+#else
                         // Or, refer image data binary directly.
                         // (Advanced manipulation, see README.)
-                        //var image = this.buffer.ReferImage();
-                        //var ms = new MemoryStream(image.Array!, image.Offset, image.Count);
-
+                        var image = this.buffer.ReferImage();
+                        var ms = new MemoryStream(image.Array!, image.Offset, image.Count);
+#endif
                         // Decode image data to a bitmap:
                         var bitmap = Image.FromStream(ms);
 

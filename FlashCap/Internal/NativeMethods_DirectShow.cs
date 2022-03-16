@@ -135,8 +135,8 @@ namespace FlashCap.Internal
         {
             public Guid majortype;   // MEDIATYPE_*
             public Guid subtype;     // MEDIASUBTYPE_*
-            [MarshalAs(UnmanagedType.Bool)] public bool fixedSizeSamples;
-            [MarshalAs(UnmanagedType.Bool)] public bool temporalCompression;
+            public int fixedSizeSamples;     //Made blittable: [MarshalAs(UnmanagedType.Bool)] public bool fixedSizeSamples;
+            public int temporalCompression;  //Made blittable: [MarshalAs(UnmanagedType.Bool)] public bool temporalCompression;
             public int sampleSize;
             public Guid formattype;  // FORMATTYPE_*
             public IntPtr pUnk;

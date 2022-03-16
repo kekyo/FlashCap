@@ -138,7 +138,7 @@ namespace FlashCap.Internal
 
         ////////////////////////////////////////////////////////////////////////
 
-        [StructLayout(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential, Pack=1)]
         public struct RGBQUAD
         {
             public byte rgbBlue;
