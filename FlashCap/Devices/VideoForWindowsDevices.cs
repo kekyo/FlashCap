@@ -34,6 +34,8 @@ namespace FlashCap.Devices
                         string.IsNullOrEmpty(n) ? "Default" : n,
                         string.IsNullOrEmpty(d) ? "VideoForWindows default" : d,
                         new[] {
+                            // DIRTY: VFW couldn't enumerate device specific strictly video formats.
+                            //   So there're predefined (major?) formats.
                             new VideoCharacteristics(PixelFormats.MJPG, 24, 1920, 1080, 30000),
                             new VideoCharacteristics(PixelFormats.MJPG, 24, 1600, 1200, 30000),
                             new VideoCharacteristics(PixelFormats.MJPG, 24, 1280, 960, 30000),

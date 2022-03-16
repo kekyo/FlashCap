@@ -7,8 +7,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.Utilities;
 using System;
-using System.Collections.Generic;
 
 namespace FlashCap
 {
@@ -21,30 +21,6 @@ namespace FlashCap
         UYVY = 0x59565955,   // FOURCC
         MJPG = 0x47504a4d,   // FOURCC
         RGBA = 0x41424752,   // FOURCC
-    }
-
-    public sealed class PixelFormatComparer : IComparer<PixelFormats>
-    {
-        private PixelFormatComparer()
-        {
-        }
-
-        private static int GetComparableCode(PixelFormats pixelFormat) =>
-            pixelFormat switch
-            {
-                PixelFormats.MJPG => 0,
-                PixelFormats.JPEG => 10,
-                PixelFormats.RGB => 30,
-                PixelFormats.RGBA => 40,
-                PixelFormats.PNG => 50,
-                _ => 20,
-            };
-
-        public int Compare(PixelFormats x, PixelFormats y) =>
-            GetComparableCode(x).CompareTo(GetComparableCode(y));
-
-        public static readonly PixelFormatComparer Instance =
-            new PixelFormatComparer();
     }
 
     public sealed class VideoCharacteristics :

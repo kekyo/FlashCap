@@ -26,7 +26,7 @@ namespace FlashCap.Internal
             Other,
         }
 
-        public static Platforms GetRuntimePlatform()
+        private static Platforms GetRuntimePlatform()
         {
             var windir = Environment.GetEnvironmentVariable("windir");
             if (!string.IsNullOrEmpty(windir) &&
@@ -57,6 +57,11 @@ namespace FlashCap.Internal
             }
         }
 
+        public static readonly Platforms CurrentPlatform =
+            GetRuntimePlatform();
+
+        ////////////////////////////////////////////////////////////////////////
+
         // https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/aa366535(v=vs.85)
         [DllImport("ntdll")]
         private static extern void RtlCopyMemory(IntPtr dest, IntPtr src, IntPtr length);
@@ -68,7 +73,7 @@ namespace FlashCap.Internal
             IntPtr pDestination, IntPtr pSource, IntPtr length);
 
         public static unsafe readonly CopyMemoryDelegate CopyMemory =
-            Environment.OSVersion.Platform == PlatformID.Win32NT ?
+            CurrentPlatform == Platforms.Windows ?
                 RtlCopyMemory : memcpy;
 
         ////////////////////////////////////////////////////////////////////////
@@ -106,15 +111,15 @@ namespace FlashCap.Internal
         }
 
         public static unsafe readonly AllocateMemoryDelegate AllocateMemory =
-            Environment.OSVersion.Platform == PlatformID.Win32NT ?
+            CurrentPlatform == Platforms.Windows ?
                 AllocateWindows : AllocatePosix;
         public static unsafe readonly FreeMemoryDelegate FreeMemory =
-            Environment.OSVersion.Platform == PlatformID.Win32NT ?
+            CurrentPlatform == Platforms.Windows ?
                 CoTaskMemFree : free;
 
         ////////////////////////////////////////////////////////////////////////
 
-        [StructLayout(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential, Pack=1)]
         public struct RGBQUAD
         {
             public byte rgbBlue;

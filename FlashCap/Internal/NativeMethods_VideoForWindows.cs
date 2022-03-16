@@ -119,6 +119,15 @@ namespace FlashCap.Internal
             public int dwAudioBufferSize;
         }
 
+        [Flags]
+        public enum VideoStatus
+        {
+            Done = 1,
+            Prepared = 2,
+            Inqueue = 4,
+            KeyFrame = 8,
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         public struct VIDEOHDR
         {
@@ -127,7 +136,7 @@ namespace FlashCap.Internal
             public int dwBytesUsed;
             public uint dwTimeCaptured;
             public UIntPtr dwUser;
-            public uint dwFlags;
+            public VideoStatus flags;
             [MarshalAs(UnmanagedType.ByValArray, SizeConst=4)]
             private UIntPtr[] dwReserved;
         }

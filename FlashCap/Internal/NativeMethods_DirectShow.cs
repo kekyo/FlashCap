@@ -135,8 +135,8 @@ namespace FlashCap.Internal
         {
             public Guid majortype;   // MEDIATYPE_*
             public Guid subtype;     // MEDIASUBTYPE_*
-            [MarshalAs(UnmanagedType.Bool)] public bool fixedSizeSamples;
-            [MarshalAs(UnmanagedType.Bool)] public bool temporalCompression;
+            public int fixedSizeSamples;     //Made blittable: [MarshalAs(UnmanagedType.Bool)] public bool fixedSizeSamples;
+            public int temporalCompression;  //Made blittable: [MarshalAs(UnmanagedType.Bool)] public bool temporalCompression;
             public int sampleSize;
             public Guid formattype;  // FORMATTYPE_*
             public IntPtr pUnk;
@@ -826,9 +826,10 @@ namespace FlashCap.Internal
         public static IEnumerable<VideoMediaFormat> EnumerateFormats(
             this IPin pin)
         {
-            static AM_MEDIA_TYPE CloneAndRelease(IntPtr pMediaType)
+            static unsafe AM_MEDIA_TYPE CloneAndRelease(IntPtr pMediaType)
             {
-                var mt = (AM_MEDIA_TYPE)Marshal.PtrToStructure(pMediaType, typeof(AM_MEDIA_TYPE))!;
+                var pmt = (AM_MEDIA_TYPE*)pMediaType.ToPointer();
+                var mt = *pmt;   // Copy.
                 NativeMethods.FreeMemory(pMediaType);
                 return mt;
             }

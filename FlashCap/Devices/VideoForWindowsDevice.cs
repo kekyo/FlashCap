@@ -140,16 +140,20 @@ namespace FlashCap.Devices
         {
             if (this.FrameArrived is { } fa)
             {
-                try
+                // HACK: Dodge stupid camera devices...
+                if (hdr.dwBytesUsed >= 64)
                 {
-                    // TODO: dwTimeCaptured always zero??
-                    e!.Update(hdr.lpData, hdr.dwBytesUsed, hdr.dwTimeCaptured);
-                    fa(this, e);
-                }
-                // DANGER: Stop leaking exception around outside of unmanaged area...
-                catch (Exception ex)
-                {
-                    Trace.WriteLine(ex);
+                    try
+                    {
+                        // TODO: dwTimeCaptured always zero??
+                        e!.Update(hdr.lpData, hdr.dwBytesUsed, hdr.dwTimeCaptured);
+                        fa(this, e);
+                    }
+                    // DANGER: Stop leaking exception around outside of unmanaged area...
+                    catch (Exception ex)
+                    {
+                        Trace.WriteLine(ex);
+                    }
                 }
             }
         }

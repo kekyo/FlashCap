@@ -14,23 +14,29 @@ using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
 
+using FlashCap;
+using FlashCap.Utilities;
+
 namespace FlashCap.WindowsForms
 {
     public partial class MainForm : Form
     {
         private ICaptureDevice? captureDevice;
-        private PixelBuffer buffer = new();
         private int isin;
+
+        // Preallocated pixel buffer.
+        private PixelBuffer buffer = new();
 
         public MainForm() =>
             InitializeComponent();
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            // Enumerate devices:
             var devices = new CaptureDevices();
             var descriptors = devices.EnumerateDescriptors().
                 //Where(d => d.DeviceType == DeviceTypes.DirectShow).
-                Where(d => d.DeviceType == DeviceTypes.VideoForWindows).
+                //Where(d => d.DeviceType == DeviceTypes.VideoForWindows).
                 ToArray();
 
             if (descriptors.ElementAtOrDefault(0) is { } descriptor0)
@@ -56,17 +62,19 @@ namespace FlashCap.WindowsForms
                 {
                     try
                     {
+#if false
                         // Get image data binary:
-                        var image = this.buffer.ExtractImage();
-                        var ms = new MemoryStream(image);
-
+                        byte[] image = this.buffer.ExtractImage();
+#else
                         // Or, refer image data binary directly.
                         // (Advanced manipulation, see README.)
-                        //var image = this.buffer.ReferImage();
-                        //var ms = new MemoryStream(image.Array!, image.Offset, image.Count);
+                        ArraySegment<byte> image = this.buffer.ReferImage();
+#endif
+                        // Convert to Stream (using FlashCap.Utilities)
+                        using var stream = image.AsStream();
 
                         // Decode image data to a bitmap:
-                        var bitmap = Image.FromStream(ms);
+                        var bitmap = Image.FromStream(stream);
 
                         // HACK: on .NET Core, will be leaked (or delayed GC?)
                         //   So we could release manually before updates.

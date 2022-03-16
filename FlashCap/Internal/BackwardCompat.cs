@@ -7,7 +7,10 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.Internal;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 #if NET20
 namespace System.Runtime.CompilerServices
@@ -175,3 +178,72 @@ namespace System.Linq
         }
     }
 }
+
+#if NETSTANDARD1_3
+namespace System.Security
+{
+    // HACK: dummy
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Interface | AttributeTargets.Method)]
+    internal sealed class SuppressUnmanagedCodeSecurityAttribute : Attribute
+    {
+    }
+}
+
+namespace System.Diagnostics
+{
+    internal static class Trace
+    {
+        public static void WriteLine(object? obj) =>
+            Debug.WriteLine(obj);
+    }
+}
+#endif
+
+#if NET20 || NET35 || NETSTANDARD1_3
+namespace System.Threading.Tasks
+{
+    internal static class Parallel
+    {
+        public static void For(int fromInclusive, int toExclusive, Action<int> body)
+        {
+            using var waiter = new ManualResetEvent(false);
+            var running = 1;
+
+#if NETSTANDARD1_3
+            var taskFactory = Task.Factory;
+            var trampoline = new Action<object?>(parameter =>
+#else
+            var trampoline = new WaitCallback(parameter =>
+#endif
+            {
+                try
+                {
+                    body((int)parameter!);
+                }
+                finally
+                {
+                    if (Interlocked.Decrement(ref running) <= 0)
+                    {
+                        waiter.Set();
+                    }
+                }
+            });
+
+            for (var index = fromInclusive; index < toExclusive; index++)
+            {
+                Interlocked.Increment(ref running);
+#if NETSTANDARD1_3
+                taskFactory.StartNew(trampoline, index);
+#else
+                ThreadPool.QueueUserWorkItem(trampoline, index);
+#endif
+            }
+
+            if (Interlocked.Decrement(ref running) >= 1)
+            {
+                waiter.WaitOne();
+            }
+        }
+    }
+}
+#endif

@@ -11,15 +11,12 @@ using System;
 
 namespace FlashCap
 {
-    public interface ICaptureDevice : IDisposable
+    public interface IPixelBuffer
     {
-        VideoCharacteristics Characteristics { get; }
+        TimeSpan Timestamp { get; }
 
-        event EventHandler<FrameArrivedEventArgs> FrameArrived;
-
-        void Start();
-        void Stop();
-
-        void Capture(FrameArrivedEventArgs e, PixelBuffer buffer);
+        byte[] ExtractImage();
+        byte[] CopyImage();
+        ArraySegment<byte> ReferImage();
     }
 }

@@ -9,26 +9,6 @@
 
 namespace FlashCap
 {
-    public enum DeviceTypes
-    {
-        VideoForWindows,
-        DirectShow,
-        V2L2,  // TODO:
-    }
-
-    public interface ICaptureDeviceDescriptor
-    {
-        object Identity { get; }
-        DeviceTypes DeviceType { get; }
-        string Name { get; }
-        string Description { get; }
-        VideoCharacteristics[] Characteristics { get; }
-
-        ICaptureDevice Open(
-            VideoCharacteristics characteristics,
-            bool transcodeIfYUV = true);
-    }
-
     public abstract class CaptureDeviceDescriptor : ICaptureDeviceDescriptor
     {
         protected CaptureDeviceDescriptor(
