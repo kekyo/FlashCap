@@ -7,15 +7,12 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.Utilities;
 using System;
 using System.Drawing;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
-
-using FlashCap;
-using FlashCap.Utilities;
 
 namespace FlashCap.WindowsForms
 {
@@ -36,7 +33,7 @@ namespace FlashCap.WindowsForms
             var devices = new CaptureDevices();
             var descriptors = devices.EnumerateDescriptors().
                 //Where(d => d.DeviceType == DeviceTypes.DirectShow).
-                //Where(d => d.DeviceType == DeviceTypes.VideoForWindows).
+                Where(d => d.DeviceType == DeviceTypes.VideoForWindows).
                 ToArray();
 
             if (descriptors.ElementAtOrDefault(0) is { } descriptor0)
