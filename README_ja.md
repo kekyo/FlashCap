@@ -115,11 +115,11 @@ device.Stop();
 完全なサンプルコードはこちらです:
 
 * [Windowsフォームアプリケーション](samples/FlashCap.WindowsForms/)
+* [Avaloniaアプリケーション](samples/FlashCap.Avalonia/)
 
 TODO:
 
 * [WPFアプリケーション](samples/FlashCap.WPF/)
-* [Avaloniaアプリケーション](samples/FlashCap.Avalonia/)
 
 ---
 

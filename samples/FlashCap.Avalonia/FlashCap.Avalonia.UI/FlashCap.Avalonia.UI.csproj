@@ -2,10 +2,6 @@
     
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
-    <DebugType>portable</DebugType>
-    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
     
   <ItemGroup>
@@ -17,7 +13,6 @@
     
   <ItemGroup>
     <ProjectReference Include="..\..\..\FlashCap\FlashCap.csproj" />
-    <ProjectReference Include="..\FlashCap.Avalonia.Core\FlashCap.Avalonia.Core.csproj" />
   </ItemGroup>
     
 </Project>
