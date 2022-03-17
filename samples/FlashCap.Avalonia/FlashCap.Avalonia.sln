@@ -1,0 +1,44 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.Avalonia.Core", "FlashCap.Avalonia.Core\FlashCap.Avalonia.Core.csproj", "{DB5BA882-FA7A-4D1B-A7C5-F025EA301EA5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.Avalonia", "FlashCap.Avalonia\FlashCap.Avalonia.csproj", "{810817CC-80A7-4952-9630-BFA386B00EB9}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{B668698E-8CA4-4028-9DCF-3459FAB0E666}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		FlashCap.Avalonia.sln.licenseheader = FlashCap.Avalonia.sln.licenseheader
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.Avalonia.UI", "FlashCap.Avalonia.UI\FlashCap.Avalonia.UI.csproj", "{21E0E68E-256C-4E55-AD98-27AC3693E120}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DB5BA882-FA7A-4D1B-A7C5-F025EA301EA5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DB5BA882-FA7A-4D1B-A7C5-F025EA301EA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DB5BA882-FA7A-4D1B-A7C5-F025EA301EA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DB5BA882-FA7A-4D1B-A7C5-F025EA301EA5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{810817CC-80A7-4952-9630-BFA386B00EB9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{810817CC-80A7-4952-9630-BFA386B00EB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{810817CC-80A7-4952-9630-BFA386B00EB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{810817CC-80A7-4952-9630-BFA386B00EB9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21E0E68E-256C-4E55-AD98-27AC3693E120}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21E0E68E-256C-4E55-AD98-27AC3693E120}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21E0E68E-256C-4E55-AD98-27AC3693E120}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21E0E68E-256C-4E55-AD98-27AC3693E120}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {37A64CEC-DCE3-4FE1-85F0-BAB3AB2DC26D}
+	EndGlobalSection
+EndGlobal
