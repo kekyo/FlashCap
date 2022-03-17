@@ -11,20 +11,21 @@ using FlashCap.Utilities;
 using System;
 using System.Drawing;
 using System.Linq;
-using System.Threading;
 using System.Windows.Forms;
 
 namespace FlashCap.WindowsForms
 {
     public partial class MainForm : Form
     {
-        private int isin;
+        // Execute with limited only 1 task. (using FlashCap.Utilities)
+        private LimitedExecutor limitedExecutor = new();
 
         // Constructed capture device.
         private ICaptureDevice? captureDevice;
 
         // Preallocated pixel buffer.
         private PixelBuffer buffer = new();
+
 
         public MainForm() =>
             InitializeComponent();
@@ -76,32 +77,35 @@ namespace FlashCap.WindowsForms
             ////////////////////////////////////////////////
             // Image frame has arrived
 
-            // Windows Forms is too slow, so there's making throttle...
-            if (Interlocked.Increment(ref this.isin) == 1)
-            {
-                // Capture into a pixel buffer:
-                this.captureDevice?.Capture(e, this.buffer);
+            // Windows Forms is too slow, so there's making throttle with LimitedExecutor class.
+            this.limitedExecutor.ExecuteAndOffload(
 
-                // Caution: Perhaps `FrameArrived` event is on the worker thread context.
-                // You have to switch main thread context before manipulates user interface.
-                this.BeginInvoke(() =>
+                // Just now section:
+                //   Capture into a pixel buffer:
+                () => this.captureDevice?.Capture(e, this.buffer),
+
+                // Offloaded section:
+                //   Caution: Offloaded section is on the worker thread context.
+                //   You have to switch main thread context before manipulates user interface.
+                () =>
                 {
-                    try
-                    {
 #if false
-                        // Get image data binary:
-                        byte[] image = this.buffer.ExtractImage();
+                    // Get image data binary:
+                    byte[] image = this.buffer.ExtractImage();
 #else
-                        // Or, refer image data binary directly.
-                        // (Advanced manipulation, see README.)
-                        ArraySegment<byte> image = this.buffer.ReferImage();
+                    // Or, refer image data binary directly.
+                    // (Advanced manipulation, see README.)
+                    ArraySegment<byte> image = this.buffer.ReferImage();
 #endif
-                        // Convert to Stream (using FlashCap.Utilities)
-                        using var stream = image.AsStream();
+                    // Convert to Stream (using FlashCap.Utilities)
+                    using var stream = image.AsStream();
 
-                        // Decode image data to a bitmap:
-                        var bitmap = Image.FromStream(stream);
+                    // Decode image data to a bitmap:
+                    var bitmap = Image.FromStream(stream);
 
+                    // Switch to UI thread:
+                    this.Invoke(() =>
+                    {
                         // HACK: on .NET Core, will be leaked (or delayed GC?)
                         //   So we could release manually before updates.
                         if (this.BackgroundImage is { } oldImage)
@@ -112,17 +116,8 @@ namespace FlashCap.WindowsForms
 
                         // Update a bitmap.
                         this.BackgroundImage = bitmap;
-                    }
-                    finally
-                    {
-                        Interlocked.Decrement(ref this.isin);
-                    }
+                    });
                 });
-            }
-            else
-            {
-                Interlocked.Decrement(ref this.isin);
-            }
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)

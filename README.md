@@ -26,7 +26,9 @@ Do you need to get camera capturing ability on .NET?
 Is you tired for camera capturing library solutions on .NET?
 
 This is a camera image capture library by specializing only capturing image data.
-It has simple API, easy to use, simple architecture and has no any other library dependencies, [see NuGet summary page.](https://www.nuget.org/packages/FlashCap)
+It has simple API, easy to use, simple architecture, without native libraries
+and without any other library dependencies.
+[See NuGet summary page.](https://www.nuget.org/packages/FlashCap)
 
 .NET platforms supported are as follows (almost all!):
 
@@ -313,6 +315,9 @@ Apache-v2.
 
 ## History
 
+* 0.7.0:
+  * Improved dodging video device with sending invalid video frame on DirectShow.
+  * Fixed causing entry point is not found for RtlCopyMemory on 32bit environment.
 * 0.6.0:
   * Supported DirectShow devices 🎉
   * Improved and made stability for VFW, using separated STA thread.
