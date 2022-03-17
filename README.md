@@ -8,15 +8,15 @@ FlashCap - Independent camera capture library.
 
 ## NuGet
 
-|Package|NuGet|
-|:--|:--|
-|FlashCap|[![NuGet FlashCap](https://img.shields.io/nuget/v/FlashCap.svg?style=flat)](https://www.nuget.org/packages/FlashCap)|
+| Package  | NuGet                                                                                                                |
+|:---------|:---------------------------------------------------------------------------------------------------------------------|
+| FlashCap | [![NuGet FlashCap](https://img.shields.io/nuget/v/FlashCap.svg?style=flat)](https://www.nuget.org/packages/FlashCap) |
 
 ## CI
 
-|main|develop|
-|:--|:--|
-|[![FlashCap CI build (main)](https://github.com/kekyo/FlashCap/workflows/.NET/badge.svg?branch=main)](https://github.com/kekyo/FlashCap/actions?query=branch%3Amain)|[![FlashCap CI build (develop)](https://github.com/kekyo/FlashCap/workflows/.NET/badge.svg?branch=develop)](https://github.com/kekyo/FlashCap/actions?query=branch%3Adevelop)|
+| main                                                                                                                                                                 | develop                                                                                                                                                                       |
+|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [![FlashCap CI build (main)](https://github.com/kekyo/FlashCap/workflows/.NET/badge.svg?branch=main)](https://github.com/kekyo/FlashCap/actions?query=branch%3Amain) | [![FlashCap CI build (develop)](https://github.com/kekyo/FlashCap/workflows/.NET/badge.svg?branch=develop)](https://github.com/kekyo/FlashCap/actions?query=branch%3Adevelop) |
 
 ---
 
@@ -380,11 +380,11 @@ reserver.Push(buffer);
 
 There is a table for overall image extractions:
 
-|Method|Speed|Thread safe|Image data type|
-|:---|:---|:---|:---|
-|`CopyImage()`|Slow|Safe|`byte[]`|
-|`ExtractImage()`|Sometimes slower|Protection needed|`byte[]`|
-|`ReferImage()`|Fastest|Protection needed|`ArraySegment<byte>`|
+| Method           | Speed            | Thread safe       | Image data type      |
+|:-----------------|:-----------------|:------------------|:---------------------|
+| `CopyImage()`    | Slow             | Safe              | `byte[]`             |
+| `ExtractImage()` | Sometimes slower | Protection needed | `byte[]`             |
+| `ReferImage()`   | Fastest          | Protection needed | `ArraySegment<byte>` |
 
 And disable transcoding when become "YUV" format, it performs referring image data absolutely raw.
 (Of course, it is your responsibility to decode the raw data...)

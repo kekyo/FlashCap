@@ -8,15 +8,15 @@ FlashCap - 独立したカメラキャプチャライブラリ
 
 ## NuGet
 
-|Package|NuGet|
-|:--|:--|
-|FlashCap|[![NuGet FlashCap](https://img.shields.io/nuget/v/FlashCap.svg?style=flat)](https://www.nuget.org/packages/FlashCap)|
+| Package  | NuGet                                                                                                                |
+|:---------|:---------------------------------------------------------------------------------------------------------------------|
+| FlashCap | [![NuGet FlashCap](https://img.shields.io/nuget/v/FlashCap.svg?style=flat)](https://www.nuget.org/packages/FlashCap) |
 
 ## CI
 
-|main|develop|
-|:--|:--|
-|[![FlashCap CI build (main)](https://github.com/kekyo/FlashCap/workflows/.NET/badge.svg?branch=main)](https://github.com/kekyo/FlashCap/actions?query=branch%3Amain)|[![FlashCap CI build (develop)](https://github.com/kekyo/FlashCap/workflows/.NET/badge.svg?branch=develop)](https://github.com/kekyo/FlashCap/actions?query=branch%3Adevelop)|
+| main                                                                                                                                                                 | develop                                                                                                                                                                       |
+|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [![FlashCap CI build (main)](https://github.com/kekyo/FlashCap/workflows/.NET/badge.svg?branch=main)](https://github.com/kekyo/FlashCap/actions?query=branch%3Amain) | [![FlashCap CI build (develop)](https://github.com/kekyo/FlashCap/workflows/.NET/badge.svg?branch=develop)](https://github.com/kekyo/FlashCap/actions?query=branch%3Adevelop) |
 
 ---
 
@@ -379,12 +379,12 @@ reserver.Push(buffer);
 
 画像抽出操作を比較する表を示します:
 
-|メソッド|速度|スレッドセーフ|イメージの型|
-|:---|:---|:---|:---|
-|`CopyImage()`|遅い|安全|`byte[]`|
-|`ExtractImage()`|場合によっては遅い|保護が必要|`byte[]`|
-|`ReferImage()`|高速|保護が必要|`ArraySegment<byte>`|
-
+| メソッド             | 速度        | スレッドセーフ | イメージの型               |
+|:-----------------|:----------|:--------|:---------------------|
+| `CopyImage()`    | 遅い        | 安全      | `byte[]`             |
+| `ExtractImage()` | 場合によっては遅い | 保護が必要   | `byte[]`             |
+| `ReferImage()`   | 高速        | 保護が必要   | `ArraySegment<byte>` |
+~~~~
 また、"YUV" 形式の場合でもトランスコードを実行しないように無効化し、
 完全な生画像データを参照するようにします。
 (もちろん、生データをデコードするのはあなたの責任となります...）
