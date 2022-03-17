@@ -18,6 +18,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.WindowsForms", "sa
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{655486CC-57A5-494E-97D0-9850B6D55BBA}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "FlashCap.Avalonia", "FlashCap.Avalonia", "{A1BDFB2A-48C0-4D65-AE03-4DBFC12B4BA8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.Avalonia.UI", "samples\FlashCap.Avalonia\FlashCap.Avalonia.UI\FlashCap.Avalonia.UI.csproj", "{3A3CA26E-08B1-400E-A51E-44283E2E2B41}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.Avalonia", "samples\FlashCap.Avalonia\FlashCap.Avalonia\FlashCap.Avalonia.csproj", "{B8B4CFA8-4360-4503-A316-03EAD02AD96E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,12 +38,23 @@ Global
 		{4B3E46F8-898A-482C-8893-1DFA2B3AB998}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4B3E46F8-898A-482C-8893-1DFA2B3AB998}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4B3E46F8-898A-482C-8893-1DFA2B3AB998}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A3CA26E-08B1-400E-A51E-44283E2E2B41}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A3CA26E-08B1-400E-A51E-44283E2E2B41}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A3CA26E-08B1-400E-A51E-44283E2E2B41}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A3CA26E-08B1-400E-A51E-44283E2E2B41}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B8B4CFA8-4360-4503-A316-03EAD02AD96E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B8B4CFA8-4360-4503-A316-03EAD02AD96E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B8B4CFA8-4360-4503-A316-03EAD02AD96E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B8B4CFA8-4360-4503-A316-03EAD02AD96E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{4B3E46F8-898A-482C-8893-1DFA2B3AB998} = {655486CC-57A5-494E-97D0-9850B6D55BBA}
+		{A1BDFB2A-48C0-4D65-AE03-4DBFC12B4BA8} = {655486CC-57A5-494E-97D0-9850B6D55BBA}
+		{3A3CA26E-08B1-400E-A51E-44283E2E2B41} = {A1BDFB2A-48C0-4D65-AE03-4DBFC12B4BA8}
+		{B8B4CFA8-4360-4503-A316-03EAD02AD96E} = {A1BDFB2A-48C0-4D65-AE03-4DBFC12B4BA8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {53E3C2D2-05FD-4396-ABF1-6B313F8F82A9}
