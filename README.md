@@ -20,13 +20,17 @@ FlashCap - Independent camera capture library.
 
 ---
 
+[![Japanese language](Images/Japanese.256.png)](https://github.com/kekyo/FlashCap/blob/main/README_ja.md)
+
 ## What is this?
 
 Do you need to get camera capturing ability on .NET?
 Is you tired for camera capturing library solutions on .NET?
 
 This is a camera image capture library by specializing only capturing image data.
-It has simple API, easy to use, simple architecture and has no any other library dependencies, [see NuGet summary page.](https://www.nuget.org/packages/FlashCap)
+It has simple API, easy to use, simple architecture, without native libraries
+and without any other library dependencies.
+[See NuGet summary page.](https://www.nuget.org/packages/FlashCap)
 
 .NET platforms supported are as follows (almost all!):
 
@@ -119,12 +123,101 @@ TODO:
 
 ---
 
-## Limitation
+## About FrameArrived event
 
-* In Video for Windows, "Source device" is not selectable by programmable. VFW logical structure is:
-  1. VFW device driver (always only 1 driver, defaulted WDM device on latest Windows): ICaptureDevices.EnumerateDevices() iterate it.
-  2. Source devices (truly real camera devices) each drivers. But we could not select programmable.
-     Will show up selection dialog automatically when multiple camera devices are found.
+`FrameArrived` event is fired when the image data is ready to be captured.
+
+* This event may be called on a worker thread, which can cause problems when trying to reflect the image in the user interface.
+* Even if it is safe to execute the process on a worker thread, frame dropping will occur if the thread is occupied for a long time.
+
+To avoid this situation, it is necessary to implement a complicated process such as the following:
+
+```csharp
+// Value indicating whether FrameArrived events are being processed.
+private int isin;
+
+// ...
+
+// Frame has arrived:
+device.FrameArrived += (s, e) =>
+{
+    // If the capture is not running.
+    if (Interlocked.Increment(ref this.isin) == 1)
+    {
+        try
+        {
+            // Do capture.
+            device.Capture(e, buffer);
+            // Decode to bitmap.
+            var bitmap = Image.FromStream(
+                new MemoryStream(buffer.ExtractImage()));
+            // Reflect in user interface asynchronously.
+            this.BeginInvoke(() =>
+            {
+                try
+                {
+                    BackgroundImage = bitmap;
+                }
+                finally
+                {
+                    // Finished.
+                    Interlocked.Decrement(ref this.isin);
+                }
+            });
+        }
+        catch
+        {
+            // Abort with exception.
+            Interlocked.Decrement(ref this.isin);
+            throw;
+        }
+    }
+    else
+    {
+        // Already running.
+        Interlocked.Decrement(ref this.isin);
+    }
+}
+````
+
+As you can see, writing such a process safely is painful.
+Of course, you may implement such subtlety if you wish.
+
+However, to make it easier to implement,
+FlashCap defines `LimitedExecutor` class that encapsulates this algorithm:
+
+```csharp
+// Prepare a LimitedExecutor.
+private readonly LimitedExecutor limitedExecutor = new();
+
+// ...
+
+// Frame has arrived:
+device.FrameArrived += (s, e) =>
+    // Use LimitedExecutor to limit processing
+    // to execute only one task:
+    this.limitedExecutor.ExecuteAndOffload(
+        // JustNow section: Perform capture.
+        () => device.Capture(e, buffer);
+        // Offloaded section (Execute asynchronously):
+        () =>
+        {
+            // Decode to bitmap.
+            var bitmap = Image.FromStream(
+                new MemoryStream(buffer.ExtractImage()));
+            // Reflect in user interface.
+            this.Invoke(() =>
+                this.BackgroundImage = bitmap);
+        });
+````
+
+Both `JustNow` and `Offloaded` sections run only when nothing is running.
+In `JustNow`, `device.Capture()` is called to capture the frame.
+`Offloaded` section is executed in a different worker thread than
+the `FrameArrived` event thread.
+
+When `Offloaded` section is completed, the execution state is released.
+In other words, the `FrameArrived` event is ignored during this time.
 
 ---
 
@@ -307,12 +400,27 @@ using var device = descriptor0.Open(
 
 ---
 
+## Limitation
+
+* In Video for Windows, "Source device" is not selectable by programmable. VFW logical structure is:
+  1. VFW device driver (always only 1 driver, defaulted WDM device on latest Windows): `ICaptureDevices.EnumerateDevices()` iterate it.
+  2. Source devices (truly real camera devices) each drivers. But we could not select programmable.
+     Will show up selection dialog automatically when multiple camera devices are found.
+
+---
+
 ## License
 
 Apache-v2.
 
+---
+
 ## History
 
+* 0.7.0:
+  * Improved dodging video device with sending invalid video frame on DirectShow.
+  * Fixed causing entry point is not found for RtlCopyMemory on 32bit environment.
+  * Added LimitedExecutor class.
 * 0.6.0:
   * Supported DirectShow devices 🎉
   * Improved and made stability for VFW, using separated STA thread.

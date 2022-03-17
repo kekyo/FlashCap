@@ -65,6 +65,8 @@ namespace FlashCap.Internal
         // https://docs.microsoft.com/en-us/previous-versions/windows/desktop/legacy/aa366535(v=vs.85)
         [DllImport("ntdll")]
         private static extern void RtlCopyMemory(IntPtr dest, IntPtr src, IntPtr length);
+        [DllImport("kernel32")]
+        private static extern void RtlMoveMemory(IntPtr dest, IntPtr src, IntPtr length);
 
         [DllImport("libc")]
         private static extern void memcpy(IntPtr dest, IntPtr src, IntPtr length);
@@ -74,7 +76,8 @@ namespace FlashCap.Internal
 
         public static unsafe readonly CopyMemoryDelegate CopyMemory =
             CurrentPlatform == Platforms.Windows ?
-                RtlCopyMemory : memcpy;
+                (IntPtr.Size == 4 ? RtlMoveMemory : RtlCopyMemory) :
+                memcpy;
 
         ////////////////////////////////////////////////////////////////////////
 
@@ -82,7 +85,7 @@ namespace FlashCap.Internal
         private static extern IntPtr CoTaskMemAlloc(IntPtr size);
         [DllImport("ole32")]
         private static extern void CoTaskMemFree(IntPtr ptr);
-        [DllImport("ntdll")]
+        [DllImport("kernel32")]
         private static extern void RtlZeroMemory(IntPtr ptr, IntPtr size);
 
         [DllImport("libc")]

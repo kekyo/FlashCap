@@ -22,6 +22,7 @@ namespace System.Runtime.CompilerServices
 
 namespace System
 {
+    internal delegate void Action();
     internal delegate TR Func<T0, TR>(T0 arg0);
 }
 
@@ -225,6 +226,17 @@ namespace System.Threading
         public void Join() =>
             this.task?.Wait();
     }
+
+    internal delegate void WaitCallback(object? parameter);
+
+    internal static class ThreadPool
+    {
+        public static bool QueueUserWorkItem(WaitCallback workItem, object? parameter)
+        {
+            Tasks.Task.Factory.StartNew(p => workItem(p), parameter);
+            return true;
+        }
+    }
 }
 #endif
 
@@ -260,12 +272,7 @@ namespace System.Threading.Tasks
             using var waiter = new ManualResetEventSlim(false);
             var running = 1;
 
-#if NETSTANDARD1_3
-            var taskFactory = Task.Factory;
-            var trampoline = new Action<object?>(parameter =>
-#else
             var trampoline = new WaitCallback(parameter =>
-#endif
             {
                 try
                 {
@@ -283,11 +290,7 @@ namespace System.Threading.Tasks
             for (var index = fromInclusive; index < toExclusive; index++)
             {
                 Interlocked.Increment(ref running);
-#if NETSTANDARD1_3
-                taskFactory.StartNew(trampoline, index);
-#else
                 ThreadPool.QueueUserWorkItem(trampoline, index);
-#endif
             }
 
             if (Interlocked.Decrement(ref running) >= 1)
