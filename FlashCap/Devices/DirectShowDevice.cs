@@ -46,15 +46,19 @@ namespace FlashCap.Devices
             {
                 if (this.FrameArrived is { } fa)
                 {
-                    try
+                    // HACK: Dodge stupid camera devices...
+                    if (bufferLen >= 64)
                     {
-                        e!.Update(pBuffer, bufferLen, sampleTime * 1000);
-                        fa(this.parent, e);
-                    }
-                    // DANGER: Stop leaking exception around outside of unmanaged area...
-                    catch (Exception ex)
-                    {
-                        Trace.WriteLine(ex);
+                        try
+                        {
+                            e!.Update(pBuffer, bufferLen, sampleTime * 1000);
+                            fa(this.parent, e);
+                        }
+                        // DANGER: Stop leaking exception around outside of unmanaged area...
+                        catch (Exception ex)
+                        {
+                            Trace.WriteLine(ex);
+                        }
                     }
                 }
                 return 0;
