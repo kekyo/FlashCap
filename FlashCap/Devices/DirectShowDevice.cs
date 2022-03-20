@@ -226,6 +226,7 @@ namespace FlashCap.Devices
         }
 
         public VideoCharacteristics Characteristics { get; }
+        public bool IsRunning { get; private set; }
 
         public event EventHandler<FrameArrivedEventArgs>? FrameArrived
         {
@@ -250,6 +251,7 @@ namespace FlashCap.Devices
             if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
             {
                 mediaControl.Run();
+                this.IsRunning = true;
             }
             else
             {
@@ -261,6 +263,7 @@ namespace FlashCap.Devices
         {
             if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
             {
+                this.IsRunning = false;
                 mediaControl.Stop();
             }
             else

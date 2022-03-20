@@ -423,7 +423,9 @@ namespace FlashCap.Internal
                 clrBits switch
                 {
                     8 => PixelFormats.RGB8,
-                    16 => PixelFormats.RGB15, // BI_RGB is 15bit (RGB555, NOT RGB565)
+                    // BI_RGB is 15bit (RGB555, NOT RGB565)
+                    // https://docs.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-bitmapinfoheader
+                    16 => PixelFormats.RGB15,
                     24 => PixelFormats.RGB24,
                     32 => PixelFormats.ARGB32,
                     _ => null,
@@ -463,6 +465,60 @@ namespace FlashCap.Internal
                 pBih->biCompression, pBih->biWidth, pBih->biHeight,
                 pBih->GetClrBits(), framesPerSecond,
                 rawPixelFormat);
+        }
+        
+
+        ////////////////////////////////////////////////////////////////////////
+
+        public static bool GetCompressionAndBitCount(
+            PixelFormats format,
+            out Compression compression, out short bitCount)
+        {
+            switch (format)
+            {
+                case PixelFormats.RGB8:
+                    compression = Compression.RGB;
+                    bitCount = 8;
+                    return true;
+                case PixelFormats.RGB15:
+                    compression = Compression.RGB;
+                    // BI_RGB & 16bit == RGB555 (Couldn't set RGB565 in DIB)
+                    // https://docs.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-bitmapinfoheader
+                    bitCount = 16;
+                    return true;
+                case PixelFormats.RGB24:
+                    compression = Compression.RGB;
+                    bitCount = 24;
+                    return true;
+                case PixelFormats.RGB32:
+                    compression = Compression.RGB;
+                    bitCount = 32;
+                    return true;
+                case PixelFormats.ARGB32:
+                    compression = Compression.ARGB;
+                    bitCount = 32;
+                    return true;
+                case PixelFormats.JPEG:
+                    compression = Compression.MJPG;  // maybe
+                    bitCount = 24;  // HACK: Specific not found. My web camera is needed.
+                    return true;
+                case PixelFormats.PNG:
+                    compression = Compression.PNG;
+                    bitCount = 24;  // ??
+                    return true;
+                case PixelFormats.UYVY:
+                    compression = Compression.UYVY;
+                    bitCount = 16;
+                    return true;
+                case PixelFormats.YUYV:
+                    compression = Compression.YUYV;
+                    bitCount = 16;
+                    return true;
+                default:
+                    compression = default;
+                    bitCount = 0;
+                    return false;
+            }
         }
     }
 }

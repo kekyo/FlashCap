@@ -14,6 +14,7 @@ namespace FlashCap
     public interface ICaptureDevice : IDisposable
     {
         VideoCharacteristics Characteristics { get; }
+        bool IsRunning { get; }
 
         event EventHandler<FrameArrivedEventArgs> FrameArrived;
 

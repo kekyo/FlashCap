@@ -35,7 +35,7 @@ namespace FlashCap.Devices
             this.Characteristics = characteristics;
             this.transcodeIfYUV = transcodeIfYUV;
 
-            if (!NativeMethods_VideoForWindows.GetCompressionAndBitCount(
+            if (!NativeMethods.GetCompressionAndBitCount(
                 characteristics.PixelFormat, out var compression, out var bitCount))
             {
                 throw new ArgumentException(
@@ -141,7 +141,8 @@ namespace FlashCap.Devices
             }
         }
 
-        public VideoCharacteristics Characteristics { get; private set; } = null!;
+        public VideoCharacteristics Characteristics { get; }
+        public bool IsRunning { get; private set; }
 
         public event EventHandler<FrameArrivedEventArgs>? FrameArrived;
 
@@ -169,13 +170,17 @@ namespace FlashCap.Devices
 
         public void Start() =>
             this.workingContext!.Send(_ =>
-                NativeMethods_VideoForWindows.capShowPreview(this.handle, true),
-                null);
+            {
+                NativeMethods_VideoForWindows.capShowPreview(this.handle, true);
+                this.IsRunning = true;
+            }, null);
 
         public void Stop() =>
             this.workingContext!.Send(_ =>
-                NativeMethods_VideoForWindows.capShowPreview(this.handle, false),
-                null);
+            {
+                this.IsRunning = false;
+                NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
+            }, null);
 
         public void Capture(FrameArrivedEventArgs e, PixelBuffer buffer) =>
             buffer.CopyIn(

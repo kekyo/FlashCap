@@ -162,8 +162,8 @@ namespace FlashCap.Devices
             Directory.GetFiles("/dev", "video*").
             Collect(devicePath =>
             {
-                if (NativeMethods_V4L2.open(devicePath, NativeMethods_V4L2.OPENBITS.O_RDWR) is { } fd &&
-                    fd >= 0)
+                if (NativeMethods_V4L2.open(
+                    devicePath, NativeMethods_V4L2.OPENBITS.O_RDWR) is { } fd && fd >= 0)
                 {
                     try
                     {
@@ -175,12 +175,12 @@ namespace FlashCap.Devices
                                 EnumerateFormatDesc(fd).
                                 SelectMany(fmtdesc =>
                                     EnumerateFrameSize(fd, fmtdesc.pixelformat).
-                                        SelectMany(frmsize =>
-                                            EnumerateFramesPerSecond(fd, fmtdesc.pixelformat, frmsize.width, frmsize.height).
-                                            Collect(framesPerSecond =>
-                                                NativeMethods_V4L2.CreateVideoCharacteristics(
-                                                    fmtdesc.pixelformat, frmsize.width, frmsize.height,
-                                                    framesPerSecond, fmtdesc.description)))).
+                                    SelectMany(frmsize =>
+                                        EnumerateFramesPerSecond(fd, fmtdesc.pixelformat, frmsize.width, frmsize.height).
+                                        Collect(framesPerSecond =>
+                                            NativeMethods_V4L2.CreateVideoCharacteristics(
+                                                fmtdesc.pixelformat, frmsize.width, frmsize.height,
+                                                framesPerSecond, fmtdesc.description)))).
                                 Distinct().
                                 OrderByDescending(vc => vc).
                                 ToArray());

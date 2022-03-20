@@ -30,6 +30,6 @@ namespace FlashCap.Devices
         public override ICaptureDevice Open(
             VideoCharacteristics characteristics,
             bool transcodeIfYUV = true) =>
-            throw new NotImplementedException();
+            new V4L2Device(this.devicePath, characteristics, transcodeIfYUV);
     }
 }
