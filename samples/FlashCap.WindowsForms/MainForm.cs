@@ -39,14 +39,16 @@ namespace FlashCap.WindowsForms
             var devices = new CaptureDevices();
             var descriptors = devices.EnumerateDescriptors().
                 // You could filter by device type and characteristics.
-                //Where(d => d.DeviceType == DeviceTypes.DirectShow).
+                //Where(d => d.DeviceType == DeviceTypes.DirectShow).  // Only DirectShow device.
+                Where(d => d.Characteristics.Length >= 1).             // One or more valid video characteristics.
                 ToArray();
 
             // Use first device.
             if (descriptors.ElementAtOrDefault(0) is { } descriptor0)
             {
-#if true
+#if false
                 // Request video characteristics strictly:
+                // Will raise exception when parameters are not accepted.
                 var characteristics = new VideoCharacteristics(
                     PixelFormats.JPEG, 1920, 1080, 60);
 #else
@@ -54,13 +56,6 @@ namespace FlashCap.WindowsForms
                 // Hint: Show up video characteristics into ComboBox and like.
                 var characteristics = descriptor0.Characteristics[0];
 #endif
-                // Video characteristics tips:
-                // * DirectShow:
-                //   Stable supported on listing video characteristics,
-                //   will raise exception when use invalid parameter combination.
-                // * Video for Windows:
-                //   Will ignore silently when use invalid parameter combination.
-
                 // Open capture device:
                 this.captureDevice = descriptor0.Open(characteristics);
 
@@ -80,11 +75,11 @@ namespace FlashCap.WindowsForms
             // Windows Forms is too slow, so there's making throttle with LimitedExecutor class.
             this.limitedExecutor.ExecuteAndOffload(
 
-                // Just now section:
+                // Step 1. Just now section:
                 //   Capture into a pixel buffer:
                 () => this.captureDevice?.Capture(e, this.buffer),
 
-                // Offloaded section:
+                // Step 2. Offloaded section:
                 //   Caution: Offloaded section is on the worker thread context.
                 //   You have to switch main thread context before manipulates user interface.
                 () =>

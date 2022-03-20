@@ -11,7 +11,6 @@ using FlashCap.Internal;
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using FlashCap.Utilities;
 
 namespace FlashCap.Devices
 {
@@ -88,7 +87,8 @@ namespace FlashCap.Devices
                     }
 
                     // Try to set fps, but VFW API may cause ignoring it silently...
-                    cp.dwRequestMicroSecPerFrame = (int)(1_000_000 / characteristics.FramesPerSecond);
+                    cp.dwRequestMicroSecPerFrame =
+                        (int)(1_000_000 / characteristics.FramesPerSecond);
                     if (!NativeMethods_VideoForWindows.capCaptureSetSetup(handle, cp))
                     {
                         throw new ArgumentException(

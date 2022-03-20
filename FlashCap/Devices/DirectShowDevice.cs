@@ -110,7 +110,8 @@ namespace FlashCap.Devices
                     }
                     else
                     {
-                        throw new ArgumentException($"FlashCap: Couldn't set video format: DevicePath={devicePath}");
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't set video format: DevicePath={devicePath}");
                     }
 
                     ///////////////////////////////
@@ -118,7 +119,8 @@ namespace FlashCap.Devices
                     this.graphBuilder = NativeMethods_DirectShow.CreateGraphBuilder();
                     if (this.graphBuilder.AddFilter(captureSource, "Capture source") < 0)
                     {
-                        throw new ArgumentException($"FlashCap: Couldn't add capture source: DevicePath={devicePath}");
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't add capture source: DevicePath={devicePath}");
                     }
 
                     ///////////////////////////////
@@ -126,16 +128,19 @@ namespace FlashCap.Devices
                     var sampleGrabber = NativeMethods_DirectShow.CreateSampleGrabber();
                     if (this.graphBuilder.AddFilter(sampleGrabber, "Sample grabber") < 0)
                     {
-                        throw new ArgumentException($"FlashCap: Couldn't add sample grabber: DevicePath={devicePath}");
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't add sample grabber: DevicePath={devicePath}");
                     }
 
                     if (sampleGrabber.SetOneShot(false) < 0)
                     {
-                        throw new ArgumentException($"FlashCap: Couldn't set oneshot mode: DevicePath={devicePath}");
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't set oneshot mode: DevicePath={devicePath}");
                     }
                     if (sampleGrabber.SetBufferSamples(true) < 0)
                     {
-                        throw new ArgumentException($"FlashCap: Couldn't start sampling: DevicePath={devicePath}");
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't start sampling: DevicePath={devicePath}");
                     }
 
                     ///////////////////////////////
@@ -143,7 +148,8 @@ namespace FlashCap.Devices
                     var nullRenderer = NativeMethods_DirectShow.CreateNullRenderer();
                     if (this.graphBuilder.AddFilter(nullRenderer, "Null renderer") < 0)
                     {
-                        throw new ArgumentException($"FlashCap: Couldn't add null renderer: DevicePath={devicePath}");
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't add null renderer: DevicePath={devicePath}");
                     }
 
                     ///////////////////////////////
@@ -151,7 +157,8 @@ namespace FlashCap.Devices
                     var captureGraphBuilder = NativeMethods_DirectShow.CreateCaptureGraphBuilder();
                     if (captureGraphBuilder.SetFiltergraph(this.graphBuilder) < 0)
                     {
-                        throw new ArgumentException($"FlashCap: Couldn't set graph builder: DevicePath={devicePath}");
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't set graph builder: DevicePath={devicePath}");
                     }
 
                     ///////////////////////////////
@@ -163,14 +170,16 @@ namespace FlashCap.Devices
                         sampleGrabber,
                         nullRenderer) < 0)
                     {
-                        throw new ArgumentException($"FlashCap: Couldn't set render stream: DevicePath={devicePath}");
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't set render stream: DevicePath={devicePath}");
                     }
 
                     ///////////////////////////////
 
                     if (sampleGrabber.GetConnectedMediaType(out var mediaType) < 0)
                     {
-                        throw new ArgumentException($"FlashCap: Couldn't get media type: DevicePath={devicePath}");
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't get media type: DevicePath={devicePath}");
                     }
 
                     this.pBih = mediaType.AllocateAndGetBih();
@@ -180,7 +189,8 @@ namespace FlashCap.Devices
                     this.sampleGrabberSink = new SampleGrabberSink(this);
                     if (sampleGrabber.SetCallback(this.sampleGrabberSink, 1) < 0)
                     {
-                        throw new ArgumentException($"FlashCap: Couldn't get grabbing media type: DevicePath={devicePath}");
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't get grabbing media type: DevicePath={devicePath}");
                     }
                 }
                 catch
@@ -194,7 +204,8 @@ namespace FlashCap.Devices
             }
             else
             {
-                throw new ArgumentException($"FlashCap: Couldn't find a device: DevicePath={devicePath}");
+                throw new ArgumentException(
+                    $"FlashCap: Couldn't find a device: DevicePath={devicePath}");
             }
         }
 

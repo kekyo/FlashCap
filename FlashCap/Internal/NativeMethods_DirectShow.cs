@@ -803,9 +803,14 @@ namespace FlashCap.Internal
             public VideoCharacteristics? CreateVideoCharacteristics() =>
                 NativeMethods.CreateVideoCharacteristics(
                     this.pBih,
-                    new Fraction(10_000_000, (int)this.VideoInformation.AvgTimePerFrame),
+                    new Fraction(
+                        // Precision is only under 3 digits (0.001)
+                        (int)(10_000_000_000.0 / this.VideoInformation.AvgTimePerFrame),
+                        1_000).Reduce(),
                     this.PartialMediaType.subtype.ToString());
         }
+
+        ////////////////////////////////////////////////////////////////////////
 
         private static unsafe readonly int videoStreamConfigCapsSize =
             sizeof(VIDEO_STREAM_CONFIG_CAPS);

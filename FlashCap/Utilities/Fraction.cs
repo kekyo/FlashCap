@@ -136,7 +136,7 @@ namespace FlashCap.Utilities
         public override string ToString() =>
             this.Denominator == 0 ?
                 "0 [0.0]" :
-                $"{this.Numerator}/{this.Denominator} [{(double)this.Numerator / this.Denominator:F4}]";
+                $"{this.Numerator}/{this.Denominator} [{(double)this.Numerator / this.Denominator:F3}]";
 
         public static readonly Fraction Zero =
             new(0, 0);

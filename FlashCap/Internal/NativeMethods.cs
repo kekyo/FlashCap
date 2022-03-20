@@ -445,7 +445,7 @@ namespace FlashCap.Internal
             {
                 return new VideoCharacteristics(
                     pixelFormat, width, height,
-                    framesPerSecond.Reduce(),
+                    framesPerSecond,
                     compression.ToString(),
                     rawPixelFormat ?? GetFourCCString((int)compression));
             }

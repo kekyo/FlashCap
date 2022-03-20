@@ -36,14 +36,22 @@ namespace FlashCap.Devices
                         new[] {
                             // DIRTY: VFW couldn't enumerate device specific strictly video formats.
                             //   So there're predefined (major?) formats.
-                            NativeMethods.CreateVideoCharacteristics(NativeMethods.Compression.MJPG, 1920, 1080, 0, 30)!,
-                            NativeMethods.CreateVideoCharacteristics(NativeMethods.Compression.MJPG, 1600, 1200, 0, 30)!,
-                            NativeMethods.CreateVideoCharacteristics(NativeMethods.Compression.MJPG, 1280, 960, 0, 30)!,
-                            NativeMethods.CreateVideoCharacteristics(NativeMethods.Compression.MJPG, 1024, 768, 0, 30)!,
-                            NativeMethods.CreateVideoCharacteristics(NativeMethods.Compression.MJPG, 640, 480, 0, 30)!,
-                            NativeMethods.CreateVideoCharacteristics(NativeMethods.Compression.MJPG, 640, 480, 0, 15)!,
-                            NativeMethods.CreateVideoCharacteristics(NativeMethods.Compression.YUYV, 640, 480, 16, 30)!,
-                            NativeMethods.CreateVideoCharacteristics(NativeMethods.Compression.YUYV, 640, 480, 16, 15)!,
+                            NativeMethods.CreateVideoCharacteristics(
+                                NativeMethods.Compression.MJPG, 1920, 1080, 0, 30)!,
+                            NativeMethods.CreateVideoCharacteristics(
+                                NativeMethods.Compression.MJPG, 1600, 1200, 0, 30)!,
+                            NativeMethods.CreateVideoCharacteristics(
+                                NativeMethods.Compression.MJPG, 1280, 960, 0, 30)!,
+                            NativeMethods.CreateVideoCharacteristics(
+                                NativeMethods.Compression.MJPG, 1024, 768, 0, 30)!,
+                            NativeMethods.CreateVideoCharacteristics(
+                                NativeMethods.Compression.MJPG, 640, 480, 0, 30)!,
+                            NativeMethods.CreateVideoCharacteristics(
+                                NativeMethods.Compression.MJPG, 640, 480, 0, 15)!,
+                            NativeMethods.CreateVideoCharacteristics(
+                                NativeMethods.Compression.YUYV, 640, 480, 16, 30)!,
+                            NativeMethods.CreateVideoCharacteristics(
+                                NativeMethods.Compression.YUYV, 640, 480, 16, 15)!,
                         });
                 }
                 else

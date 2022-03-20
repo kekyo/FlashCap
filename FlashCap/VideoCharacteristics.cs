@@ -101,26 +101,30 @@ namespace FlashCap
 
         public int CompareTo(VideoCharacteristics? other)
         {
-            if (PixelFormatComparer.Instance.Compare(this.PixelFormat, other!.PixelFormat) is { } c4 && c4 != 0)
-            {
-                return c4;
-            }
-            if (this.Width.CompareTo(other!.Width) is { } c1 && c1 != 0)
+            if (this.Width.
+                CompareTo(other!.Width) is { } c1 && c1 != 0)
             {
                 return c1;
             }
-            if (this.Height.CompareTo(other!.Height) is { } c2 && c2 != 0)
+            if (this.Height.
+                CompareTo(other!.Height) is { } c2 && c2 != 0)
             {
                 return c2;
             }
-            if (this.FramesPerSecond.CompareTo(other!.FramesPerSecond) is { } c3 && c3 != 0)
+            if (this.FramesPerSecond.
+                CompareTo(other!.FramesPerSecond) is { } c3 && c3 != 0)
             {
                 return c3;
+            }
+            if (PixelFormatComparer.Instance.
+                Compare(this.PixelFormat, other!.PixelFormat) is { } c4 && c4 != 0)
+            {
+                return c4;
             }
             return 0;
         }
 
         public override string ToString() =>
-            $"{this.Width}x{this.Height} [{this.PixelFormat}, {(double)this.FramesPerSecond:F2}fps]";
+            $"{this.Width}x{this.Height} [{this.PixelFormat}, {(double)this.FramesPerSecond:F3}fps]";
     }
 }
