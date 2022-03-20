@@ -48,7 +48,7 @@ namespace FlashCap.WindowsForms
 #if false
                 // Request video characteristics strictly:
                 var characteristics = new VideoCharacteristics(
-                    PixelFormats.MJPG, 24, 1920, 1080, 30000);
+                    PixelFormats.MJPG, 24, 1920, 1080, 30);
 #else
                 // Or, you could choice from device descriptor:
                 // Hint: Show up video characteristics into ComboBox and like.

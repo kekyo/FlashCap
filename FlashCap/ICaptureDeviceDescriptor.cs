@@ -13,7 +13,7 @@ namespace FlashCap
     {
         VideoForWindows,
         DirectShow,
-        V2L2,  // TODO:
+        V4L2,
     }
 
     public interface ICaptureDeviceDescriptor

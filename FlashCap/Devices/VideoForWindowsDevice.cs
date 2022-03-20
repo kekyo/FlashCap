@@ -11,6 +11,7 @@ using FlashCap.Internal;
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using FlashCap.Utilities;
 
 namespace FlashCap.Devices
 {
@@ -34,7 +35,7 @@ namespace FlashCap.Devices
             this.deviceIndex = deviceIndex;
             this.transcodeIfYUV = transcodeIfYUV;
 
-            this.workingContext.Send(_ =>
+            this.workingContext!.Send(_ =>
             {
                 this.handle = NativeMethods_VideoForWindows.CreateVideoSourceWindow(deviceIndex);
 
@@ -50,7 +51,7 @@ namespace FlashCap.Devices
 
                 // At first set 5fps, because can't set both fps and video format atomicity.
                 NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out var cp);
-                cp.dwRequestMicroSecPerFrame = (int)(1_000_000_000.0 / 5000);   // 5fps
+                cp.dwRequestMicroSecPerFrame = 1_000_000 / 5;   // 5fps
                 NativeMethods_VideoForWindows.capCaptureSetSetup(handle, cp);
                 NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out cp);
 
@@ -61,9 +62,10 @@ namespace FlashCap.Devices
                     var pBih = (NativeMethods.BITMAPINFOHEADER*)pih.ToPointer();
 
                     pBih->biSize = sizeof(NativeMethods.BITMAPINFOHEADER);
-                    pBih->biCompression = characteristics.PixelFormat;
+                    pBih->biCompression = (NativeMethods.Compression)Enum.Parse(
+                        typeof(NativeMethods.Compression), characteristics.RawPixelFormat);
                     pBih->biPlanes = 1;
-                    pBih->biBitCount = (short)characteristics.BitsPerPixel;
+                    pBih->biBitCount = characteristics.RGBBitsPerPixel;
                     pBih->biWidth = characteristics.Width;
                     pBih->biHeight = characteristics.Height;
                     pBih->biSizeImage = pBih->CalculateImageSize();
@@ -72,7 +74,7 @@ namespace FlashCap.Devices
                     setFormatResult = NativeMethods_VideoForWindows.capSetVideoFormat(handle, pih);
 
                     // Try to set fps, but VFW API may cause ignoring it silently...
-                    cp.dwRequestMicroSecPerFrame = (int)(1_000_000_000.0 / characteristics.FramesPer1000Second);
+                    cp.dwRequestMicroSecPerFrame = (int)(1_000_000 / characteristics.FramesPerSecond);
                     NativeMethods_VideoForWindows.capCaptureSetSetup(handle, cp);
                     NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out cp);
                 }
@@ -87,7 +89,7 @@ namespace FlashCap.Devices
                 ///////////////////////////////////////
 
                 if (NativeMethods.CreateVideoCharacteristics(
-                    this.pBih, (int)(1_000_000_000.0 / cp.dwRequestMicroSecPerFrame)) is { } vc)
+                    this.pBih, Fraction.Create(1_000_000, cp.dwRequestMicroSecPerFrame)) is { } vc)
                 {
                     if (setFormatResult)
                     {

@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security;
+using FlashCap.Utilities;
 
 namespace FlashCap.Internal
 {
@@ -798,12 +799,18 @@ namespace FlashCap.Internal
 
                 return mediaType;
             }
+            
+            public VideoCharacteristics? CreateVideoCharacteristics() =>
+                NativeMethods.CreateVideoCharacteristics(
+                    this.pBih,
+                    new Fraction(10_000_000, (int)this.VideoInformation.AvgTimePerFrame),
+                    this.PartialMediaType.subtype.ToString());
         }
 
         private static unsafe readonly int videoStreamConfigCapsSize =
             sizeof(VIDEO_STREAM_CONFIG_CAPS);
 
-        public static unsafe bool SetFormat(this IPin pin, VideoMediaFormat format)
+        public static bool SetFormat(this IPin pin, VideoMediaFormat format)
         {
             if (pin is IAMStreamConfig streamConfig)
             {

@@ -12,6 +12,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
+using FlashCap.Utilities;
 
 namespace FlashCap.Devices
 {
@@ -73,7 +74,6 @@ namespace FlashCap.Devices
         internal DirectShowDevice(
             string devicePath, VideoCharacteristics characteristics, bool transcodeIfYUV)
         {
-            this.Characteristics = characteristics;
             this.transcodeIfYUV = transcodeIfYUV;
 
             if (NativeMethods_DirectShow.EnumerateDeviceMoniker(
@@ -95,15 +95,17 @@ namespace FlashCap.Devices
                             pin.GetPinInfo() is { } pinInfo &&
                             pinInfo.dir == NativeMethods_DirectShow.PIN_DIRECTION.Output ?
                                 pin : null).
-                        SelectMany(pin => pin.EnumerateFormats().
+                        SelectMany(pin =>
+                            pin.EnumerateFormats().
                             Collect(format =>
-                                characteristics.Equals(
-                                    NativeMethods.CreateVideoCharacteristics(
-                                        format.pBih,
-                                        (int)(10_000_000_000.0 / format.VideoInformation.AvgTimePerFrame))) ?
-                                new { pin, format } : null)).
+                            {
+                                var vfc = format.CreateVideoCharacteristics();
+                                return characteristics.Equals(vfc) ?
+                                    new { pin, format, vfc } : null;
+                            })).
                         FirstOrDefault() is { } entry)
                     {
+                        this.Characteristics = entry.vfc;
                         entry.pin.SetFormat(entry.format);
                     }
                     else

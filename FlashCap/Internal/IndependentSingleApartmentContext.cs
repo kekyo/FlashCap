@@ -82,7 +82,7 @@ namespace FlashCap.Internal
             this.thread.SetApartmentState(ApartmentState.STA);   // Improved compatibility
             this.thread.Start();
 
-            this.ready.Wait();
+            this.ready!.Wait();
             this.ready.Dispose();
             this.ready = null;
         }

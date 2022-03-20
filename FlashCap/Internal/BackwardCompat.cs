@@ -109,7 +109,7 @@ namespace System.Linq
                     list.Add(item);
                 }
                 return list.ToArray();
-            };
+            }
         }
 
         public static IEnumerable<T> Distinct<T>(this IEnumerable<T> enumerable)
@@ -132,6 +132,19 @@ namespace System.Linq
             var list = new List<T>(enumerable);
             list.Sort((a, b) => 0 - keySelector(a).CompareTo(keySelector(b)));
             return list;
+        }
+
+        public static int Max(this IEnumerable<int> enumerable)
+        {
+            var max = default(int?);
+            foreach (var item in enumerable)
+            {
+                if (item > (max ?? int.MinValue))
+                {
+                    max = item;
+                }
+            }
+            throw new InvalidOperationException();
         }
     }
 }
@@ -174,6 +187,22 @@ namespace System.Linq
                 if (selector(value) is { } mapped)
                 {
                     yield return mapped;
+                }
+            }
+        }
+        
+        public static IEnumerable<U> CollectWhile<T, U>(
+            this IEnumerable<T> enumerable, Func<T, U?> selector)
+        {
+            foreach (var value in enumerable)
+            {
+                if (selector(value) is { } mapped)
+                {
+                    yield return mapped;
+                }
+                else
+                {
+                    break;
                 }
             }
         }
