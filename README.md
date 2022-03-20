@@ -148,14 +148,14 @@ device.FrameArrived += (s, e) =>
         {
             // Do capture.
             device.Capture(e, buffer);
-            // Decode to bitmap.
-            var bitmap = Image.FromStream(
-                new MemoryStream(buffer.ExtractImage()));
             // Reflect in user interface asynchronously.
             this.BeginInvoke(() =>
             {
                 try
                 {
+                    // Decode to bitmap.
+                    var bitmap = Image.FromStream(
+                        new MemoryStream(buffer.ExtractImage()));
                     BackgroundImage = bitmap;
                 }
                 finally
@@ -200,15 +200,14 @@ device.FrameArrived += (s, e) =>
         // JustNow section: Perform capture.
         () => device.Capture(e, buffer);
         // Offloaded section (Execute asynchronously):
-        () =>
+        () => this.Invoke(() =>
         {
             // Decode to bitmap.
             var bitmap = Image.FromStream(
                 new MemoryStream(buffer.ExtractImage()));
             // Reflect in user interface.
-            this.Invoke(() =>
-                this.BackgroundImage = bitmap);
-        });
+            this.BackgroundImage = bitmap;
+        }));
 ````
 
 Both `JustNow` and `Offloaded` sections run only when nothing is running.

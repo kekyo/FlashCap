@@ -150,14 +150,14 @@ device.FrameArrived += (s, e) =>
         {
             // キャプチャを行う:
             device.Capture(e, buffer);
-            // ビットマップにデコードする:
-            var bitmap = Image.FromStream(
-                new MemoryStream(buffer.ExtractImage()));
-            // 非同期にユーザーインターフェースに反映させる:
+            // 非同期でユーザーインターフェースに反映させる:
             this.BeginInvoke(() =>
             {
                 try
                 {
+                    // ビットマップにデコードする:
+                    var bitmap = Image.FromStream(
+                        new MemoryStream(buffer.ExtractImage()));
                     BackgroundImage = bitmap;
                 }
                 finally
@@ -183,7 +183,7 @@ device.FrameArrived += (s, e) =>
 ````
 
 このように、問題を回避するために安全に書くのは骨が折れます。
-もちろん、このような繊細な処理を毎回実装してもかまいません。
+もちろん、このような繊細な処理を毎回実装してもかまいませんが...
 
 しかし、FlashCapは、より簡単に実装するために、
 このアルゴリズムをカプセル化した `LimitedExecutor` クラスを定義しています:
@@ -197,19 +197,18 @@ private readonly LimitedExecutor limitedExecutor = new();
 // フレームが到着した:
 device.FrameArrived += (s, e) =>
     // LimitedExecutorを使用して、処理を1つだけ実行するように制限する
-    this.limitedExecutor.ExecuteAndOffload(
+    this.limitedExecutor.Execute(
         // JustNowセクション: キャプチャを実行する
         () => device.Capture(e, buffer);
         // Offloadedセクション(非同期で実行):
-        () =>
+        () => this.Invoke(() =>
         {
             // ビットマップにデコードする:
             var bitmap = Image.FromStream(
                 new MemoryStream(buffer.ExtractImage()));
             // ユーザーインターフェースに反映させる:
-            this.Invoke(() =>
-                this.BackgroundImage = bitmap);
-        });
+            this.BackgroundImage = bitmap;
+        }));
 ````
 
 `JustNow` と `Offloaded` の両セクションは、何も実行されていない時にのみ実行されます。
@@ -218,7 +217,7 @@ device.FrameArrived += (s, e) =>
 別のワーカースレッドで実行されます。
 
 `Offloaded` セクションが完了すると、実行状態が解放されます。
-つまり、この間は `FrameArrived` イベントは無視され続けるのです。
+つまり、この間は `FrameArrived` イベントは無視され続けます。
 
 ---
 
