@@ -56,6 +56,10 @@ namespace FlashCap.WindowsForms
                 // Hint: Show up video characteristics into ComboBox and like.
                 var characteristics = descriptor0.Characteristics[0];
 #endif
+                // Show status.
+                this.deviceLabel.Text = descriptor0.ToString();
+                this.characteristicsLabel.Text = characteristics.ToString();
+
                 // Open capture device:
                 this.captureDevice = descriptor0.Open(characteristics);
 
@@ -99,6 +103,10 @@ namespace FlashCap.WindowsForms
                     var bitmap = Image.FromStream(stream);
 
                     // Switch to UI thread:
+                    // NOTE: WinForms sometimes will raise ObjectDisposedException in shutdown sequence.
+                    // Because it is race condition between this thread context and UI thread context.
+                    // We can safely ignore when terminating user interface.
+                    // (Or you can dodge it with graceful shutdown technics.)
                     this.Invoke(() =>
                     {
                         // HACK: on .NET Core, will be leaked (or delayed GC?)
