@@ -15,6 +15,8 @@ namespace FlashCap.Internal
 {
     internal static class NativeMethods_V4L2
     {
+        public const int EINTR = 4;
+        
         [Flags]
         public enum OPENBITS
         {
@@ -64,6 +66,58 @@ namespace FlashCap.Internal
         [DllImport("libc", CallingConvention=CallingConvention.Cdecl)]
         public static extern int poll(
             pollfd[] fds, int nfds, int timeout);
+
+        private delegate int IoctlIn<T>(int fd, uint req, in T arg)
+            where T : struct;
+        private delegate int IoctlOut<T>(int fd, uint req, out T arg)
+            where T : struct;
+        private delegate int IoctlRef<T>(int fd, uint req, ref T arg)
+            where T : struct;
+
+        private static int do_ioctl<T>(
+            int fd, uint req, in T arg, IoctlIn<T> ioctl)
+            where T : struct
+        {
+            while (true)
+            {
+                var result = ioctl(fd, req, in arg);
+                if (result == EINTR)
+                {
+                    continue;
+                }
+                return result;
+            }
+        }
+
+        private static int do_ioctl<T>(
+            int fd, uint req, out T arg, IoctlOut<T> ioctl)
+            where T : struct
+        {
+            while (true)
+            {
+                var result = ioctl(fd, req, out arg);
+                if (result == EINTR)
+                {
+                    continue;
+                }
+                return result;
+            }
+        }
+
+        private static int do_ioctl<T>(
+            int fd, uint req, ref T arg, IoctlRef<T> ioctl)
+            where T : struct
+        {
+            while (true)
+            {
+                var result = ioctl(fd, req, ref arg);
+                if (result == EINTR)
+                {
+                    continue;
+                }
+                return result;
+            }
+        }
         
         ///////////////////////////////////////////////////////////
 
@@ -119,8 +173,8 @@ namespace FlashCap.Internal
         private const uint VIDIOC_QUERYCAP = 0x80685600;
         public static int ioctl(
             int fd, out v4l2_capability caps) =>
-            ioctl(fd, VIDIOC_QUERYCAP, out caps);
-          
+            do_ioctl(fd, VIDIOC_QUERYCAP, out caps, ioctl);
+
         ///////////////////////////////////////////////////////////
 
         public enum v4l2_inputtype
@@ -209,7 +263,7 @@ namespace FlashCap.Internal
         private const uint VIDIOC_ENUMINPUT = 0xc04c561a;
         public static int ioctl(
             int fd, out v4l2_input input) =>
-            ioctl(fd, VIDIOC_ENUMINPUT, out input);
+            do_ioctl(fd, VIDIOC_ENUMINPUT, out input, ioctl);
                   
         ///////////////////////////////////////////////////////////
 
@@ -250,10 +304,9 @@ namespace FlashCap.Internal
             XRGB32 = 0x34325842,    // BX24
             ARGB32 = 0x34324142,    // BA24
             ARGB = 0x42475241,      // FOURCC, Compat Windows (invalid but useful)
-            RGB2 = 0x32424752,      // FOURCC, Compat Windows (invalid but useful)
-            YUY2 = 0x32595559,
+            UYVY = 0x59565955,
             YUYV = 0x56595559,
-            UYUY = 0x59565955,
+            YUY2 = 0x32595559,
             MJPG = 0x47504A4D,
             JPEG = 0x4745504A,
         }
@@ -275,7 +328,7 @@ namespace FlashCap.Internal
         private const uint VIDIOC_ENUM_FMT = 0xc0405602;
         public static int ioctl(
             int fd, ref v4l2_fmtdesc fmtdesc) =>
-            ioctl(fd, VIDIOC_ENUM_FMT, ref fmtdesc);
+            do_ioctl(fd, VIDIOC_ENUM_FMT, ref fmtdesc, ioctl);
                   
         ///////////////////////////////////////////////////////////
 
@@ -322,7 +375,7 @@ namespace FlashCap.Internal
         private const uint VIDIOC_ENUM_FRAMESIZES = 0xc02c564a;
         public static int ioctl(
             int fd, ref v4l2_frmsizeenum frmsizeenum) =>
-            ioctl(fd, VIDIOC_ENUM_FRAMESIZES, ref frmsizeenum);
+            do_ioctl(fd, VIDIOC_ENUM_FRAMESIZES, ref frmsizeenum, ioctl);
 
         ///////////////////////////////////////////////////////////
 
@@ -368,10 +421,147 @@ namespace FlashCap.Internal
         private const uint VIDIOC_ENUM_FRAMEINTERVALS = 0xc034564b;
         public static int ioctl(
             int fd, ref v4l2_frmivalenum frmivalenum) =>
-            ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, ref frmivalenum);
+            do_ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, ref frmivalenum, ioctl);
                        
         ///////////////////////////////////////////////////////////
+
+        public enum v4l2_field
+        {
+            ANY,
+            NONE,
+            TOP,
+            BOTTOM,
+            INTERLACED,
+            SEQ_TB,
+            SEQ_BT,
+            ALTERNATE,
+            INTERLACED_TB,
+            INTERLACED_BT,
+        }
         
+        public enum v4l2_colorspace
+        {
+            DEFAULT,
+            SMPTE170M,
+            REC709,
+            SRGB,
+            OPRGB,
+            BT2020,
+            DCI_P3,
+            SMPTE240M,
+            SYSTEM_M,
+            SYSTEM_BG,
+            JPEG,
+            RAW,
+        }
+        
+        [Flags]
+        public enum v4l2_pix_format_flag
+        {
+            PREMUL_ALPHA = 0x00000001,
+        }
+
+        public enum v4l2_quantization
+        {
+            DEFAULT,
+            FULL_RANGE,
+            LIM_RANGE,
+        }
+
+        public enum v4l2_xfer_func
+        {
+            DEFAULT,
+            REC709,
+            SRGB,
+            OPRGB,
+            SMPTE240M,
+            NONE,
+            DCI_P3,
+            SMPTE2084,
+        }
+
+        public enum v4l2_ycbcr_encoding
+        {
+            DEFAULT,
+            BT601,
+            BT709,
+            XV601,
+            XV709,
+            SYCC,
+            BT2020,
+            BT2020_CONST_LUM,
+            SMPTE240M,
+        }
+        
+        [StructLayout(LayoutKind.Sequential)]
+        public struct v4l2_pix_format
+        {
+            public int width;
+            public int height;
+            public v4l2_pix_fmt pixelformat;
+            public v4l2_field field;
+            public int bytesperline;
+            public int sizeimage;
+            public v4l2_colorspace colorspace;
+            public int priv;
+            public v4l2_pix_format_flag flags;
+            public v4l2_ycbcr_encoding ycbcr_enc;    // union { ycbcr_enc, hsv_enc }
+            public v4l2_quantization quantization;
+            public v4l2_xfer_func xfer_func;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct v4l2_format_fmt_raw_data200
+        {
+            private Guid raw_data0;
+            private Guid raw_data16;
+            private Guid raw_data32;
+            private Guid raw_data48;
+            private Guid raw_data64;
+            private Guid raw_data80;
+            private Guid raw_data96;
+            private Guid raw_data112;
+            private Guid raw_data128;
+            private Guid raw_data144;
+            private Guid raw_data160;
+            private Guid raw_data176;
+            private long raw_data192;
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        public struct v4l2_format_fmt
+        {
+            [FieldOffset(0)]
+            public v4l2_pix_format pix;
+            [FieldOffset(0)]
+            private v4l2_format_fmt_raw_data200 raw_data;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack=8)]
+        public struct v4l2_format
+        {
+            public v4l2_buf_type type;
+            public v4l2_format_fmt fmt;
+        }
+
+        [DllImport("libc", EntryPoint="ioctl", CallingConvention=CallingConvention.Cdecl)]
+        private static extern int ioctls(
+            int fd, uint request, in v4l2_format format);
+        private const uint VIDIOC_S_FMT = 0xc0d05605;
+        public static int ioctls(
+            int fd, in v4l2_format format) =>
+            do_ioctl(fd, VIDIOC_S_FMT, in format, ioctls);
+
+        [DllImport("libc", EntryPoint="ioctl", CallingConvention=CallingConvention.Cdecl)]
+        private static extern int ioctlg(
+            int fd, uint request, ref v4l2_format format);
+        private const uint VIDIOC_G_FMT = 0xc0d05604;
+        public static int ioctlg(
+            int fd, ref v4l2_format format) =>
+            do_ioctl(fd, VIDIOC_G_FMT, ref format, ioctlg);
+                       
+        ///////////////////////////////////////////////////////////
+
         public static VideoCharacteristics? CreateVideoCharacteristics(
             v4l2_pix_fmt pix_fmt,
             int width, int height,
@@ -390,10 +580,9 @@ namespace FlashCap.Internal
                 v4l2_pix_fmt.XRGB32 => PixelFormats.RGB32,
                 v4l2_pix_fmt.ARGB32 => PixelFormats.ARGB32,
                 v4l2_pix_fmt.ARGB => PixelFormats.ARGB32,
-                v4l2_pix_fmt.RGB2 => PixelFormats.RGB24,
                 v4l2_pix_fmt.MJPG => PixelFormats.JPEG,
                 v4l2_pix_fmt.JPEG => PixelFormats.JPEG,
-                v4l2_pix_fmt.UYUY => PixelFormats.UYVY,
+                v4l2_pix_fmt.UYVY => PixelFormats.UYVY,
                 v4l2_pix_fmt.YUYV => PixelFormats.YUYV,
                 v4l2_pix_fmt.YUY2 => PixelFormats.YUYV,
                 _ => null,
@@ -408,6 +597,36 @@ namespace FlashCap.Internal
             else
             {
                 return null;
+            }
+        }
+
+        public static v4l2_pix_fmt[] GetPixelFormats(
+            PixelFormats pixelFormat)
+        {
+            switch (pixelFormat)
+            {
+                case PixelFormats.RGB8:
+                    return new[] { v4l2_pix_fmt.RGB332 };
+                case PixelFormats.RGB15:
+                    return new[] { v4l2_pix_fmt.RGB555 };
+                case PixelFormats.RGB16:
+                    return new[] { v4l2_pix_fmt.RGB565 };
+                case PixelFormats.RGB24:
+                    return new[] { v4l2_pix_fmt.RGB24, v4l2_pix_fmt.BI_RGB };
+                case PixelFormats.RGB32:
+                    return new[] { v4l2_pix_fmt.XRGB32 };
+                case PixelFormats.ARGB32:
+                    return new[] { v4l2_pix_fmt.ARGB32, v4l2_pix_fmt.ARGB };
+                case PixelFormats.UYVY:
+                    return new[] { v4l2_pix_fmt.UYVY };
+                case PixelFormats.YUYV:
+                    return new[] { v4l2_pix_fmt.YUYV, v4l2_pix_fmt.YUY2 };
+                case PixelFormats.JPEG:
+                    return new[] { v4l2_pix_fmt.MJPG, v4l2_pix_fmt.JPEG, v4l2_pix_fmt.BI_JPEG };
+                case PixelFormats.PNG:
+                    return new[] { v4l2_pix_fmt.BI_PNG };
+                default:
+                    return ArrayEx.Empty<v4l2_pix_fmt>();
             }
         }
     }

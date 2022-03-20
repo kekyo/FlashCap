@@ -33,6 +33,14 @@ namespace FlashCap.Devices
                     $"FlashCap: Couldn't set video format [1]: DevicePath={this.devicePath}");
             }
 
+            var pix_fmts = NativeMethods_V4L2.GetPixelFormats(
+                characteristics.PixelFormat);
+            if (pix_fmts.Length == 0)
+            {
+                throw new ArgumentException(
+                    $"FlashCap: Couldn't set video format [2]: DevicePath={this.devicePath}");
+            }
+
             if (NativeMethods_V4L2.open(
                 this.devicePath, NativeMethods_V4L2.OPENBITS.O_RDWR) is { } fd && fd < 0)
             {
@@ -42,6 +50,28 @@ namespace FlashCap.Devices
 
             try
             {
+                var applied = false;
+                foreach (var pix_fmt in pix_fmts)
+                {
+                    var format = new NativeMethods_V4L2.v4l2_format
+                    {
+                        type = NativeMethods_V4L2.v4l2_buf_type.VIDEO_CAPTURE,
+                    };
+                    format.fmt.pix.width = characteristics.Width;
+                    format.fmt.pix.height = characteristics.Height;
+                    format.fmt.pix.pixelformat = pix_fmt;
+                    if (NativeMethods_V4L2.ioctls(fd, in format) == 0)
+                    {
+                        applied = true;
+                        break;
+                    }
+                }
+                if (!applied)
+                {
+                    throw new ArgumentException(
+                        $"FlashCap: Couldn't set video format [3]: DevicePath={this.devicePath}");
+                }
+                
                 var pih = NativeMethods.AllocateMemory((IntPtr)sizeof(NativeMethods.BITMAPINFOHEADER));
                 try
                 {
@@ -55,8 +85,6 @@ namespace FlashCap.Devices
                     pBih->biHeight = characteristics.Height;
                     pBih->biSizeImage = pBih->CalculateImageSize();
 
-
-                    
                     this.fd = fd;
                     this.pBih = pih;
                 }
@@ -94,6 +122,7 @@ namespace FlashCap.Devices
 
         public void Start()
         {
+            this.FrameArrived?.Invoke(this, null!);
         }
 
         public void Stop()

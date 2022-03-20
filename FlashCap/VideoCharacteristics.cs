@@ -64,14 +64,17 @@ namespace FlashCap
             this.RawPixelFormat = rawPixelFormat;
         }
 
-        public short RGBBitsPerPixel =>
+        public short FixedBitsPerPixel =>
             this.PixelFormat switch
             {
                 PixelFormats.RGB8 => 8,
                 PixelFormats.RGB15 => 16,
                 PixelFormats.RGB16 => 16,
                 PixelFormats.RGB24 => 24,
+                PixelFormats.RGB32 => 32,
                 PixelFormats.ARGB32 => 32,
+                PixelFormats.UYVY => 16,
+                PixelFormats.YUYV => 16,
                 _ => 0,
             };
         
@@ -101,20 +104,15 @@ namespace FlashCap
 
         public int CompareTo(VideoCharacteristics? other)
         {
-            if (this.Width.
-                CompareTo(other!.Width) is { } c1 && c1 != 0)
-            {
-                return c1;
-            }
-            if (this.Height.
-                CompareTo(other!.Height) is { } c2 && c2 != 0)
-            {
-                return c2;
-            }
             if (this.FramesPerSecond.
                 CompareTo(other!.FramesPerSecond) is { } c3 && c3 != 0)
             {
                 return c3;
+            }
+            if ((this.Width * this.Height).
+                CompareTo(other!.Width * other!.Height) is { } c1 && c1 != 0)
+            {
+                return c1;
             }
             if (PixelFormatComparer.Instance.
                 Compare(this.PixelFormat, other!.PixelFormat) is { } c4 && c4 != 0)
