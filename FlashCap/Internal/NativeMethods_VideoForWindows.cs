@@ -267,5 +267,56 @@ namespace FlashCap.Internal
 
             return handle;
         }
+
+        ////////////////////////////////////////////////////////////////////////
+
+        public static bool GetCompressionAndBitCount(
+            PixelFormats format,
+            out NativeMethods.Compression compression, out short bitCount)
+        {
+            switch (format)
+            {
+                case PixelFormats.RGB8:
+                    compression = NativeMethods.Compression.RGB;
+                    bitCount = 8;
+                    return true;
+                case PixelFormats.RGB15:
+                    compression = NativeMethods.Compression.RGB;
+                    bitCount = 16;   // BI_RGB & 16bit == RGB555 (NOT RGB565)
+                    return true;
+                case PixelFormats.RGB24:
+                    compression = NativeMethods.Compression.RGB;
+                    bitCount = 24;
+                    return true;
+                case PixelFormats.RGB32:
+                    compression = NativeMethods.Compression.RGB;
+                    bitCount = 32;
+                    return true;
+                case PixelFormats.ARGB32:
+                    compression = NativeMethods.Compression.ARGB;
+                    bitCount = 32;
+                    return true;
+                case PixelFormats.JPEG:
+                    compression = NativeMethods.Compression.MJPG;  // maybe
+                    bitCount = 24;  // HACK: Specific not found. My web camera is needed.
+                    return true;
+                case PixelFormats.PNG:
+                    compression = NativeMethods.Compression.PNG;
+                    bitCount = 24;  // ??
+                    return true;
+                case PixelFormats.UYVY:
+                    compression = NativeMethods.Compression.UYVY;
+                    bitCount = 16;
+                    return true;
+                case PixelFormats.YUYV:
+                    compression = NativeMethods.Compression.YUYV;
+                    bitCount = 16;
+                    return true;
+                default:
+                    compression = default;
+                    bitCount = 0;
+                    return false;
+            }
+        }
     }
 }

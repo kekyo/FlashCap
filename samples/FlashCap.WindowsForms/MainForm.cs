@@ -45,10 +45,10 @@ namespace FlashCap.WindowsForms
             // Use first device.
             if (descriptors.ElementAtOrDefault(0) is { } descriptor0)
             {
-#if false
+#if true
                 // Request video characteristics strictly:
                 var characteristics = new VideoCharacteristics(
-                    PixelFormats.MJPG, 24, 1920, 1080, 30);
+                    PixelFormats.JPEG, 1920, 1080, 60);
 #else
                 // Or, you could choice from device descriptor:
                 // Hint: Show up video characteristics into ComboBox and like.
@@ -56,7 +56,7 @@ namespace FlashCap.WindowsForms
 #endif
                 // Video characteristics tips:
                 // * DirectShow:
-                //   Supported only listing video characteristics,
+                //   Stable supported on listing video characteristics,
                 //   will raise exception when use invalid parameter combination.
                 // * Video for Windows:
                 //   Will ignore silently when use invalid parameter combination.

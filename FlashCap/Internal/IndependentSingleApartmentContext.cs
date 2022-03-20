@@ -12,6 +12,7 @@
 
 using System;
 using System.Diagnostics;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 
@@ -51,17 +52,49 @@ namespace FlashCap.Internal
         private static extern int GetCurrentThreadId();
         #endregion
 
-        private sealed class Message
+        private sealed class Message : IDisposable
         {
+            private ManualResetEventSlim? done;
+
+            private ExceptionDispatchInfo? edi;
+
             public readonly SendOrPostCallback Callback;
             public readonly object? State;
-            public readonly ManualResetEventSlim? Done;
 
-            public Message(SendOrPostCallback callback, object? state, ManualResetEventSlim? done)
+            public Message(
+                SendOrPostCallback callback, object? state, bool waitable)
             {
                 this.Callback = callback;
                 this.State = state;
-                this.Done = done;
+                this.done = waitable ? new ManualResetEventSlim(false) : null;
+            }
+
+            public void Dispose()
+            {
+                if (this.done != null)
+                {
+                    this.done?.Dispose();
+                    this.done = null;
+                    this.edi = null;
+                }
+            }
+
+            public void SetDone() =>
+                this.done?.Set();
+
+            public void SetException(Exception ex)
+            {
+                if (this.done is { } done)
+                {
+                    this.edi = ExceptionDispatchInfo.Capture(ex);
+                    done.Set();
+                }
+            }
+
+            public void Wait()
+            {
+                this.done!.Wait();
+                this.edi?.Throw();
             }
         }
 
@@ -131,14 +164,12 @@ namespace FlashCap.Internal
         {
             if (!this.SendCore(continuation, state))
             {
-                using var done = new ManualResetEventSlim(false);
-
-                var message = new Message(continuation, state, done);
+                using var message = new Message(continuation, state, true);
                 var handle = GCHandle.ToIntPtr(GCHandle.Alloc(message));
 
                 PostThreadMessage(this.targetThreadId, WM_SC, IntPtr.Zero, handle);
 
-                done.Wait();
+                message.Wait();
             }
         }
 
@@ -146,7 +177,7 @@ namespace FlashCap.Internal
         {
             if (!this.SendCore(continuation, state))
             {
-                var message = new Message(continuation, state, null);
+                var message = new Message(continuation, state, false);
                 var handle = GCHandle.ToIntPtr(GCHandle.Alloc(message));
 
                 PostThreadMessage(this.targetThreadId, WM_SC, IntPtr.Zero, handle);
@@ -186,14 +217,12 @@ namespace FlashCap.Internal
                     try
                     {
                         message.Callback(message.State);
+                        message.SetDone();
                     }
                     catch (Exception ex)
                     {
                         Debug.WriteLine(ex);
-                    }
-                    finally
-                    {
-                        message.Done?.Set();
+                        message.SetException(ex);
                     }
 
                     continue;

@@ -269,6 +269,29 @@ namespace System.Threading
 }
 #endif
 
+#if NET20 || NET35 || NET40
+namespace System.Runtime.ExceptionServices
+{
+    internal sealed class ExceptionDispatchInfo
+    {
+        private readonly Exception ex;
+        private readonly StackTrace stackTrace;
+
+        private ExceptionDispatchInfo(Exception ex)
+        {
+            this.ex = ex;
+            this.stackTrace = new StackTrace(ex);
+        }
+
+        public void Throw() =>
+            throw this.ex;     // IGNORED: Will lost stack information.
+
+        public static ExceptionDispatchInfo Capture(Exception ex) =>
+            new ExceptionDispatchInfo(ex);
+    }
+}
+#endif
+
 #if NET20 || NET35
 namespace System.Threading
 {

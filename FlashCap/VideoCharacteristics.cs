@@ -68,7 +68,8 @@ namespace FlashCap
             this.PixelFormat switch
             {
                 PixelFormats.RGB8 => 8,
-                PixelFormats.RGB15 => 16,   // 15
+                PixelFormats.RGB15 => 16,
+                PixelFormats.RGB16 => 16,
                 PixelFormats.RGB24 => 24,
                 PixelFormats.ARGB32 => 32,
                 _ => 0,
@@ -120,6 +121,6 @@ namespace FlashCap
         }
 
         public override string ToString() =>
-            $"{this.Width}x{this.Height} [{this.PixelFormat}/{this.RawPixelFormat}, {(double)this.FramesPerSecond}fps]";
+            $"{this.Width}x{this.Height} [{this.PixelFormat}, {(double)this.FramesPerSecond:F2}fps]";
     }
 }
