@@ -14,10 +14,14 @@ namespace FlashCap.Devices
 {
     public sealed class V4L2Device : ICaptureDevice
     {
+        private const int BufferCount = 2;
+        
         private readonly string devicePath;
         private readonly bool transcodeIfYUV;
         private int fd;
         private IntPtr pBih;
+        private IntPtr[] pBuffers = new IntPtr[BufferCount];
+        private IntPtr[] bufferLength = new IntPtr[BufferCount];
 
         internal unsafe V4L2Device(
             string devicePath, VideoCharacteristics characteristics, bool transcodeIfYUV)
@@ -70,6 +74,49 @@ namespace FlashCap.Devices
                 {
                     throw new ArgumentException(
                         $"FlashCap: Couldn't set video format [3]: DevicePath={this.devicePath}");
+                }
+
+                var requestbuffers = new NativeMethods_V4L2.v4l2_requestbuffers
+                {
+                    count = BufferCount,   // Flipping
+                    type = NativeMethods_V4L2.v4l2_buf_type.VIDEO_CAPTURE,
+                    memory = NativeMethods_V4L2.v4l2_memory.MMAP,
+                };
+                if (NativeMethods_V4L2.ioctl(fd, ref requestbuffers) < 0)
+                {
+                    throw new ArgumentException(
+                        $"FlashCap: Couldn't allocate video buffer: DevicePath={this.devicePath}");
+                }
+
+                for (var index = 0; index < requestbuffers.count; index++)
+                {
+                    var buffer = new NativeMethods_V4L2.v4l2_buffer
+                    {
+                        type = NativeMethods_V4L2.v4l2_buf_type.VIDEO_CAPTURE,
+                        memory = NativeMethods_V4L2.v4l2_memory.MMAP,
+                        index = index,
+                    };
+                    if (NativeMethods_V4L2.ioctl(fd, in buffer) < 0)
+                    {
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't assign video buffer: DevicePath={this.devicePath}");
+                    }
+
+                    if (NativeMethods_V4L2.mmap(
+                        IntPtr.Zero,
+                        (IntPtr)buffer.length,
+                        NativeMethods_V4L2.PROT.READ,
+                        NativeMethods_V4L2.MAP.SHARED,
+                        fd,
+                        buffer.m.offset) is { } pBuffer &&
+                        pBuffer == NativeMethods_V4L2.MAP_FAILED)
+                    {
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't map video buffer: DevicePath={this.devicePath}");
+                    }
+
+                    pBuffers[index] = pBuffer;
+                    bufferLength[index] = (IntPtr)buffer.length;
                 }
                 
                 var pih = NativeMethods.AllocateMemory((IntPtr)sizeof(NativeMethods.BITMAPINFOHEADER));
