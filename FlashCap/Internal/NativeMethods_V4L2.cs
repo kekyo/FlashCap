@@ -47,6 +47,9 @@ namespace FlashCap.Internal
         [DllImport("libc", CallingConvention = CallingConvention.Cdecl)]
         public static extern int close(int fd);
 
+        [DllImport("libc", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int pipe(int[] filedes);
+
         [Flags]
         public enum POLLBITS : short
         {
@@ -765,13 +768,28 @@ namespace FlashCap.Internal
         }
 
         [DllImport("libc", EntryPoint="ioctl", CallingConvention=CallingConvention.Cdecl)]
-        private static extern int ioctl(
-            int fd, uint request, in v4l2_buffer buffer);
+        private static extern int ioctlr(
+            int fd, uint request, ref v4l2_buffer buffer);
         private const uint VIDIOC_QUERYBUF = 0xc0585609;
-        public static int ioctl(
-            int fd, in v4l2_buffer buffer) =>
-            do_ioctl(fd, VIDIOC_QUERYBUF, in buffer, ioctl);
+        public static int ioctl_querybuf(
+            int fd, ref v4l2_buffer buffer) =>
+            do_ioctl(fd, VIDIOC_QUERYBUF, ref buffer, ioctlr);
                   
+        ///////////////////////////////////////////////////////////
+                  
+        [DllImport("libc", EntryPoint="ioctl", CallingConvention=CallingConvention.Cdecl)]
+        private static extern int ioctli(
+            int fd, uint request, in v4l2_buffer buffer);
+        private const uint VIDIOC_QBUF = 0xc058560f;
+        public static int ioctl_qbuf(
+            int fd, in v4l2_buffer buffer) =>
+            do_ioctl(fd, VIDIOC_QBUF, in buffer, ioctli);
+                    
+        private const uint VIDIOC_DQBUF = 0xc0585611;
+        public static int ioctl_dqbuf(
+            int fd, in v4l2_buffer buffer) =>
+            do_ioctl(fd, VIDIOC_DQBUF, in buffer, ioctli);
+                
         ///////////////////////////////////////////////////////////
 
         public static VideoCharacteristics? CreateVideoCharacteristics(
