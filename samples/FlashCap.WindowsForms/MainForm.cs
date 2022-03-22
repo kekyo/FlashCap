@@ -39,7 +39,8 @@ namespace FlashCap.WindowsForms
             var devices = new CaptureDevices();
             var descriptors = devices.EnumerateDescriptors().
                 // You could filter by device type and characteristics.
-                //Where(d => d.DeviceType == DeviceTypes.DirectShow).
+                //Where(d => d.DeviceType == DeviceTypes.DirectShow).  // Only DirectShow device.
+                Where(d => d.Characteristics.Length >= 1).             // One or more valid video characteristics.
                 ToArray();
 
             // Use first device.
@@ -47,19 +48,17 @@ namespace FlashCap.WindowsForms
             {
 #if false
                 // Request video characteristics strictly:
+                // Will raise exception when parameters are not accepted.
                 var characteristics = new VideoCharacteristics(
-                    PixelFormats.MJPG, 24, 1920, 1080, 30000);
+                    PixelFormats.JPEG, 1920, 1080, 60);
 #else
                 // Or, you could choice from device descriptor:
                 // Hint: Show up video characteristics into ComboBox and like.
                 var characteristics = descriptor0.Characteristics[0];
 #endif
-                // Video characteristics tips:
-                // * DirectShow:
-                //   Supported only listing video characteristics,
-                //   will raise exception when use invalid parameter combination.
-                // * Video for Windows:
-                //   Will ignore silently when use invalid parameter combination.
+                // Show status.
+                this.deviceLabel.Text = descriptor0.ToString();
+                this.characteristicsLabel.Text = characteristics.ToString();
 
                 // Open capture device:
                 this.captureDevice = descriptor0.Open(characteristics);
@@ -80,11 +79,11 @@ namespace FlashCap.WindowsForms
             // Windows Forms is too slow, so there's making throttle with LimitedExecutor class.
             this.limitedExecutor.ExecuteAndOffload(
 
-                // Just now section:
+                // Step 1. Just now section:
                 //   Capture into a pixel buffer:
                 () => this.captureDevice?.Capture(e, this.buffer),
 
-                // Offloaded section:
+                // Step 2. Offloaded section:
                 //   Caution: Offloaded section is on the worker thread context.
                 //   You have to switch main thread context before manipulates user interface.
                 () =>
@@ -104,6 +103,10 @@ namespace FlashCap.WindowsForms
                     var bitmap = Image.FromStream(stream);
 
                     // Switch to UI thread:
+                    // NOTE: WinForms sometimes will raise ObjectDisposedException in shutdown sequence.
+                    // Because it is race condition between this thread context and UI thread context.
+                    // We can safely ignore when terminating user interface.
+                    // (Or you can dodge it with graceful shutdown technics.)
                     this.Invoke(() =>
                     {
                         // HACK: on .NET Core, will be leaked (or delayed GC?)

@@ -55,7 +55,7 @@ namespace FlashCap.Internal
             });
         }
 
-        private static unsafe void TranscodeFromYUY2(
+        private static unsafe void TranscodeFromYUYV(
             int width, int height, bool performFullRange,
             byte* pFrom, byte* pTo, int scatter)
         {
@@ -71,9 +71,9 @@ namespace FlashCap.Internal
 
                     for (var x = 0; x < width; x += 2)
                     {
-                        var c1 = pFromBase[0] - 16;  // Y1
+                        var c1 = pFromBase[0] - 16;   // Y1
                         var d = pFromBase[1] - 128;   // U
-                        var c2 = pFromBase[2] - 16;  // Y2
+                        var c2 = pFromBase[2] - 16;   // Y2
                         var e = pFromBase[3] - 128;   // V
 
                         var cc1 = 298 * c1;
@@ -102,12 +102,13 @@ namespace FlashCap.Internal
             (byte)value;
 
         public static int? GetRequiredBufferSize(
-            int width, int height, PixelFormats pixelFormat)
+            int width, int height, NativeMethods.Compression compression)
         {
-            switch (pixelFormat)
+            switch (compression)
             {
-                case PixelFormats.UYVY:
-                case PixelFormats.YUY2:
+                case NativeMethods.Compression.UYVY:
+                case NativeMethods.Compression.YUYV:
+                case NativeMethods.Compression.YUY2:
                     return width * height * 3;
                 default:
                     return null;
@@ -116,16 +117,17 @@ namespace FlashCap.Internal
 
         public static unsafe void Transcode(
             int width, int height,
-            PixelFormats pixelFormat, bool performFullRange,
+            NativeMethods.Compression compression, bool performFullRange,
             byte* pFrom, byte* pTo)
         {
-            switch (pixelFormat)
+            switch (compression)
             {
-                case PixelFormats.UYVY:
+                case NativeMethods.Compression.UYVY:
                     TranscodeFromUYVY(width, height, performFullRange, pFrom, pTo, 32);
                     break;
-                case PixelFormats.YUY2:
-                    TranscodeFromYUY2(width, height, performFullRange, pFrom, pTo, 32);
+                case NativeMethods.Compression.YUYV:
+                case NativeMethods.Compression.YUY2:
+                    TranscodeFromYUYV(width, height, performFullRange, pFrom, pTo, 32);
                     break;
                 default:
                     throw new ArgumentException();

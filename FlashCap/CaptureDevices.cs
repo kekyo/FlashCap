@@ -24,8 +24,7 @@ namespace FlashCap
                     new DirectShowDevices().EnumerateDescriptors().
                     Concat(new VideoForWindowsDevices().EnumerateDescriptors()),
                 NativeMethods.Platforms.Linux =>
-                    // TODO: V2L2
-                    ArrayEx.Empty<CaptureDeviceDescriptor>(),
+                    new V4L2Devices().EnumerateDescriptors(),
                 _ =>
                     ArrayEx.Empty<CaptureDeviceDescriptor>(),
             };

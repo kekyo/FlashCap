@@ -32,9 +32,9 @@ namespace FlashCap
 
             var totalSize = pBih->biCompression switch
             {
-                PixelFormats.MJPG => size,
-                PixelFormats.JPEG => size,
-                PixelFormats.PNG => size,
+                NativeMethods.Compression.MJPG => size,
+                NativeMethods.Compression.JPEG => size,
+                NativeMethods.Compression.PNG => size,
                 _ => sizeof(NativeMethods.BITMAPFILEHEADER) +
                     pBih->biSize + size
             };
@@ -54,9 +54,9 @@ namespace FlashCap
 
                 fixed (byte* pImageContainer = this.imageContainer!)
                 {
-                    if (pBih->biCompression == PixelFormats.MJPG ||
-                        pBih->biCompression == PixelFormats.JPEG ||
-                        pBih->biCompression == PixelFormats.PNG)
+                    if (pBih->biCompression == NativeMethods.Compression.MJPG ||
+                        pBih->biCompression == NativeMethods.Compression.JPEG ||
+                        pBih->biCompression == NativeMethods.Compression.PNG)
                     {
                         NativeMethods.CopyMemory(
                             (IntPtr)pImageContainer,
@@ -165,8 +165,8 @@ namespace FlashCap
                                 pBihTo->biWidth = pBih->biWidth;
                                 pBihTo->biHeight = pBih->biHeight;
                                 pBihTo->biPlanes = 1;
-                                pBihTo->biBitCount = 24;   // B8G8R8
-                                pBihTo->biCompression = PixelFormats.RGB;
+                                pBihTo->biBitCount = 24;   // RGB888
+                                pBihTo->biCompression = NativeMethods.Compression.RGB;
                                 pBihTo->biSizeImage = sizeImage;
 #if DEBUG
                                 var sw = new Stopwatch();

@@ -38,9 +38,7 @@ namespace FlashCap.Devices
                                             pin : null).
                                     SelectMany(pin =>
                                         pin.EnumerateFormats().
-                                        Collect(format => NativeMethods.CreateVideoCharacteristics(
-                                            format.pBih,
-                                            (int)(10_000_000_000.0 / format.VideoInformation.AvgTimePerFrame)))).
+                                        Collect(format => format.CreateVideoCharacteristics())).
                                     Distinct().
                                     OrderByDescending(vc => vc).
                                     ToArray()) :

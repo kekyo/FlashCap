@@ -32,9 +32,17 @@ namespace FlashCap.Devices
             bool transcodeIfYUV)
         {
             this.deviceIndex = deviceIndex;
+            this.Characteristics = characteristics;
             this.transcodeIfYUV = transcodeIfYUV;
 
-            this.workingContext.Send(_ =>
+            if (!NativeMethods.GetCompressionAndBitCount(
+                characteristics.PixelFormat, out var compression, out var bitCount))
+            {
+                throw new ArgumentException(
+                    $"FlashCap: Couldn't set video format [1]: DeviceIndex={deviceIndex}");
+            }
+
+            this.workingContext!.Send(_ =>
             {
                 this.handle = NativeMethods_VideoForWindows.CreateVideoSourceWindow(deviceIndex);
 
@@ -50,30 +58,42 @@ namespace FlashCap.Devices
 
                 // At first set 5fps, because can't set both fps and video format atomicity.
                 NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out var cp);
-                cp.dwRequestMicroSecPerFrame = (int)(1_000_000_000.0 / 5000);   // 5fps
-                NativeMethods_VideoForWindows.capCaptureSetSetup(handle, cp);
+                cp.dwRequestMicroSecPerFrame = 1_000_000 / 5;   // 5fps
+                if (!NativeMethods_VideoForWindows.capCaptureSetSetup(handle, cp))
+                {
+                    throw new ArgumentException(
+                        $"FlashCap: Couldn't set video frame rate [1]: DeviceIndex={deviceIndex}");
+                }
                 NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out cp);
 
-                var setFormatResult = false;
                 var pih = NativeMethods.AllocateMemory((IntPtr)sizeof(NativeMethods.BITMAPINFOHEADER));
                 try
                 {
                     var pBih = (NativeMethods.BITMAPINFOHEADER*)pih.ToPointer();
 
                     pBih->biSize = sizeof(NativeMethods.BITMAPINFOHEADER);
-                    pBih->biCompression = characteristics.PixelFormat;
+                    pBih->biCompression = compression;
                     pBih->biPlanes = 1;
-                    pBih->biBitCount = (short)characteristics.BitsPerPixel;
+                    pBih->biBitCount = bitCount;
                     pBih->biWidth = characteristics.Width;
                     pBih->biHeight = characteristics.Height;
                     pBih->biSizeImage = pBih->CalculateImageSize();
 
                     // Try to set video format.
-                    setFormatResult = NativeMethods_VideoForWindows.capSetVideoFormat(handle, pih);
+                    if (!NativeMethods_VideoForWindows.capSetVideoFormat(handle, pih))
+                    {
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't set video format [2]: DeviceIndex={deviceIndex}");
+                    }
 
                     // Try to set fps, but VFW API may cause ignoring it silently...
-                    cp.dwRequestMicroSecPerFrame = (int)(1_000_000_000.0 / characteristics.FramesPer1000Second);
-                    NativeMethods_VideoForWindows.capCaptureSetSetup(handle, cp);
+                    cp.dwRequestMicroSecPerFrame =
+                        (int)(1_000_000 / characteristics.FramesPerSecond);
+                    if (!NativeMethods_VideoForWindows.capCaptureSetSetup(handle, cp))
+                    {
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't set video frame rate [2]: DeviceIndex={deviceIndex}");
+                    }
                     NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out cp);
                 }
                 finally
@@ -83,27 +103,6 @@ namespace FlashCap.Devices
 
                 // Get final video format.
                 NativeMethods_VideoForWindows.capGetVideoFormat(handle, out this.pBih);
-
-                ///////////////////////////////////////
-
-                if (NativeMethods.CreateVideoCharacteristics(
-                    this.pBih, (int)(1_000_000_000.0 / cp.dwRequestMicroSecPerFrame)) is { } vc)
-                {
-                    if (setFormatResult)
-                    {
-                        Debug.WriteLine($"FlashCap: Characteristics={vc}");
-                    }
-                    else
-                    {
-                        Trace.WriteLine($"FlashCap: Couldn't set video format, Requested={characteristics}, Actual={vc}");
-                    }
-
-                    this.Characteristics = vc;
-                }
-                else
-                {
-                    throw new InvalidOperationException("Couldn't set bitmap format to VFW device.");
-                }
 
                 ///////////////////////////////////////
 
@@ -142,7 +141,8 @@ namespace FlashCap.Devices
             }
         }
 
-        public VideoCharacteristics Characteristics { get; private set; } = null!;
+        public VideoCharacteristics Characteristics { get; }
+        public bool IsRunning { get; private set; }
 
         public event EventHandler<FrameArrivedEventArgs>? FrameArrived;
 
@@ -170,13 +170,17 @@ namespace FlashCap.Devices
 
         public void Start() =>
             this.workingContext!.Send(_ =>
-                NativeMethods_VideoForWindows.capShowPreview(this.handle, true),
-                null);
+            {
+                NativeMethods_VideoForWindows.capShowPreview(this.handle, true);
+                this.IsRunning = true;
+            }, null);
 
         public void Stop() =>
             this.workingContext!.Send(_ =>
-                NativeMethods_VideoForWindows.capShowPreview(this.handle, false),
-                null);
+            {
+                this.IsRunning = false;
+                NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
+            }, null);
 
         public void Capture(FrameArrivedEventArgs e, PixelBuffer buffer) =>
             buffer.CopyIn(
