@@ -124,6 +124,21 @@ namespace FlashCap.Internal
 
         ////////////////////////////////////////////////////////////////////////
 
+        [Flags]
+        public enum COINIT
+        {
+            MULTITHREADED = 0,
+            APARTMENTTHREADED = 2,
+            DISABLE_OLE1DDE = 4,
+            SPEED_OVER_MEMORY = 8,
+        }
+
+        [DllImport("ole32", SetLastError=true)]
+        public static extern int CoInitializeEx(
+            IntPtr pvReserved, COINIT dwCoInit);
+
+        ////////////////////////////////////////////////////////////////////////
+
         [StructLayout(LayoutKind.Sequential, Pack=1)]
         public struct RGBQUAD
         {

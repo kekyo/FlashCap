@@ -233,24 +233,49 @@ namespace System.Threading
     internal enum ApartmentState
     {
         STA,
+        MTA,
+        Unknown,
     }
+
+    internal delegate void ThreadStart();
 
     internal sealed class Thread
     {
-        private readonly Action entryPoint;
+        private readonly ThreadStart entryPoint;
+        private ApartmentState state = ApartmentState.Unknown;
         private Tasks.Task? task;
 
-        public Thread(Action entryPoint) =>
+        public Thread(ThreadStart entryPoint) =>
             this.entryPoint = entryPoint;
 
         public bool IsBackground { get; set; }
 
-        public void SetApartmentState(ApartmentState state)
+        public void SetApartmentState(ApartmentState state) =>
+            this.state = state;
+
+        private void EntryPoint()
         {
+            if (NativeMethods.CurrentPlatform == NativeMethods.Platforms.Windows)
+            {
+                switch (this.state)
+                {
+                    case ApartmentState.STA:
+                        NativeMethods.CoInitializeEx(
+                            IntPtr.Zero, NativeMethods.COINIT.APARTMENTTHREADED);
+                        break;
+                    case ApartmentState.MTA:
+                        NativeMethods.CoInitializeEx(
+                            IntPtr.Zero, NativeMethods.COINIT.MULTITHREADED);
+                        break;
+                }
+            }
+            this.entryPoint();
         }
 
         public void Start() =>
-            this.task = Tasks.Task.Run(this.entryPoint);
+            this.task = Tasks.Task.Factory.StartNew(
+                this.EntryPoint,
+                Tasks.TaskCreationOptions.LongRunning);
 
         public void Join() =>
             this.task?.Wait();
