@@ -260,16 +260,25 @@ namespace System.Threading
                 switch (this.state)
                 {
                     case ApartmentState.STA:
+                        NativeMethods.CoUninitialize();   // DIRTY
                         NativeMethods.CoInitializeEx(
                             IntPtr.Zero, NativeMethods.COINIT.APARTMENTTHREADED);
                         break;
                     case ApartmentState.MTA:
+                        NativeMethods.CoUninitialize();   // DIRTY
                         NativeMethods.CoInitializeEx(
                             IntPtr.Zero, NativeMethods.COINIT.MULTITHREADED);
                         break;
                 }
             }
-            this.entryPoint();
+            try
+            {
+                this.entryPoint();
+            }
+            finally
+            {
+                NativeMethods.CoUninitialize();   // DIRTY
+            }
         }
 
         public void Start() =>

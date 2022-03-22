@@ -137,6 +137,9 @@ namespace FlashCap.Internal
         public static extern int CoInitializeEx(
             IntPtr pvReserved, COINIT dwCoInit);
 
+        [DllImport("ole32", SetLastError=true)]
+        public static extern void CoUninitialize();
+
         ////////////////////////////////////////////////////////////////////////
 
         [StructLayout(LayoutKind.Sequential, Pack=1)]
