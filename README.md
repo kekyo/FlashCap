@@ -43,7 +43,7 @@ Platforms on which camera devices can be used:
 
 * Windows (DirectShow devices)
 * Windows (Video for Windows devices)
-* Linux (V2L2 devices)
+* Linux (V4L2 devices)
 
 ---
 
@@ -422,6 +422,8 @@ Apache-v2.
 
 ## History
 
+* 0.9.0:
+  * Supported Linux V4L2 devices 🎉
 * 0.8.0:
   * Improved frame rate calculation with fraction type.
   * Added easier taking an image method `CaptureOneShot`.
@@ -447,7 +449,7 @@ Apache-v2.
 * 0.3.0:
   * Implemented central device enumeration.
   * Add supporting device characteristics enumeration.
-  * Brush up some interface members for DirectShow and V2L2.
+  * Brush up some interface members for DirectShow and V4L2.
 * 0.2.0:
   * Applied YUV conversion formula with MS's technical article.
   * Made PixelBuffer thread safe.
