@@ -43,9 +43,6 @@ Platforms on which camera devices can be used:
 
 * Windows (DirectShow devices)
 * Windows (Video for Windows devices)
-
-TODO:
-
 * Linux (V2L2 devices)
 
 ---
@@ -121,12 +118,14 @@ TODO:
 
 * [WPF application](samples/FlashCap.WPF/)
 
-This is an Avalonia sample application on running Windows.
+This is an Avalonia sample application on both Windows and Linux.
 It is performed realtime usermode capturing,
 decoding bitmap (from MJPEG) and render to window.
 Avalonia is using renderer with Skia. It is pretty fast.
 
-![FlashCap.Avalonia](Images/FlashCap.Avalonia.png)
+![FlashCap.Avalonia](Images/FlashCap.Avalonia_Windows.png)
+
+![FlashCap.Avalonia](Images/FlashCap.Avalonia_Linux.png)
 
 ---
 
