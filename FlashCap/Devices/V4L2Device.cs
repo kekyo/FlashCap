@@ -189,7 +189,7 @@ namespace FlashCap.Devices
         }
 
         public VideoCharacteristics Characteristics { get; }
-        public bool IsRunning { get; }
+        public bool IsRunning { get; private set; }
 
         public event EventHandler<FrameArrivedEventArgs>? FrameArrived;
 
@@ -218,17 +218,11 @@ namespace FlashCap.Devices
             while (true)
             {
                 var result = NativeMethods_V4L2.poll(fds, fds.Length, -1);
-                if (result <= 0)
-                {
-                    throw new ArgumentException(
-                        $"FlashCap: Couldn't get fd status: DevicePath={this.devicePath}");
-                }
-
-                if ((fds[0].revents & NativeMethods_V4L2.POLLBITS.POLLIN) == NativeMethods_V4L2.POLLBITS.POLLIN)
+                if (result == 0)
                 {
                     break;
                 }
-                if ((fds[1].revents & NativeMethods_V4L2.POLLBITS.POLLIN) == NativeMethods_V4L2.POLLBITS.POLLIN)
+                else if (result == 1)
                 {
                     if (NativeMethods_V4L2.ioctl_dqbuf(this.fd, buffer) < 0)
                     {
@@ -251,17 +245,43 @@ namespace FlashCap.Devices
                             $"FlashCap: Couldn't enqueue video buffer: DevicePath={this.devicePath}");
                     }
                 }
+                else
+                {
+                    throw new ArgumentException(
+                        $"FlashCap: Couldn't get fd status: Status={result}, DevicePath={this.devicePath}");
+                }
             }
         }
         
         public void Start()
         {
-            //VIDIOC_STREAMON
+            if (!this.IsRunning)
+            {
+                if (NativeMethods_V4L2.ioctl_streamon(
+                    this.fd,
+                    NativeMethods_V4L2.v4l2_buf_type.VIDEO_CAPTURE) < 0)
+                {
+                    throw new ArgumentException(
+                        $"FlashCap: Couldn't start capture: DevicePath={this.devicePath}");
+                }
+                this.IsRunning = true;
+            }
         }
 
         public void Stop()
         {
-            //VIDIOC_STREAMOFF
+            if (this.IsRunning)
+            {
+                this.IsRunning = false;
+                if (NativeMethods_V4L2.ioctl_streamoff(
+                    this.fd,
+                    NativeMethods_V4L2.v4l2_buf_type.VIDEO_CAPTURE) < 0)
+                {
+                    this.IsRunning = true;
+                    throw new ArgumentException(
+                        $"FlashCap: Couldn't stop capture: DevicePath={this.devicePath}");
+                }
+            }
         }
 
         public void Capture(FrameArrivedEventArgs e, PixelBuffer buffer) =>

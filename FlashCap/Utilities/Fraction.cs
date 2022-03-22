@@ -12,15 +12,32 @@ using System.Diagnostics;
 
 namespace FlashCap.Utilities
 {
+    /// <summary>
+    /// Fraction number structure.
+    /// </summary>
 #if !NETSTANDARD1_3
     [Serializable]
 #endif
+    [DebuggerDisplay("{PrettyPrint}")]
     public readonly struct Fraction :
         IEquatable<Fraction>, IComparable<Fraction>
     {
+        /// <summary>
+        /// The numerator.
+        /// </summary>
         public readonly int Numerator;
+
+        /// <summary>
+        /// The denominator.
+        /// </summary>
         public readonly int Denominator;
 
+        /// <summary>
+        /// Constructor.
+        /// </summary>
+        /// <param name="numerator">The numerator</param>
+        /// <param name="denominator">The denominator</param>
+        /// <exception cref="DivideByZeroException">Denominator is zero and real number is not zero.</exception>
         public Fraction(int numerator, int denominator)
         {
             if (denominator == 0 && numerator != 0)
@@ -31,9 +48,21 @@ namespace FlashCap.Utilities
             this.Denominator = denominator;
         }
 
+        /// <summary>
+        /// Construction method.
+        /// </summary>
+        /// <param name="numerator">The numerator</param>
+        /// <param name="denominator">The denominator</param>
+        /// <exception cref="DivideByZeroException">Denominator is zero and real number is not zero.</exception>
+        /// <returns>Fraction</returns>
         public static Fraction Create(int numerator, int denominator) =>
             new(numerator, denominator);
         
+        /// <summary>
+        /// Construction method.
+        /// </summary>
+        /// <param name="value">The numerator (and the denominator is 1)</param>
+        /// <returns>Fraction</returns>
         public static Fraction Create(int value) =>
             new(value, 1);
         
@@ -59,12 +88,26 @@ namespace FlashCap.Utilities
             };
         }
 
+        /// <summary>
+        /// Reduce this fraction.
+        /// </summary>
+        /// <returns>Reduced fraction</returns>
         public Fraction Reduce() =>
             Reduce(this.Numerator, this.Denominator);
 
+        /// <summary>
+        /// Get reciprocal fraction.
+        /// </summary>
+        /// <returns>Reciprocal fraction</returns>
         public Fraction Reciprocal() =>
             new(this.Denominator, this.Numerator);
 
+        /// <summary>
+        /// Add fraction number.
+        /// </summary>
+        /// <param name="rhs">Fraction</param>
+        /// <param name="reduce">Perform reducing fraction when calculated</param>
+        /// <returns>Calculated fraction</returns>
         public Fraction Add(Fraction rhs, bool reduce = true)
         {
             if (this.Denominator == 0)
@@ -86,6 +129,12 @@ namespace FlashCap.Utilities
             return reduce ? Reduce(pn, pd) : new Fraction((int)pn, (int)pd);
         }
 
+        /// <summary>
+        /// Multiple fraction number.
+        /// </summary>
+        /// <param name="rhs">Fraction</param>
+        /// <param name="reduce">Perform reducing fraction when calculated</param>
+        /// <returns>Calculated fraction</returns>
         public Fraction Mult(Fraction rhs, bool reduce = true)
         {
             var pn = (long)this.Numerator * rhs.Numerator;
@@ -93,6 +142,10 @@ namespace FlashCap.Utilities
             return reduce ? Reduce(pn, pd) : new Fraction((int)pn, (int)pd);
         }
 
+        /// <summary>
+        /// Get hash code.
+        /// </summary>
+        /// <returns>Hash code</returns>
         public override int GetHashCode() =>
             this.Numerator ^ this.Denominator;
 
@@ -100,16 +153,36 @@ namespace FlashCap.Utilities
             lhs.Numerator == rhs.Numerator &&
             lhs.Denominator == rhs.Denominator;
 
+        /// <summary>
+        /// Compare equality.
+        /// </summary>
+        /// <param name="rhs">Fraction number</param>
+        /// <returns>True if equals</returns>
         public bool Equals(Fraction rhs) =>
             ExactEquals(this, rhs) ||
             ExactEquals(this.Reduce(), rhs.Reduce());
 
+        /// <summary>
+        /// Compare equality.
+        /// </summary>
+        /// <param name="obj">Fraction number</param>
+        /// <returns>True if equals</returns>
         public override bool Equals(object? obj) =>
             obj is Fraction rhs && this.Equals(rhs);
 
+        /// <summary>
+        /// Compare equality.
+        /// </summary>
+        /// <param name="rhs">Fraction number</param>
+        /// <returns>True if equals</returns>
         bool IEquatable<Fraction>.Equals(Fraction rhs) =>
             this.Equals(rhs);
 
+        /// <summary>
+        /// Get compared index.
+        /// </summary>
+        /// <param name="rhs">Fraction number</param>
+        /// <returns>Compared relative index</returns>
         public int CompareTo(Fraction rhs)
         {
             if (this.Denominator == 0)
@@ -130,41 +203,130 @@ namespace FlashCap.Utilities
             return tn.CompareTo(rn);
         }
 
+        /// <summary>
+        /// Get compared index.
+        /// </summary>
+        /// <param name="rhs">Fraction number</param>
+        /// <returns>Compared relative index</returns>
         int IComparable<Fraction>.CompareTo(Fraction rhs) =>
             this.CompareTo(rhs);
 
-        public override string ToString() =>
+        /// <summary>
+        /// Pretty printer.
+        /// </summary>
+        /// <returns>String</returns>
+        public string PrettyPrint =>
             this.Denominator == 0 ?
                 "0 [0.0]" :
-                $"{this.Numerator}/{this.Denominator} [{(double)this.Numerator / this.Denominator:F3}]";
+                this.Reduce() is { } reduced && ExactEquals(reduced, this) ?
+                    $"{this.Numerator}/{this.Denominator} [{(double)this.Numerator / this.Denominator:F3}]" :
+                    $"{this.Numerator}/{this.Denominator} [{reduced}, {(double)this.Numerator / this.Denominator:F3}]";
 
+        /// <summary>
+        /// Get string value.
+        /// </summary>
+        /// <returns>String</returns>
+        public override string ToString() =>
+            $"{this.Numerator}/{this.Denominator}";
+
+        /// <summary>
+        /// Zero instance of fraction.
+        /// </summary>
         public static readonly Fraction Zero =
             new(0, 0);
 
+        /// <summary>
+        /// Add fraction number.
+        /// </summary>
+        /// <param name="lhs">Fraction number</param>
+        /// <param name="rhs">Fraction number</param>
+        /// <returns>Fraction</returns>
         public static Fraction operator +(Fraction lhs, Fraction rhs) =>
             lhs.Add(rhs);
+        /// <summary>
+        /// Subtract fraction number.
+        /// </summary>
+        /// <param name="lhs">Fraction number</param>
+        /// <param name="rhs">Fraction number</param>
+        /// <returns>Fraction</returns>
         public static Fraction operator -(Fraction lhs, Fraction rhs) =>
             lhs.Add(new Fraction(-rhs.Numerator, rhs.Denominator));
+        /// <summary>
+        /// Multiple fraction number.
+        /// </summary>
+        /// <param name="lhs">Fraction number</param>
+        /// <param name="rhs">Fraction number</param>
+        /// <returns>Fraction</returns>
         public static Fraction operator *(Fraction lhs, Fraction rhs) =>
             lhs.Mult(rhs);
+        /// <summary>
+        /// Divide fraction number.
+        /// </summary>
+        /// <param name="lhs">Fraction number</param>
+        /// <param name="rhs">Fraction number</param>
+        /// <returns>Fraction</returns>
         public static Fraction operator /(Fraction lhs, Fraction rhs) =>
             lhs.Mult(rhs.Reciprocal());
 
+        /// <summary>
+        /// Compare equality.
+        /// </summary>
+        /// <param name="lhs">Fraction number</param>
+        /// <param name="rhs">Fraction number</param>
+        /// <returns>True if equals</returns>
         public static bool operator ==(Fraction lhs, Fraction rhs) =>
             lhs.Equals(rhs);
+        /// <summary>
+        /// Compare equality.
+        /// </summary>
+        /// <param name="lhs">Fraction number</param>
+        /// <param name="rhs">Fraction number</param>
+        /// <returns>True if not equals</returns>
         public static bool operator !=(Fraction lhs, Fraction rhs) =>
             !lhs.Equals(rhs);
+        /// <summary>
+        /// Compare equality.
+        /// </summary>
+        /// <param name="lhs">Fraction number</param>
+        /// <param name="rhs">Fraction number</param>
+        /// <returns>True lesser than rhs</returns>
         public static bool operator <(Fraction lhs, Fraction rhs) =>
             lhs.CompareTo(rhs) < 0;
+        /// <summary>
+        /// Compare equality.
+        /// </summary>
+        /// <param name="lhs">Fraction number</param>
+        /// <param name="rhs">Fraction number</param>
+        /// <returns>True lesser than or equal rhs</returns>
         public static bool operator <=(Fraction lhs, Fraction rhs) =>
             lhs.CompareTo(rhs) <= 0;
+        /// <summary>
+        /// Compare equality.
+        /// </summary>
+        /// <param name="lhs">Fraction number</param>
+        /// <param name="rhs">Fraction number</param>
+        /// <returns>True greater than rhs</returns>
         public static bool operator >(Fraction lhs, Fraction rhs) =>
             lhs.CompareTo(rhs) > 0;
+        /// <summary>
+        /// Compare equality.
+        /// </summary>
+        /// <param name="lhs">Fraction number</param>
+        /// <param name="rhs">Fraction number</param>
+        /// <returns>True greater than or equal rhs</returns>
         public static bool operator >=(Fraction lhs, Fraction rhs) =>
             lhs.CompareTo(rhs) >= 0;
 
+        /// <summary>
+        /// Implicitly conversion from integer.
+        /// </summary>
+        /// <param name="numerator">Numerator value</param>
         public static implicit operator Fraction(int numerator) =>
             new(numerator, 1);
+        /// <summary>
+        /// Implicitly conversion to floating point value.
+        /// </summary>
+        /// <param name="lhs">Fraction</param>
         public static implicit operator double(Fraction lhs) =>
             lhs.Denominator == 0 ?
                 0.0 :

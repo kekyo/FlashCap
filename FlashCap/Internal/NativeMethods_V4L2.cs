@@ -791,6 +791,21 @@ namespace FlashCap.Internal
             do_ioctl(fd, VIDIOC_DQBUF, in buffer, ioctli);
                 
         ///////////////////////////////////////////////////////////
+                
+        [DllImport("libc", EntryPoint="ioctl", CallingConvention=CallingConvention.Cdecl)]
+        private static extern int ioctl(
+            int fd, uint request, in v4l2_buf_type type);
+        private const uint VIDIOC_STREAMON = 0x40045612;
+        public static int ioctl_streamon(
+            int fd, v4l2_buf_type type) =>
+            do_ioctl(fd, VIDIOC_STREAMON, in type, ioctl);
+
+        private const uint VIDIOC_STREAMOFF = 0x40045613;
+        public static int ioctl_streamoff(
+            int fd, v4l2_buf_type type) =>
+            do_ioctl(fd, VIDIOC_STREAMOFF, in type, ioctl);
+        
+        ///////////////////////////////////////////////////////////
 
         public static VideoCharacteristics? CreateVideoCharacteristics(
             v4l2_pix_fmt pix_fmt,
