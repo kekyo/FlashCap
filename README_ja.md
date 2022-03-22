@@ -2,7 +2,7 @@
 
 ![FlashCap](Images/FlashCap.100.png)
 
-FlashCap - 独立したカメラキャプチャライブラリ
+FlashCap - シンプルで依存性のない、カメラキャプチャライブラリ
 
 [![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 
@@ -43,16 +43,13 @@ FlashCap - 独立したカメラキャプチャライブラリ
 
 * Windows (DirectShowデバイス)
 * Windows (Video for Windowsデバイス)
-
-TODO:
-
-* Linux (V2L2デバイス)
+* Linux (V4L2デバイス)
 
 ---
 
 ## 使い方
 
-対象デバイスと映像の特性を列挙します:
+最初に、対象デバイスと映像の特性を列挙します:
 
 ```csharp
 using FlashCap;
@@ -121,6 +118,15 @@ TODO:
 
 * [WPFアプリケーション](samples/FlashCap.WPF/)
 
+Avaloniaのサンプルコードは、単一のコードで、WindowsとLinuxの両方で動作します。
+ユーザーモードプロセスでリアルタイムにキャプチャを行い、
+（MJPEGから）ビットマップをデコードし、ウィンドウにレンダリングします。
+AvaloniaはSkiaを使ったレンダラーを使用しています。かなり高速です。
+
+![FlashCap.Avalonia](Images/FlashCap.Avalonia_Windows.png)
+
+![FlashCap.Avalonia](Images/FlashCap.Avalonia_Linux.png)
+
 ---
 
 ## FrameArrivedイベントについて
@@ -183,7 +189,6 @@ device.FrameArrived += (s, e) =>
 ````
 
 このように、問題を回避するために安全に書くのは骨が折れます。
-もちろん、このような繊細な処理を毎回実装してもかまいませんが...
 
 しかし、FlashCapは、より簡単に実装するために、
 このアルゴリズムをカプセル化した `LimitedExecutor` クラスを定義しています:
@@ -416,6 +421,12 @@ Apache-v2.
 
 ## 履歴
 
+* 0.9.0:
+  * Linux V4L2に対応しました 🎉
+* 0.8.0:
+  * フレームレート計算を改善しました。
+  * より簡単に画像を撮影できるメソッド `CaptureOneShot` を追加しました。
+  * ビデオ特性のインターフェイスを変更しました(フレームレートとピクセルフォーマット関連。V4L2の実装を反映)。
 * 0.7.0:
   * DirectShowで無効なビデオフレームを送信するビデオデバイスをかわす機能を改善しました。
   * 32bit環境でRtlCopyMemoryのエントリポイントが見つからない問題を修正しました。
