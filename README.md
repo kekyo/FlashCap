@@ -121,6 +121,13 @@ TODO:
 
 * [WPF application](samples/FlashCap.WPF/)
 
+This is an Avalonia sample application on running Windows.
+It is performed realtime usermode capturing,
+decoding bitmap (from MJPEG) and render to window.
+Avalonia is using renderer with Skia. It is pretty fast.
+
+![FlashCap.Avalonia](Images/FlashCap.Avalonia.png)
+
 ---
 
 ## About FrameArrived event
