@@ -7,7 +7,8 @@
     xmlns:epoxy="clr-namespace:Epoxy;assembly=Epoxy.Core"
     xmlns:viewmodels="clr-namespace:FlashCap.Avalonia.ViewModels"
     mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-    Title="FlashCap.Avalonia" Height="450" Width="800">
+    Title="FlashCap.Avalonia" Height="450" Width="800"
+    TransparencyBackgroundFallback="Black">
 
     <Window.DataContext>
         <viewmodels:MainWindowViewModel />
@@ -20,4 +21,9 @@
     <Window.Background>
         <ImageBrush Source="{Binding Image}"/>
     </Window.Background>
+
+    <StackPanel Orientation="Vertical">
+        <TextBlock Foreground="Yellow" Text="{Binding Device}" />
+        <TextBlock Foreground="Yellow" Text="{Binding Characteristics}" />
+    </StackPanel>
 </Window>

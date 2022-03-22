@@ -11,6 +11,8 @@ using System;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Text;
+using FlashCap.Utilities;
 
 namespace FlashCap.Internal
 {
@@ -113,10 +115,10 @@ namespace FlashCap.Internal
             return ptr;
         }
 
-        public static unsafe readonly AllocateMemoryDelegate AllocateMemory =
+        public static readonly AllocateMemoryDelegate AllocateMemory =
             CurrentPlatform == Platforms.Windows ?
                 AllocateWindows : AllocatePosix;
-        public static unsafe readonly FreeMemoryDelegate FreeMemory =
+        public static readonly FreeMemoryDelegate FreeMemory =
             CurrentPlatform == Platforms.Windows ?
                 CoTaskMemFree : free;
 
@@ -161,10 +163,23 @@ namespace FlashCap.Internal
             return clrBits;
         }
 
-        private static int CalculateClrUsed(
-            PixelFormats pixelFormat, short biPlanes, short biBitCount)
+        public enum Compression
         {
-            if (pixelFormat != PixelFormats.RGB)
+            RGB = 0,             // BI_RGB
+            JPEG = 4,            // BI_JPEG
+            PNG = 5,             // BI_PNG
+            ARGB = 0x42475241,   // FOURCC
+            RGB2 = 0x32424752,   // FOURCC
+            YUY2 = 0x32595559,   // FOURCC
+            YUYV = 0x56595559,   // FOURCC
+            UYVY = 0x59565955,   // FOURCC
+            MJPG = 0x47504A4D,   // FOURCC
+        }
+
+        private static int CalculateClrUsed(
+            Compression compression, short biPlanes, short biBitCount)
+        {
+            if (compression != Compression.RGB)
             {
                 return 0;
             }
@@ -177,18 +192,18 @@ namespace FlashCap.Internal
 
         [SuppressUnmanagedCodeSecurity]
         private static unsafe int CalculateRawSize(
-            PixelFormats pixelFormat, short biPlanes, short biBitCount) =>
+            Compression compression, short biPlanes, short biBitCount) =>
             sizeof(BITMAPINFOHEADER) +
-            CalculateClrUsed(pixelFormat, biPlanes, biBitCount) * sizeof(RGBQUAD);
+            CalculateClrUsed(compression, biPlanes, biBitCount) * sizeof(RGBQUAD);
 
-        private static unsafe int CalculateImageSize(
-            PixelFormats pixelFormat,
+        private static int CalculateImageSize(
+            Compression compression,
             int biWidth, int biHeight, short biPlanes, short biBitCount) =>
-            pixelFormat switch
+            compression switch
             {
-                PixelFormats.JPEG => 0,
-                PixelFormats.PNG => 0,
-                PixelFormats.MJPG => 0,
+                Compression.JPEG => 0,
+                Compression.PNG => 0,
+                Compression.MJPG => 0,
                 _ => ((biWidth * GetClrBits(biPlanes, biBitCount) + 31) & ~31) / 8 * biHeight,
             };
 
@@ -200,7 +215,7 @@ namespace FlashCap.Internal
             public int biHeight;
             public short biPlanes;
             public short biBitCount;
-            public PixelFormats biCompression;
+            public Compression biCompression;
             public int biSizeImage;
             public int biXPelsPerMeter;
             public int biYPelsPerMeter;
@@ -229,6 +244,8 @@ namespace FlashCap.Internal
             public short bfReserved2;
             public int bfOffBits;
         }
+
+        ////////////////////////////////////////////////////////////////////////
 
         [StructLayout(LayoutKind.Sequential)]
         public struct SIZE
@@ -271,20 +288,236 @@ namespace FlashCap.Internal
             public int dwControlFlags;    // dwReserved1
             public int dwReserved2;
         }
+                
+        ////////////////////////////////////////////////////////////////////////
 
-        public static unsafe VideoCharacteristics? CreateVideoCharacteristics(
-            IntPtr pih, int framesPer1000Second)
+        // https://en.wikipedia.org/wiki/Computer_display_standard
+        public readonly struct Resolution
         {
-            var pBih = (BITMAPINFOHEADER*)pih.ToPointer();
-            if (Enum.IsDefined(typeof(PixelFormats), pBih->biCompression))
+            public readonly int Width;
+            public readonly int Height;
+
+            private Resolution(int width, int height)
+            {
+                this.Width = width;
+                this.Height = height;
+            }
+
+            public static Resolution Create(int width, int height) =>
+                new Resolution(width, height);
+        }
+        
+        public static readonly Resolution[] DefactoStandardResolutions = new[]
+        {
+            Resolution.Create(10240, 4320),
+            Resolution.Create(7680, 4800),
+            Resolution.Create(7680, 4320),
+            Resolution.Create(7680, 3200),
+            Resolution.Create(6400, 4800),
+            Resolution.Create(6400, 4096),
+            Resolution.Create(5120, 4096),
+            Resolution.Create(5120, 3200),
+            Resolution.Create(5120, 2880),
+            Resolution.Create(5120, 2160),
+            Resolution.Create(4500, 3000),
+            Resolution.Create(4096, 3072),
+            Resolution.Create(4096, 2160),
+            Resolution.Create(3840, 2400),
+            Resolution.Create(3840, 2160),
+            Resolution.Create(3840, 1600),
+            Resolution.Create(3440, 1440),
+            Resolution.Create(3200, 2400),
+            Resolution.Create(3200, 2048),
+            Resolution.Create(3000, 2000),
+            Resolution.Create(2960, 1440),
+            Resolution.Create(2880, 1800),
+            Resolution.Create(2880, 1440),
+            Resolution.Create(2560, 2048),
+            Resolution.Create(2560, 1600),
+            Resolution.Create(2560, 1440),
+            Resolution.Create(2560, 1080),
+            Resolution.Create(2160, 1440),
+            Resolution.Create(2048, 1536),
+            Resolution.Create(2048, 1152),
+            Resolution.Create(2048, 1080),
+            Resolution.Create(1920, 1440),
+            Resolution.Create(1920, 1280),
+            Resolution.Create(1920, 1200),
+            Resolution.Create(1920, 1080),
+            Resolution.Create(1680, 1050),
+            Resolution.Create(1600, 1200),
+            Resolution.Create(1600, 900),
+            Resolution.Create(1440, 900),
+            Resolution.Create(1400, 1050),
+            Resolution.Create(1366, 768),
+            Resolution.Create(1360, 768),
+            Resolution.Create(1280, 1024),
+            Resolution.Create(1280, 960),
+            Resolution.Create(1280, 720),
+            Resolution.Create(1152, 900),
+            Resolution.Create(1152, 870),
+            Resolution.Create(1152, 864),
+            Resolution.Create(1056, 400),
+            Resolution.Create(1024, 768),
+            Resolution.Create(832, 624),
+            Resolution.Create(800, 600),
+            Resolution.Create(720, 576),
+            Resolution.Create(720, 480),
+            Resolution.Create(720, 400),
+            Resolution.Create(720, 350),
+            Resolution.Create(640, 480),
+            Resolution.Create(640, 400),
+            Resolution.Create(640, 350),
+            Resolution.Create(640, 200),
+            Resolution.Create(512, 384),
+            Resolution.Create(480, 272),
+            Resolution.Create(480, 720),
+            Resolution.Create(320, 240),
+            Resolution.Create(320, 200),
+            Resolution.Create(240, 160),
+            Resolution.Create(160, 200),
+            Resolution.Create(160, 144),
+            Resolution.Create(160, 128),
+            Resolution.Create(160, 120),
+        };
+ 
+        public static readonly Fraction[] DefactoStandardFramesPerSecond = new[]
+        {
+            Fraction.Create(120),
+            Fraction.Create(120000, 1001),
+            Fraction.Create(60),
+            Fraction.Create(60000, 1001),
+            Fraction.Create(50),
+            Fraction.Create(30),
+            Fraction.Create(30000, 1001),
+            Fraction.Create(25),
+            Fraction.Create(24),
+            Fraction.Create(24000, 1001),
+            Fraction.Create(20),
+            Fraction.Create(15),
+            Fraction.Create(12),
+            Fraction.Create(12000, 1001),
+            Fraction.Create(10),
+            Fraction.Create(5),
+        };
+        
+        ////////////////////////////////////////////////////////////////////////
+
+        public static string GetFourCCString(int fourcc)
+        {
+            var sb = new StringBuilder();
+            sb.Append((char)(byte)fourcc);
+            sb.Append((char)(byte)(fourcc >> 8));
+            sb.Append((char)(byte)(fourcc >> 16));
+            sb.Append((char)(byte)(fourcc >> 24));
+            return sb.ToString();
+        }
+        
+        public static VideoCharacteristics? CreateVideoCharacteristics(
+            Compression compression,
+            int width, int height, int clrBits,
+            Fraction framesPerSecond,
+            string? rawPixelFormat = null)
+        {
+            static PixelFormats? GetRGBPixelFormat(int clrBits) =>
+                clrBits switch
+                {
+                    8 => PixelFormats.RGB8,
+                    // BI_RGB is 15bit (RGB555, NOT RGB565)
+                    // https://docs.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-bitmapinfoheader
+                    16 => PixelFormats.RGB15,
+                    24 => PixelFormats.RGB24,
+                    32 => PixelFormats.ARGB32,
+                    _ => null,
+                };
+            
+            if (compression switch
+            {
+                Compression.RGB => GetRGBPixelFormat(clrBits),
+                Compression.RGB2 => GetRGBPixelFormat(clrBits),
+                Compression.ARGB => PixelFormats.ARGB32,
+                Compression.MJPG => PixelFormats.JPEG,
+                Compression.JPEG => PixelFormats.JPEG,
+                Compression.PNG => PixelFormats.PNG,
+                Compression.UYVY => PixelFormats.UYVY,
+                Compression.YUYV => PixelFormats.YUYV,
+                Compression.YUY2 => PixelFormats.YUYV,
+                _ => null,
+            } is { } pixelFormat)
             {
                 return new VideoCharacteristics(
-                    pBih->biCompression, pBih->biBitCount,
-                    pBih->biWidth, pBih->biHeight, framesPer1000Second);
+                    pixelFormat, width, height,
+                    framesPerSecond,
+                    compression.ToString(),
+                    rawPixelFormat ?? GetFourCCString((int)compression));
             }
             else
             {
                 return null;
+            }
+        }
+        
+        public static unsafe VideoCharacteristics? CreateVideoCharacteristics(
+            IntPtr pih, Fraction framesPerSecond, string? rawPixelFormat = null)
+        {
+            var pBih = (BITMAPINFOHEADER*)pih.ToPointer();
+            return CreateVideoCharacteristics(
+                pBih->biCompression, pBih->biWidth, pBih->biHeight,
+                pBih->GetClrBits(), framesPerSecond,
+                rawPixelFormat);
+        }
+        
+
+        ////////////////////////////////////////////////////////////////////////
+
+        public static bool GetCompressionAndBitCount(
+            PixelFormats format,
+            out Compression compression, out short bitCount)
+        {
+            switch (format)
+            {
+                case PixelFormats.RGB8:
+                    compression = Compression.RGB;
+                    bitCount = 8;
+                    return true;
+                case PixelFormats.RGB15:
+                    compression = Compression.RGB;
+                    // BI_RGB & 16bit == RGB555 (Couldn't set RGB565 in DIB)
+                    // https://docs.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-bitmapinfoheader
+                    bitCount = 16;
+                    return true;
+                case PixelFormats.RGB24:
+                    compression = Compression.RGB;
+                    bitCount = 24;
+                    return true;
+                case PixelFormats.RGB32:
+                    compression = Compression.RGB;
+                    bitCount = 32;
+                    return true;
+                case PixelFormats.ARGB32:
+                    compression = Compression.ARGB;
+                    bitCount = 32;
+                    return true;
+                case PixelFormats.JPEG:
+                    compression = Compression.MJPG;  // maybe
+                    bitCount = 24;  // HACK: Specific not found. My web camera is needed.
+                    return true;
+                case PixelFormats.PNG:
+                    compression = Compression.PNG;
+                    bitCount = 24;  // ??
+                    return true;
+                case PixelFormats.UYVY:
+                    compression = Compression.UYVY;
+                    bitCount = 16;
+                    return true;
+                case PixelFormats.YUYV:
+                    compression = Compression.YUYV;
+                    bitCount = 16;
+                    return true;
+                default:
+                    compression = default;
+                    bitCount = 0;
+                    return false;
             }
         }
     }

@@ -46,6 +46,33 @@ namespace FlashCap.Utilities
             }
         }
 
+        public void Offload(LimitedAction offloaded)
+        {
+            if (Interlocked.Increment(ref this.inCount) <= this.maxConcurrentCount)
+            {
+                ThreadPool.QueueUserWorkItem(oc =>
+                {
+                    var offloaded = (LimitedAction)oc!;
+                    try
+                    {
+                        offloaded();
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.WriteLine(ex);
+                    }
+                    finally
+                    {
+                        Interlocked.Decrement(ref this.inCount);
+                    }
+                }, offloaded);
+            }
+            else
+            {
+                Interlocked.Decrement(ref this.inCount);
+            }
+        }
+
         public void ExecuteAndOffload(
             LimitedAction justNow, LimitedAction offloadedContinuation)
         {
@@ -84,6 +111,52 @@ namespace FlashCap.Utilities
         }
 
 #if !(NET20 ||NET35 || NET40)
+        public async void Execute(LimitedAsyncAction justNow)
+        {
+            if (Interlocked.Increment(ref this.inCount) <= this.maxConcurrentCount)
+            {
+                try
+                {
+                    await justNow().ConfigureAwait(false);
+                }
+                finally
+                {
+                    Interlocked.Decrement(ref this.inCount);
+                }
+            }
+            else
+            {
+                Interlocked.Decrement(ref this.inCount);
+            }
+        }
+
+        public void Offload(LimitedAsyncAction offloaded)
+        {
+            if (Interlocked.Increment(ref this.inCount) <= this.maxConcurrentCount)
+            {
+                ThreadPool.QueueUserWorkItem(async oc =>
+                {
+                    var offloaded = (LimitedAsyncAction)oc!;
+                    try
+                    {
+                        await offloaded().ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.WriteLine(ex);
+                    }
+                    finally
+                    {
+                        Interlocked.Decrement(ref this.inCount);
+                    }
+                }, offloaded);
+            }
+            else
+            {
+                Interlocked.Decrement(ref this.inCount);
+            }
+        }
+
         public void ExecuteAndOffload(
             LimitedAction justNow, LimitedAsyncAction offloadedContinuation)
         {

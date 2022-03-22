@@ -31,6 +31,8 @@ namespace FlashCap.Avalonia.ViewModels
         // Binding members.
         public Command? Opened { get; }
         public Bitmap? Image { get; private set; }
+        public string? Device { get; private set; }
+        public string? Characteristics { get; private set; }
 
         public MainWindowViewModel()
         {
@@ -44,7 +46,8 @@ namespace FlashCap.Avalonia.ViewModels
                 var devices = new CaptureDevices();
                 var descriptors = devices.EnumerateDescriptors().
                     // You could filter by device type and characteristics.
-                    //Where(d => d.DeviceType == DeviceTypes.DirectShow).
+                    //Where(d => d.DeviceType == DeviceTypes.DirectShow).  // Only DirectShow device.
+                    Where(d => d.Characteristics.Length >= 1).             // One or more valid video characteristics.
                     ToArray();
 
                 // Use first device.
@@ -52,19 +55,17 @@ namespace FlashCap.Avalonia.ViewModels
                 {
 #if false
                     // Request video characteristics strictly:
+                    // Will raise exception when parameters are not accepted.
                     var characteristics = new VideoCharacteristics(
-                        PixelFormats.MJPG, 24, 1920, 1080, 30000);
+                        PixelFormats.JPEG, 1920, 1080, 60);
 #else
                     // Or, you could choice from device descriptor:
                     // Hint: Show up video characteristics into ComboBox and like.
                     var characteristics = descriptor0.Characteristics[0];
 #endif
-                    // Video characteristics tips:
-                    // * DirectShow:
-                    //   Supported only listing video characteristics,
-                    //   will raise exception when use invalid parameter combination.
-                    // * Video for Windows:
-                    //   Will ignore silently when use invalid parameter combination.
+                    // Show status.
+                    this.Device = descriptor0.ToString();
+                    this.Characteristics = characteristics.ToString();
 
                     // Open capture device:
                     this.captureDevice = descriptor0.Open(characteristics);
@@ -74,6 +75,10 @@ namespace FlashCap.Avalonia.ViewModels
 
                     // Start capturing.
                     this.captureDevice.Start();
+                }
+                else
+                {
+                    this.Device = "(Device Not found)";
                 }
             });
         }
@@ -87,11 +92,11 @@ namespace FlashCap.Avalonia.ViewModels
             // so there's making throttle with LimitedExecutor class.
             this.limitedExecutor.ExecuteAndOffload(
 
-                // Just now section:
+                // Step 1. Just now section:
                 //   Capture into a pixel buffer:
                 () => this.captureDevice?.Capture(e, this.buffer),
 
-                // Offloaded section:
+                // Step 2. Offloaded section:
                 //   Caution: Offloaded section is on the worker thread context.
                 //   You have to switch main thread context before manipulates user interface.
                 async () =>

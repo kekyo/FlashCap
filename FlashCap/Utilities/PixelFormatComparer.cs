@@ -20,12 +20,14 @@ namespace FlashCap.Utilities
         private static int GetComparableCode(PixelFormats pixelFormat) =>
             pixelFormat switch
             {
-                PixelFormats.MJPG => 0,
-                PixelFormats.JPEG => 10,
-                PixelFormats.RGB => 30,
-                PixelFormats.RGBA => 40,
-                PixelFormats.PNG => 50,
-                _ => 20,
+                PixelFormats.RGB8 => 0,
+                PixelFormats.RGB16 => 10,
+                PixelFormats.JPEG => 20,
+                PixelFormats.RGB24 => 40,
+                PixelFormats.RGB32 => 50,
+                PixelFormats.ARGB32 => 60,
+                PixelFormats.PNG => 70,
+                _ => 30,
             };
 
         public int Compare(PixelFormats x, PixelFormats y) =>
