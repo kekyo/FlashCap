@@ -416,6 +416,10 @@ Apache-v2.
 
 ## History
 
+* 0.8.0:
+  * Improved frame rate calculation with fraction type.
+  * Added easier taking an image method `CaptureOneShot`.
+  * Video characteristics interface has changed. (Frame rate and pixel format related, from V4L2 impls.)
 * 0.7.0:
   * Improved dodging video device with sending invalid video frame on DirectShow.
   * Fixed causing entry point is not found for RtlCopyMemory on 32bit environment.
