@@ -65,8 +65,8 @@ foreach (var descriptor in devices.EnumerateDescriptors())
 
     foreach (var characteristics in descriptor.Characteristics)
     {
-        // "1920x1080 [MJPG, 24bits, 30fps]"
-        // "640x480 [YUY2, 16bits, 60fps]"
+        // "1920x1080 [JPEG, 30fps]"
+        // "640x480 [YUYV, 60fps]"
         Console.WriteLine(characteristics);
     }
 }

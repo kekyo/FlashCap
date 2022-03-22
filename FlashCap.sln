@@ -12,6 +12,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Directory.Build.props = Directory.Build.props
 		README.md = README.md
 		README_ja.md = README_ja.md
+		build-nupkg.sh = build-nupkg.sh
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.WindowsForms", "samples\FlashCap.WindowsForms\FlashCap.WindowsForms.csproj", "{4B3E46F8-898A-482C-8893-1DFA2B3AB998}"
