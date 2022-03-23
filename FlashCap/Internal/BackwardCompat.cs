@@ -23,6 +23,7 @@ namespace System.Runtime.CompilerServices
 namespace System
 {
     internal delegate void Action();
+    internal delegate void Action<T0, T1, T2>(T0 arg0, T1 arg1, T2 arg2);
     internal delegate TR Func<T0, TR>(T0 arg0);
 }
 

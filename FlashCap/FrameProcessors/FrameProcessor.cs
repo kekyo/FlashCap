@@ -9,18 +9,16 @@
 
 using System;
 
-namespace FlashCap
+namespace FlashCap.FrameProcessors
 {
-    public interface ICaptureDevice : IDisposable
+    public abstract class FrameProcessor
     {
-        VideoCharacteristics Characteristics { get; }
-        bool IsRunning { get; }
+        protected FrameProcessor()
+        {
+        }
 
-        event EventHandler<FrameArrivedEventArgs> FrameArrived;
-
-        void Start();
-        void Stop();
-
-        void Capture(IntPtr pData, int size, TimeSpan timestamp, PixelBuffer buffer);
+        public abstract void OnFrameArrived(
+            ICaptureDevice captureDevice,
+            IntPtr pData, int size, TimeSpan timestamp);
     }
 }
