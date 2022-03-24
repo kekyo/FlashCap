@@ -19,7 +19,7 @@ namespace FlashCap.WindowsForms
     public partial class MainForm : Form
     {
         // Constructed capture device.
-        private CaptureDevice? captureDevice;
+        private CaptureDevice captureDevice;
 
         public MainForm() =>
             InitializeComponent();
@@ -38,7 +38,8 @@ namespace FlashCap.WindowsForms
                 ToArray();
 
             // Use first device.
-            if (descriptors.ElementAtOrDefault(0) is { } descriptor0)
+            var descriptor0 = descriptors.ElementAtOrDefault(0);
+            if (descriptor0 != null)
             {
 #if false
                 // Request video characteristics strictly:
@@ -79,34 +80,36 @@ namespace FlashCap.WindowsForms
             ArraySegment<byte> image = buffer.ReferImage();
 #endif
             // Convert to Stream (using FlashCap.Utilities)
-            using var stream = image.AsStream();
-
-            // Decode image data to a bitmap:
-            var bitmap = Image.FromStream(stream);
-
-            try
+            using (var stream = image.AsStream())
             {
-                // Switch to UI thread:
-                this.Invoke(() =>
+                // Decode image data to a bitmap:
+                var bitmap = Image.FromStream(stream);
+
+                try
                 {
-                    // HACK: on .NET Core, will be leaked (or delayed GC?)
-                    //   So we could release manually before updates.
-                    if (this.BackgroundImage is { } oldImage)
+                    // Switch to UI thread:
+                    this.Invoke(new Action(() =>
                     {
-                        this.BackgroundImage = null;
-                        oldImage.Dispose();
-                    }
+                        // HACK: on .NET Core, will be leaked (or delayed GC?)
+                        //   So we could release manually before updates.
+                        var oldImage = this.BackgroundImage;
+                        if (oldImage != null)
+                        {
+                            this.BackgroundImage = null;
+                            oldImage.Dispose();
+                        }
 
-                    // Update a bitmap.
-                    this.BackgroundImage = bitmap;
-                });
-            }
-            catch (ObjectDisposedException)
-            {
-                // NOTE: WinForms sometimes will raise ObjectDisposedException in shutdown sequence.
-                // Because it is race condition between this thread context and UI thread context.
-                // We can safely ignore when terminating user interface.
-                // (Or you can avoid it with graceful shutdown technics.)
+                        // Update a bitmap.
+                        this.BackgroundImage = bitmap;
+                    }));
+                }
+                catch (ObjectDisposedException)
+                {
+                    // NOTE: WinForms sometimes will raise ObjectDisposedException in shutdown sequence.
+                    // Because it is race condition between this thread context and UI thread context.
+                    // We can safely ignore when terminating user interface.
+                    // (Or you can avoid it with graceful shutdown technics.)
+                }
             }
         }
 
