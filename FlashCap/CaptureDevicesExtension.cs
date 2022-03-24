@@ -7,16 +7,14 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-using System;
+using System.Linq;
 
 namespace FlashCap
 {
-    public interface IPixelBuffer
+    public static class CaptureDevicesExtension
     {
-        TimeSpan Timestamp { get; }
-
-        byte[] ExtractImage();
-        byte[] CopyImage();
-        ArraySegment<byte> ReferImage();
+        public static CaptureDeviceDescriptor[] GetDescriptors(
+            this CaptureDevices captureDevices) =>
+            captureDevices.EnumerateDescriptors().ToArray();
     }
 }

@@ -11,7 +11,14 @@ using System.Threading.Tasks;
 
 namespace FlashCap
 {
-    public abstract class CaptureDeviceDescriptor : ICaptureDeviceDescriptor
+    public enum DeviceTypes
+    {
+        VideoForWindows,
+        DirectShow,
+        V4L2,
+    }
+
+    public abstract class CaptureDeviceDescriptor
     {
         protected CaptureDeviceDescriptor(
             string name, string description,
@@ -28,13 +35,20 @@ namespace FlashCap
         public string Description { get; }
         public VideoCharacteristics[] Characteristics { get; }
 
-        public abstract ICaptureDevice OpenWithFrameProcessor(
+        protected abstract CaptureDevice OnOpenWithFrameProcessor(
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,
             FrameProcessor frameProcessor);
 
+        internal CaptureDevice InternalOpenWithFrameProcessor(
+            VideoCharacteristics characteristics,
+            bool transcodeIfYUV,
+            FrameProcessor frameProcessor) =>
+            this.OnOpenWithFrameProcessor(
+                characteristics, transcodeIfYUV, frameProcessor);
+
 #if NET35_OR_GREATER || NETSTANDARD || NETCOREAPP
-        public abstract Task<ICaptureDevice> OpenWithFrameProcessorAsync(
+        public abstract Task<CaptureDevice> OpenWithFrameProcessorAsync(
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,
             FrameProcessor frameProcessor);

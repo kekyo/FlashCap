@@ -49,7 +49,7 @@ namespace FlashCap.Devices
                     {
                         this.frameProcessor.OnFrameArrived(
                             this.parent, pBuffer, bufferLen,
-                            (long)(sampleTime * 1000));
+                            (long)(sampleTime * 1_000_000));
                     }
                     // DANGER: Stop leaking exception around outside of unmanaged area...
                     catch (Exception ex)

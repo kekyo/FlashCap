@@ -20,6 +20,7 @@ namespace FlashCap.Devices
         private readonly int deviceIndex;
         private readonly bool transcodeIfYUV;
         private readonly FrameProcessor frameProcessor;
+        private readonly Stopwatch stopwatch = new();
 
         private IndependentSingleApartmentContext? workingContext = new();
         private IntPtr handle;
@@ -151,10 +152,11 @@ namespace FlashCap.Devices
             {
                 try
                 {
-                    // TODO: dwTimeCaptured always zero??
                     this.frameProcessor.OnFrameArrived(
                         this,
-                        hdr.lpData, hdr.dwBytesUsed, hdr.dwTimeCaptured);
+                        hdr.lpData, hdr.dwBytesUsed,
+                        // HACK: `hdr.dwTimeCaptured` always zero on my environment...
+                        this.stopwatch.ElapsedMilliseconds * 1_000);
                 }
                 // DANGER: Stop leaking exception around outside of unmanaged area...
                 catch (Exception ex)
@@ -171,7 +173,10 @@ namespace FlashCap.Devices
                 if (!this.IsRunning)
                 {
                     this.workingContext!.Send(_ =>
-                        NativeMethods_VideoForWindows.capShowPreview(this.handle, true), null);
+                    {
+                        this.stopwatch.Start();
+                        NativeMethods_VideoForWindows.capShowPreview(this.handle, true);
+                    }, null);
                     this.IsRunning = true;
                 }
             }
@@ -185,7 +190,10 @@ namespace FlashCap.Devices
                 {
                     this.IsRunning = false;
                     this.workingContext!.Send(_ =>
-                        NativeMethods_VideoForWindows.capShowPreview(this.handle, false), null);
+                    {
+                        NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
+                        this.stopwatch.Reset();
+                    }, null);
                 }
             }
         }

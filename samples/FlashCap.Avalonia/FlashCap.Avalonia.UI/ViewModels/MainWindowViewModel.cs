@@ -21,7 +21,7 @@ namespace FlashCap.Avalonia.ViewModels
     public sealed class MainWindowViewModel
     {
         // Constructed capture device.
-        private ICaptureDevice? captureDevice;
+        private CaptureDevice? captureDevice;
 
         // Binding members.
         public Command? Opened { get; }
@@ -65,8 +65,6 @@ namespace FlashCap.Avalonia.ViewModels
                     // Open capture device:
                     this.captureDevice = await descriptor0.OpenAsync(
                         characteristics,
-                        true,
-                        HandlerStrategies.Scattering,
                         this.OnPixelBufferArrivedAsync);
 
                     // Start capturing.

@@ -16,7 +16,7 @@ using System.Linq;
 
 namespace FlashCap.Devices
 {
-    public sealed class V4L2Devices : ICaptureDevices
+    public sealed class V4L2Devices : CaptureDevices
     {
         private static IEnumerable<NativeMethods_V4L2.v4l2_fmtdesc> EnumerateFormatDesc(
             int fd) =>
@@ -158,7 +158,7 @@ namespace FlashCap.Devices
             }).
             ToArray();   // Important: Iteration process must be continuous, avoid ioctl calls with other requests.
 
-        public IEnumerable<ICaptureDeviceDescriptor> EnumerateDescriptors() =>
+        public override IEnumerable<CaptureDeviceDescriptor> EnumerateDescriptors() =>
             Directory.GetFiles("/dev", "video*").
             Collect(devicePath =>
             {
@@ -170,7 +170,7 @@ namespace FlashCap.Devices
                         if (NativeMethods_V4L2.ioctl(fd, out NativeMethods_V4L2.v4l2_capability caps) >= 0 &&
                             (caps.capabilities & NativeMethods_V4L2.v4l2_caps.VIDEO_CAPTURE) == NativeMethods_V4L2.v4l2_caps.VIDEO_CAPTURE)
                         {
-                            return (ICaptureDeviceDescriptor)new V4L2DeviceDescriptor(
+                            return (CaptureDeviceDescriptor)new V4L2DeviceDescriptor(
                                 devicePath, caps.card, $"{caps.bus_info}: {caps.driver}",
                                 EnumerateFormatDesc(fd).
                                 SelectMany(fmtdesc =>

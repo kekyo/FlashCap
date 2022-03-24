@@ -251,7 +251,7 @@ namespace FlashCap.Devices
                             this,
                             this.pBuffers[buffer.index],
                             buffer.bytesused,
-                            buffer.timestamp.tv_usec * 1000);
+                            buffer.timestamp.tv_usec);
                     
                         if (NativeMethods_V4L2.ioctl_qbuf(this.fd, buffer) < 0)
                         {

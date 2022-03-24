@@ -19,7 +19,7 @@ namespace FlashCap.WindowsForms
     public partial class MainForm : Form
     {
         // Constructed capture device.
-        private ICaptureDevice? captureDevice;
+        private CaptureDevice? captureDevice;
 
         public MainForm() =>
             InitializeComponent();
@@ -57,7 +57,8 @@ namespace FlashCap.WindowsForms
                 // Open capture device:
                 // (Non asynchronous version, using FlashCap.Synchronized)
                 this.captureDevice = descriptor0.Open(
-                    characteristics, this.OnPixelBufferArrived);
+                    characteristics,
+                    this.OnPixelBufferArrived);
 
                 // Start capturing.
                 this.captureDevice.Start();

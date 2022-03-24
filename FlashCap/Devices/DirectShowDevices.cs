@@ -14,9 +14,9 @@ using System.Linq;
 
 namespace FlashCap.Devices
 {
-    public sealed class DirectShowDevices : ICaptureDevices
+    public sealed class DirectShowDevices : CaptureDevices
     {
-        public IEnumerable<ICaptureDeviceDescriptor> EnumerateDescriptors() =>
+        public override IEnumerable<CaptureDeviceDescriptor> EnumerateDescriptors() =>
             NativeMethods_DirectShow.EnumerateDeviceMoniker(
                 NativeMethods_DirectShow.CLSID_VideoInputDeviceCategory).
             Collect(moniker => moniker.GetPropertyBag() is { } pb ?
@@ -24,7 +24,7 @@ namespace FlashCap.Devices
                     pb.GetValue("FriendlyName", default(string))?.Trim() is { } n &&
                     (string.IsNullOrEmpty(n) ? "Unknown" : n!) is { } name &&
                     pb.GetValue("DevicePath", default(string))?.Trim() is { } devicePath ?
-                        (ICaptureDeviceDescriptor)new DirectShowDeviceDescriptor(   // Requires casting on net20
+                        (CaptureDeviceDescriptor)new DirectShowDeviceDescriptor(   // Requires casting on net20
                             devicePath, name,
                             pb.GetValue("Description", default(string))?.Trim() ?? name,
                             moniker.BindToObject(
