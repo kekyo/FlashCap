@@ -7,6 +7,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using System.ComponentModel;
 using System.Threading.Tasks;
 
 namespace FlashCap
@@ -26,12 +27,13 @@ namespace FlashCap
         string Description { get; }
         VideoCharacteristics[] Characteristics { get; }
 
+        [EditorBrowsable(EditorBrowsableState.Advanced)]
         ICaptureDevice OpenWithFrameProcessor(
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,
             FrameProcessor frameProcessor);
 
-#if NET40_OR_GREATER || NETSTANDARD || NETCOREAPP
+#if NET35_OR_GREATER || NETSTANDARD || NETCOREAPP
         Task<ICaptureDevice> OpenWithFrameProcessorAsync(
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,

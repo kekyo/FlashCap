@@ -32,7 +32,7 @@ namespace FlashCap.Avalonia.ViewModels
         public MainWindowViewModel()
         {
             // Window shown:
-            this.Opened = Command.Factory.CreateSync<EventArgs>(_ =>
+            this.Opened = Command.Factory.Create<EventArgs>(async _ =>
             {
                 ////////////////////////////////////////////////
                 // Initialize and start capture device
@@ -63,7 +63,7 @@ namespace FlashCap.Avalonia.ViewModels
                     this.Characteristics = characteristics.ToString();
 
                     // Open capture device:
-                    this.captureDevice = descriptor0.Open(
+                    this.captureDevice = await descriptor0.OpenAsync(
                         characteristics,
                         true,
                         HandlerStrategies.Scattering,
@@ -79,7 +79,7 @@ namespace FlashCap.Avalonia.ViewModels
             });
         }
  
-        private async Task OnPixelBufferArrivedAsync(PixelBuffer buffer)
+        private async ValueTask OnPixelBufferArrivedAsync(PixelBuffer buffer)
         {
             ////////////////////////////////////////////////
             // Pixel buffer has arrived.

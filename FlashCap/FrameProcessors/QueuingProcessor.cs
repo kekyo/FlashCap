@@ -7,6 +7,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.Synchronized;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -27,6 +28,7 @@ namespace FlashCap.FrameProcessors
         protected QueuingProcessor()
         {
             this.thread = new Thread(this.ThreadEntry);
+            this.thread.IsBackground = true;
             this.thread.Start();
         }
 
@@ -35,15 +37,18 @@ namespace FlashCap.FrameProcessors
             if (this.thread != null)
             {
                 this.abort.Set();
-                this.thread.Join();
 
-                this.reserver.Clear();
-                this.queue.Clear();
+                // Force exhaust.
+                lock (this.queue)
+                {
+                    this.queue.Clear();
+                }
+                lock (this.reserver)
+                {
+                    this.reserver.Clear();
+                }
 
-                this.abort.Dispose();
-                this.abort = null!;
-                this.arrived.Dispose();
-                this.arrived = null!;
+                // Doesn't join the thread, because may cause deadlock.
                 this.thread = null!;
             }
         }
@@ -172,7 +177,7 @@ namespace FlashCap.FrameProcessors
         }
     }
 
-#if NET40_OR_GREATER || NETSTANDARD || NETCOREAPP
+#if NET35_OR_GREATER || NETSTANDARD || NETCOREAPP
     internal sealed class DelegatedQueuingTaskProcessor :
         QueuingProcessor
     {
@@ -182,29 +187,37 @@ namespace FlashCap.FrameProcessors
             PixelBufferArrivedTaskDelegate pixelBufferArrived) =>
             this.pixelBufferArrived = pixelBufferArrived;
 
-        protected override void ThreadEntry()
+        protected override async void ThreadEntry()
         {
-            void RecursiveLoop()
+            while (true)
             {
                 if (this.Dequeue() is { } buffer)
                 {
-                    this.pixelBufferArrived(buffer).
-                        ContinueWith(task =>
+                    try
+                    {
+                        try
+                        {
+                            await this.pixelBufferArrived(buffer).ConfigureAwait(false);
+                        }
+                        finally
                         {
                             this.Reserve(buffer);
-                            if (task.IsCanceled || task.IsFaulted)
-                            {
-                                Trace.WriteLine(task.Exception);
-                            }
-                            RecursiveLoop();
-                        });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.WriteLine(ex);
+                    }
+                }
+                else
+                {
+                    break;
                 }
             }
-            RecursiveLoop();
         }
     }
 
-#if NETSTANDARD2_1 || NETCOREAPP2_1_OR_GREATER
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
     internal sealed class DelegatedQueuingValueTaskProcessor :
         QueuingProcessor
     {

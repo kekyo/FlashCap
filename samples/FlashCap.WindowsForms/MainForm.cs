@@ -7,6 +7,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.Synchronized;
 using FlashCap.Utilities;
 using System;
 using System.Drawing;
@@ -54,6 +55,7 @@ namespace FlashCap.WindowsForms
                 this.characteristicsLabel.Text = characteristics.ToString();
 
                 // Open capture device:
+                // (Non asynchronous version, using FlashCap.Synchronized)
                 this.captureDevice = descriptor0.Open(
                     characteristics, this.OnPixelBufferArrived);
 

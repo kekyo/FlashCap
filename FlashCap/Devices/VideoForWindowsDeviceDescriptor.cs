@@ -34,7 +34,7 @@ namespace FlashCap.Devices
             new VideoForWindowsDevice(
                 this.deviceIndex, characteristics, transcodeIfYUV, frameProcessor);
 
-#if NET40_OR_GREATER || NETSTANDARD || NETCOREAPP
+#if NET35_OR_GREATER || NETSTANDARD || NETCOREAPP
         public override Task<ICaptureDevice> OpenWithFrameProcessorAsync(
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,

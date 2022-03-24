@@ -7,6 +7,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.Synchronized;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -79,7 +80,7 @@ namespace FlashCap.FrameProcessors
         }
     }
 
-#if NET40_OR_GREATER || NETSTANDARD || NETCOREAPP
+#if NET35_OR_GREATER || NETSTANDARD || NETCOREAPP
     internal sealed class DelegatedIgnoreDroppingTaskProcessor :
         IgnoreDroppingProcessor
     {
@@ -89,22 +90,29 @@ namespace FlashCap.FrameProcessors
             PixelBufferArrivedTaskDelegate pixelBufferArrived) =>
             this.pixelBufferArrived = pixelBufferArrived;
 
-        protected override void PixelBufferArrivedEntry(object? parameter)
+        protected override async void PixelBufferArrivedEntry(object? parameter)
         {
             var buffer = (PixelBuffer)parameter!;
-            this.pixelBufferArrived(buffer).
-                ContinueWith(task =>
+            try
+            {
+                try
+                {
+                    await this.pixelBufferArrived(buffer).
+                        ConfigureAwait(false);
+                }
+                finally
                 {
                     this.Finished();
-                    if (task.IsCanceled || task.IsFaulted)
-                    {
-                        Trace.WriteLine(task.Exception);
-                    }
-                });
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine(ex);
+            }
         }
     }
 
-#if NETSTANDARD2_1 || NETCOREAPP2_1_OR_GREATER
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
     internal sealed class DelegatedIgnoreDroppingValueTaskProcessor :
         IgnoreDroppingProcessor
     {

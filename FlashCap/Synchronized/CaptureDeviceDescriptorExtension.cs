@@ -8,43 +8,61 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using FlashCap.FrameProcessors;
-using System.Threading.Tasks;
+using System;
 
-namespace FlashCap
+namespace FlashCap.Synchronized
 {
-    public enum HandlerStrategies
-    {
-        IgnoreDropping,
-        Queuing,
-        Scattering,
-    }
+    public delegate void FrameArrivedDelegate(
+        CaptureDevice captureDevice,
+        IntPtr pData, int size, long timestampMilliseconds);
 
-#if NET35_OR_GREATER || NETSTANDARD || NETCOREAPP
-    public delegate Task PixelBufferArrivedTaskDelegate(
+    public delegate void PixelBufferArrivedDelegate(
         PixelBuffer buffer);
-
-#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
-    public delegate ValueTask PixelBufferArrivedValueTaskDelegate(
-        PixelBuffer buffer);
-#endif
 
     public static class CaptureDeviceDescriptorExtension
     {
-        public static Task<ICaptureDevice> OpenAsync(
+        public static ICaptureDevice Open(
+            this ICaptureDeviceDescriptor descriptor,
+            VideoCharacteristics characteristics,
+            PixelBufferArrivedDelegate pixelBufferArrived) =>
+            descriptor.OpenWithFrameProcessor(
+                characteristics, true,
+                new DelegatedIgnoreDroppingProcessor(pixelBufferArrived));
+
+        public static ICaptureDevice Open(
+            this ICaptureDeviceDescriptor descriptor,
+            VideoCharacteristics characteristics,
+            bool transcodeIfYUV,
+            HandlerStrategies handlerStrategy,
+            PixelBufferArrivedDelegate pixelBufferArrived) =>
+            descriptor.OpenWithFrameProcessor(
+                characteristics, transcodeIfYUV,
+                handlerStrategy switch
+                {
+                    HandlerStrategies.Queuing =>
+                        new DelegatedQueuingProcessor(pixelBufferArrived),
+                    HandlerStrategies.Scattering =>
+                        new DelegatedScatteringProcessor(pixelBufferArrived),
+                    _ =>
+                        new DelegatedIgnoreDroppingProcessor(pixelBufferArrived),
+                });
+
+#if NET40_OR_GREATER || NETSTANDARD || NETCOREAPP
+        public static ICaptureDevice Open(
             this ICaptureDeviceDescriptor descriptor,
             VideoCharacteristics characteristics,
             PixelBufferArrivedTaskDelegate pixelBufferArrived) =>
-            descriptor.OpenWithFrameProcessorAsync(
+            descriptor.OpenWithFrameProcessor(
                 characteristics, true,
                 new DelegatedIgnoreDroppingTaskProcessor(pixelBufferArrived));
 
-        public static Task<ICaptureDevice> OpenAsync(
+        public static ICaptureDevice Open(
             this ICaptureDeviceDescriptor descriptor,
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,
             HandlerStrategies handlerStrategy,
             PixelBufferArrivedTaskDelegate pixelBufferArrived) =>
-            descriptor.OpenWithFrameProcessorAsync(
+            descriptor.OpenWithFrameProcessor(
                 characteristics, transcodeIfYUV,
                 handlerStrategy switch
                 {
@@ -56,22 +74,22 @@ namespace FlashCap
                         new DelegatedIgnoreDroppingTaskProcessor(pixelBufferArrived),
                 });
 
-#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
-        public static Task<ICaptureDevice> OpenAsync(
+#if NETSTANDARD2_1 || NETCOREAPP2_1_OR_GREATER
+        public static ICaptureDevice Open(
             this ICaptureDeviceDescriptor descriptor,
             VideoCharacteristics characteristics,
             PixelBufferArrivedValueTaskDelegate pixelBufferArrived) =>
-            descriptor.OpenWithFrameProcessorAsync(
+            descriptor.OpenWithFrameProcessor(
                 characteristics, true,
                 new DelegatedIgnoreDroppingValueTaskProcessor(pixelBufferArrived));
 
-        public static Task<ICaptureDevice> OpenAsync(
+        public static ICaptureDevice Open(
             this ICaptureDeviceDescriptor descriptor,
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,
             HandlerStrategies handlerStrategy,
             PixelBufferArrivedValueTaskDelegate pixelBufferArrived) =>
-            descriptor.OpenWithFrameProcessorAsync(
+            descriptor.OpenWithFrameProcessor(
                 characteristics, transcodeIfYUV,
                 handlerStrategy switch
                 {
@@ -83,6 +101,6 @@ namespace FlashCap
                         new DelegatedIgnoreDroppingValueTaskProcessor(pixelBufferArrived),
                 });
 #endif
-    }
 #endif
+    }
 }
