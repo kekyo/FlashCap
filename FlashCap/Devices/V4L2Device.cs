@@ -26,7 +26,8 @@ namespace FlashCap.Devices
         private IntPtr[] pBuffers = new IntPtr[BufferCount];
         private int[] bufferLength = new int[BufferCount];
         private Thread thread;
-        private int[] abortfds;
+        private int abortrfd;
+        private int abortwfd;
 
         internal unsafe V4L2Device(
             string devicePath, VideoCharacteristics characteristics, bool transcodeIfYUV,
@@ -132,13 +133,15 @@ namespace FlashCap.Devices
                     }
                 }
 
-                this.abortfds = new int[2];
-                if (NativeMethods_V4L2.pipe(this.abortfds) < 0)
+                var abortfds = new int[2];
+                if (NativeMethods_V4L2.pipe(abortfds) < 0)
                 {
                     throw new ArgumentException(
                         $"FlashCap: Couldn't open pipe: DevicePath={this.devicePath}");
                 }
-                
+                this.abortrfd = abortfds[0];
+                this.abortwfd = abortfds[1];
+
                 var pih = NativeMethods.AllocateMemory((IntPtr)sizeof(NativeMethods.BITMAPINFOHEADER));
                 try
                 {
@@ -174,18 +177,35 @@ namespace FlashCap.Devices
 
         protected override void Dispose(bool disposing)
         {
-            if (this.fd != -1)
+            if (disposing)
             {
-                this.Stop();
-                NativeMethods_V4L2.write(
-                    this.abortfds[1], new byte[] { 0x01 }, 1);
-                this.thread.Join();
-                NativeMethods_V4L2.close(this.abortfds[0]);
-                NativeMethods_V4L2.close(this.abortfds[1]);
-                NativeMethods_V4L2.close(this.fd);
-                NativeMethods.FreeMemory(this.pBih);
-                this.fd = -1;
-                this.pBih = IntPtr.Zero;
+                if (this.fd != -1)
+                {
+                    this.Stop();
+                    NativeMethods_V4L2.write(
+                        this.abortwfd, new byte[] { 0x01 }, 1);
+                    this.thread.Join();
+                    NativeMethods_V4L2.close(this.abortwfd);
+                    NativeMethods_V4L2.close(this.fd);
+                    NativeMethods.FreeMemory(this.pBih);
+                    this.abortwfd = -1;
+                    this.fd = -1;
+                    this.pBih = IntPtr.Zero;
+                }
+            }
+            else
+            {
+                if (this.fd != -1)
+                {
+                    NativeMethods_V4L2.write(
+                        this.abortwfd, new byte[] { 0x01 }, 1);
+                    NativeMethods_V4L2.close(this.abortwfd);
+                    NativeMethods_V4L2.close(this.fd);
+                    NativeMethods.FreeMemory(this.pBih);
+                    this.abortwfd = -1;
+                    this.fd = -1;
+                    this.pBih = IntPtr.Zero;
+                }
             }
         }
 
@@ -195,7 +215,7 @@ namespace FlashCap.Devices
             {
                 new NativeMethods_V4L2.pollfd
                 {
-                    fd = this.abortfds[0],
+                    fd = this.abortrfd,
                     events = NativeMethods_V4L2.POLLBITS.POLLIN,
                 },
                 new NativeMethods_V4L2.pollfd
@@ -210,68 +230,81 @@ namespace FlashCap.Devices
                 memory = NativeMethods_V4L2.v4l2_memory.MMAP,
             };
 
-            while (true)
+            try
             {
-                var result = NativeMethods_V4L2.poll(fds, fds.Length, -1);
-                if (result == 0)
+                while (true)
                 {
-                    break;
-                }
-                else if (result == 1)
-                {
-                    if (NativeMethods_V4L2.ioctl_dqbuf(this.fd, buffer) < 0)
+                    var result = NativeMethods_V4L2.poll(fds, fds.Length, -1);
+                    if (result == 0)
                     {
-                        throw new ArgumentException(
-                            $"FlashCap: Couldn't dequeue video buffer: DevicePath={this.devicePath}");
+                        break;
                     }
+                    else if (result == 1)
+                    {
+                        if (NativeMethods_V4L2.ioctl_dqbuf(this.fd, buffer) < 0)
+                        {
+                            throw new ArgumentException(
+                                $"FlashCap: Couldn't dequeue video buffer: DevicePath={this.devicePath}");
+                        }
 
-                    this.frameProcessor.OnFrameArrived(
-                        this,
-                        this.pBuffers[buffer.index],
-                        buffer.bytesused,
-                        buffer.timestamp.tv_usec * 1000);
+                        this.frameProcessor.OnFrameArrived(
+                            this,
+                            this.pBuffers[buffer.index],
+                            buffer.bytesused,
+                            buffer.timestamp.tv_usec * 1000);
                     
-                    if (NativeMethods_V4L2.ioctl_qbuf(this.fd, buffer) < 0)
+                        if (NativeMethods_V4L2.ioctl_qbuf(this.fd, buffer) < 0)
+                        {
+                            throw new ArgumentException(
+                                $"FlashCap: Couldn't enqueue video buffer: DevicePath={this.devicePath}");
+                        }
+                    }
+                    else
                     {
                         throw new ArgumentException(
-                            $"FlashCap: Couldn't enqueue video buffer: DevicePath={this.devicePath}");
+                            $"FlashCap: Couldn't get fd status: Status={result}, DevicePath={this.devicePath}");
                     }
                 }
-                else
-                {
-                    throw new ArgumentException(
-                        $"FlashCap: Couldn't get fd status: Status={result}, DevicePath={this.devicePath}");
-                }
+            }
+            finally
+            {
+                NativeMethods_V4L2.close(this.abortrfd);
             }
         }
         
         public override void Start()
         {
-            if (!this.IsRunning)
+            lock (this)
             {
-                if (NativeMethods_V4L2.ioctl_streamon(
-                    this.fd,
-                    NativeMethods_V4L2.v4l2_buf_type.VIDEO_CAPTURE) < 0)
+                if (!this.IsRunning)
                 {
-                    throw new ArgumentException(
-                        $"FlashCap: Couldn't start capture: DevicePath={this.devicePath}");
+                    if (NativeMethods_V4L2.ioctl_streamon(
+                        this.fd,
+                        NativeMethods_V4L2.v4l2_buf_type.VIDEO_CAPTURE) < 0)
+                    {
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't start capture: DevicePath={this.devicePath}");
+                    }
+                    this.IsRunning = true;
                 }
-                this.IsRunning = true;
             }
         }
 
         public override void Stop()
         {
-            if (this.IsRunning)
+            lock (this)
             {
-                this.IsRunning = false;
-                if (NativeMethods_V4L2.ioctl_streamoff(
-                    this.fd,
-                    NativeMethods_V4L2.v4l2_buf_type.VIDEO_CAPTURE) < 0)
+                if (this.IsRunning)
                 {
-                    this.IsRunning = true;
-                    throw new ArgumentException(
-                        $"FlashCap: Couldn't stop capture: DevicePath={this.devicePath}");
+                    this.IsRunning = false;
+                    if (NativeMethods_V4L2.ioctl_streamoff(
+                        this.fd,
+                        NativeMethods_V4L2.v4l2_buf_type.VIDEO_CAPTURE) < 0)
+                    {
+                        this.IsRunning = true;
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't stop capture: DevicePath={this.devicePath}");
+                    }
                 }
             }
         }

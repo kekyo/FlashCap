@@ -81,13 +81,9 @@ namespace FlashCap.WindowsForms
             // Decode image data to a bitmap:
             var bitmap = Image.FromStream(stream);
 
-            // Switch to UI thread:
-            // NOTE: WinForms sometimes will raise ObjectDisposedException in shutdown sequence.
-            // Because it is race condition between this thread context and UI thread context.
-            // We can safely ignore when terminating user interface.
-            // (Or you can dodge it with graceful shutdown technics.)
             try
             {
+                // Switch to UI thread:
                 this.Invoke(() =>
                 {
                     // HACK: on .NET Core, will be leaked (or delayed GC?)
@@ -104,7 +100,10 @@ namespace FlashCap.WindowsForms
             }
             catch (ObjectDisposedException)
             {
-                // Ignored.
+                // NOTE: WinForms sometimes will raise ObjectDisposedException in shutdown sequence.
+                // Because it is race condition between this thread context and UI thread context.
+                // We can safely ignore when terminating user interface.
+                // (Or you can dodge it with graceful shutdown technics.)
             }
         }
 

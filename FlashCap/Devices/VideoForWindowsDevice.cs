@@ -119,11 +119,15 @@ namespace FlashCap.Devices
 
         protected override void Dispose(bool disposing)
         {
+            // This class will only collect when explicitly disposing.
+            // Because it holds by objref pinning on running state.
+
             if (this.handle != IntPtr.Zero)
             {
                 this.workingContext!.Send(_ =>
                 {
-                    this.Stop();
+                    NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
+                    this.IsRunning = false;
                     NativeMethods_VideoForWindows.capSetCallbackFrame(this.handle, null);
                     NativeMethods_VideoForWindows.capDriverDisconnect(this.handle, this.deviceIndex);
                     NativeMethods_VideoForWindows.DestroyWindow(this.handle);
@@ -159,19 +163,31 @@ namespace FlashCap.Devices
             }
         }
 
-        public override void Start() =>
-            this.workingContext!.Send(_ =>
+        public override void Start()
+        {
+            lock (this)
             {
-                NativeMethods_VideoForWindows.capShowPreview(this.handle, true);
-                this.IsRunning = true;
-            }, null);
+                if (!this.IsRunning)
+                {
+                    this.workingContext!.Send(_ =>
+                        NativeMethods_VideoForWindows.capShowPreview(this.handle, true), null);
+                    this.IsRunning = true;
+                }
+            }
+        }
 
-        public override void Stop() =>
-            this.workingContext!.Send(_ =>
+        public override void Stop()
+        {
+            lock (this)
             {
-                this.IsRunning = false;
-                NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
-            }, null);
+                if (this.IsRunning)
+                {
+                    this.IsRunning = false;
+                    this.workingContext!.Send(_ =>
+                        NativeMethods_VideoForWindows.capShowPreview(this.handle, false), null);
+                }
+            }
+        }
 
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

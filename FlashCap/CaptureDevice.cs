@@ -21,8 +21,11 @@ namespace FlashCap
         ~CaptureDevice() =>
             this.Dispose(false);
 
-        public void Dispose() =>
+        public void Dispose()
+        {
             this.Dispose(true);
+            GC.SuppressFinalize(this);
+        }
 
         protected abstract void Dispose(bool disposing);
 

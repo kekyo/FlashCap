@@ -62,6 +62,7 @@ namespace FlashCap.Devices
         }
 
         private readonly bool transcodeIfYUV;
+        private readonly FrameProcessor frameProcessor;
         private NativeMethods_DirectShow.IGraphBuilder? graphBuilder;
         private SampleGrabberSink? sampleGrabberSink;
         private IntPtr pBih;
@@ -73,6 +74,7 @@ namespace FlashCap.Devices
             FrameProcessor frameProcessor)
         {
             this.transcodeIfYUV = transcodeIfYUV;
+            this.frameProcessor = frameProcessor;
 
             if (NativeMethods_DirectShow.EnumerateDeviceMoniker(
                 NativeMethods_DirectShow.CLSID_VideoInputDeviceCategory).
@@ -210,39 +212,69 @@ namespace FlashCap.Devices
 
         protected override void Dispose(bool disposing)
         {
-            if (this.graphBuilder != null)
+            if (disposing)
             {
-                Marshal.ReleaseComObject(this.graphBuilder);
-                this.graphBuilder = null!;
-                this.sampleGrabberSink = null!;
-                NativeMethods.FreeMemory(this.pBih);
-                this.pBih = IntPtr.Zero;
+                lock (this)
+                {
+                    if (this.graphBuilder != null)
+                    {
+                        this.Stop();
+
+                        this.frameProcessor.Dispose();
+
+                        Marshal.ReleaseComObject(this.graphBuilder);
+                        this.graphBuilder = null!;
+                        this.sampleGrabberSink = null!;
+                        NativeMethods.FreeMemory(this.pBih);
+                        this.pBih = IntPtr.Zero;
+                    }
+                }
+            }
+            else
+            {
+                if (this.pBih != IntPtr.Zero)
+                {
+                    NativeMethods.FreeMemory(this.pBih);
+                    this.pBih = IntPtr.Zero;
+                }
             }
         }
 
         public override void Start()
         {
-            if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
+            lock (this)
             {
-                mediaControl.Run();
-                this.IsRunning = true;
-            }
-            else
-            {
-                throw new InvalidOperationException();
+                if (!this.IsRunning)
+                {
+                    if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
+                    {
+                        mediaControl.Run();
+                        this.IsRunning = true;
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException();
+                    }
+                }
             }
         }
 
         public override void Stop()
         {
-            if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
+            lock (this)
             {
-                this.IsRunning = false;
-                mediaControl.Stop();
-            }
-            else
-            {
-                throw new InvalidOperationException();
+                if (this.IsRunning)
+                {
+                    if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
+                    {
+                        this.IsRunning = false;
+                        mediaControl.Stop();
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException();
+                    }
+                }
             }
         }
 
