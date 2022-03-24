@@ -19,14 +19,14 @@ namespace FlashCap
         private int imageContainerSize;
         private byte[]? transcodedImageContainer = null;
         private bool isValidTranscodedImage;
-        private double timestampMilliseconds;
+        private long timestampMicroseconds;
         private bool transcodeIfYUV;
 
         internal unsafe void CopyIn(
             IntPtr pih, IntPtr pData, int size,
-            double timestampMilliseconds, bool transcodeIfYUV)
+            long timestampMicroseconds, bool transcodeIfYUV)
         {
-            this.timestampMilliseconds = timestampMilliseconds;
+            this.timestampMicroseconds = timestampMicroseconds;
 
             var pBih = (NativeMethods.BITMAPINFOHEADER*)pih.ToPointer();
 
@@ -95,7 +95,7 @@ namespace FlashCap
         }
 
         public TimeSpan Timestamp =>
-            TimeSpan.FromMilliseconds(this.timestampMilliseconds);
+            TimeSpan.FromMilliseconds(this.timestampMicroseconds / 1000.0);
 
         private enum BufferStrategies
         {

@@ -18,7 +18,7 @@ namespace FlashCap.FrameProcessors
         }
 
         public abstract void OnFrameArrived(
-            ICaptureDevice captureDevice,
-            IntPtr pData, int size, TimeSpan timestamp);
+            CaptureDevice captureDevice,
+            IntPtr pData, int size, long timestampMicroseconds);
     }
 }

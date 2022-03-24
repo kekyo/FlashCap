@@ -343,6 +343,9 @@ namespace System.Threading
         public void Set() =>
             this.mre.Set();
 
+        public void Reset() =>
+            this.mre.Reset();
+
         public void Wait() =>
             this.mre.WaitOne();
     }

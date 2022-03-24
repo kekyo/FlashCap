@@ -7,18 +7,20 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.FrameProcessors;
 using FlashCap.Internal;
 using System;
 using System.Threading;
 
 namespace FlashCap.Devices
 {
-    public sealed class V4L2Device : ICaptureDevice
+    public sealed class V4L2Device : CaptureDevice
     {
         private const int BufferCount = 2;
         
         private readonly string devicePath;
         private readonly bool transcodeIfYUV;
+        private readonly FrameProcessor frameProcessor;
         private int fd;
         private IntPtr pBih;
         private IntPtr[] pBuffers = new IntPtr[BufferCount];
@@ -27,12 +29,14 @@ namespace FlashCap.Devices
         private int[] abortfds;
 
         internal unsafe V4L2Device(
-            string devicePath, VideoCharacteristics characteristics, bool transcodeIfYUV)
+            string devicePath, VideoCharacteristics characteristics, bool transcodeIfYUV,
+            FrameProcessor frameProcessor)
         {
             this.devicePath = devicePath;
             this.Characteristics = characteristics;
             this.transcodeIfYUV = transcodeIfYUV;
-          
+            this.frameProcessor = frameProcessor;
+
             if (!NativeMethods.GetCompressionAndBitCount(
                 characteristics.PixelFormat, out var compression, out var bitCount))
             {
@@ -168,10 +172,7 @@ namespace FlashCap.Devices
             }
         }
 
-        ~V4L2Device() =>
-            this.Dispose();
-
-        public void Dispose()
+        protected override void Dispose(bool disposing)
         {
             if (this.fd != -1)
             {
@@ -187,11 +188,6 @@ namespace FlashCap.Devices
                 this.pBih = IntPtr.Zero;
             }
         }
-
-        public VideoCharacteristics Characteristics { get; }
-        public bool IsRunning { get; private set; }
-
-        public event EventHandler<FrameArrivedEventArgs>? FrameArrived;
 
         private void ThreadEntry()
         {
@@ -213,7 +209,6 @@ namespace FlashCap.Devices
                 type = NativeMethods_V4L2.v4l2_buf_type.VIDEO_CAPTURE,
                 memory = NativeMethods_V4L2.v4l2_memory.MMAP,
             };
-            var e = new FrameArrivedEventArgs();
 
             while (true)
             {
@@ -230,14 +225,11 @@ namespace FlashCap.Devices
                             $"FlashCap: Couldn't dequeue video buffer: DevicePath={this.devicePath}");
                     }
 
-                    if (this.FrameArrived is { } fa)
-                    {
-                        e.Update(
-                            this.pBuffers[buffer.index],
-                            buffer.bytesused,
-                            buffer.timestamp.tv_usec * 1000);
-                        fa(this, e);
-                    }
+                    this.frameProcessor.OnFrameArrived(
+                        this,
+                        this.pBuffers[buffer.index],
+                        buffer.bytesused,
+                        buffer.timestamp.tv_usec * 1000);
                     
                     if (NativeMethods_V4L2.ioctl_qbuf(this.fd, buffer) < 0)
                     {
@@ -253,7 +245,7 @@ namespace FlashCap.Devices
             }
         }
         
-        public void Start()
+        public override void Start()
         {
             if (!this.IsRunning)
             {
@@ -268,7 +260,7 @@ namespace FlashCap.Devices
             }
         }
 
-        public void Stop()
+        public override void Stop()
         {
             if (this.IsRunning)
             {
@@ -284,9 +276,9 @@ namespace FlashCap.Devices
             }
         }
 
-        public void Capture(FrameArrivedEventArgs e, PixelBuffer buffer) =>
-            buffer.CopyIn(
-                this.pBih, e.pData, e.size,
-                e.timestampMilliseconds, this.transcodeIfYUV);
+        public override void Capture(
+            IntPtr pData, int size, long timestampMilliseconds,
+            PixelBuffer buffer) =>
+            buffer.CopyIn(this.pBih, pData, size, timestampMilliseconds, this.transcodeIfYUV);
     }
 }

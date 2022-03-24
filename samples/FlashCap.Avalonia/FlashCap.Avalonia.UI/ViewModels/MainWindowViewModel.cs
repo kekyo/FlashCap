@@ -9,6 +9,7 @@
 
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
 using Epoxy;
 using Epoxy.Synchronized;
@@ -19,12 +20,6 @@ namespace FlashCap.Avalonia.ViewModels
     [ViewModel]
     public sealed class MainWindowViewModel
     {
-        // Execute with limited only 1 task. (using FlashCap.Utilities)
-        private readonly LimitedExecutor limitedExecutor = new();
-
-        // Preallocated pixel buffer.
-        private readonly PixelBuffer buffer = new();
-
         // Constructed capture device.
         private ICaptureDevice? captureDevice;
 
@@ -68,10 +63,8 @@ namespace FlashCap.Avalonia.ViewModels
                     this.Characteristics = characteristics.ToString();
 
                     // Open capture device:
-                    this.captureDevice = descriptor0.Open(characteristics);
-
-                    // Hook frame arrived event:
-                    this.captureDevice.FrameArrived += this.OnFrameArrived!;
+                    this.captureDevice = descriptor0.Open(
+                        characteristics, this.OnPixelBufferArrivedAsync);
 
                     // Start capturing.
                     this.captureDevice.Start();
@@ -83,44 +76,29 @@ namespace FlashCap.Avalonia.ViewModels
             });
         }
  
-        private void OnFrameArrived(object sender, FrameArrivedEventArgs e)
+        private async Task OnPixelBufferArrivedAsync(PixelBuffer buffer)
         {
             ////////////////////////////////////////////////
-            // Image frame has arrived
-
-            // User interface system is too slow,
-            // so there's making throttle with LimitedExecutor class.
-            this.limitedExecutor.ExecuteAndOffload(
-
-                // Step 1. Just now section:
-                //   Capture into a pixel buffer:
-                () => this.captureDevice?.Capture(e, this.buffer),
-
-                // Step 2. Offloaded section:
-                //   Caution: Offloaded section is on the worker thread context.
-                //   You have to switch main thread context before manipulates user interface.
-                async () =>
-                {
+            // Pixel buffer has arrived.
+            // NOTE: Perhaps this thread context is NOT UI thread.
 #if false
-                    // Get image data binary:
-                    byte[] image = this.buffer.ExtractImage();
+            // Get image data binary:
+            byte[] image = buffer.ExtractImage();
 #else
-                    // Or, refer image data binary directly.
-                    // (Advanced manipulation, see README.)
-                    ArraySegment<byte> image = this.buffer.ReferImage();
+            // Or, refer image data binary directly.
+            ArraySegment<byte> image = buffer.ReferImage();
 #endif
-                    // Convert to Stream (using FlashCap.Utilities)
-                    using var stream = image.AsStream();
+            // Convert to Stream (using FlashCap.Utilities)
+            using var stream = image.AsStream();
 
-                    // Decode image data to a bitmap:
-                    var bitmap = new Bitmap(stream);
+            // Decode image data to a bitmap:
+            var bitmap = new Bitmap(stream);
 
-                    // Switch to UI thread:
-                    await UIThread.Bind();
+            // Switch to UI thread:
+            await UIThread.Bind();
 
-                    // Update a bitmap.
-                    this.Image = bitmap;
-                });
+            // Update a bitmap.
+            this.Image = bitmap;
         }
     }
 }

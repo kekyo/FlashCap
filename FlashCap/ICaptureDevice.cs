@@ -16,11 +16,13 @@ namespace FlashCap
         VideoCharacteristics Characteristics { get; }
         bool IsRunning { get; }
 
-        event EventHandler<FrameArrivedEventArgs> FrameArrived;
-
         void Start();
         void Stop();
 
-        void Capture(IntPtr pData, int size, TimeSpan timestamp, PixelBuffer buffer);
+        void Capture(
+            IntPtr pData,
+            int size,
+            long timestampMicroseconds,
+            PixelBuffer buffer);
     }
 }

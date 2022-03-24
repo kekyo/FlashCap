@@ -7,6 +7,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.FrameProcessors;
 using FlashCap.Internal;
 using System;
 using System.Diagnostics;
@@ -14,26 +15,28 @@ using System.Runtime.InteropServices;
 
 namespace FlashCap.Devices
 {
-    public sealed class VideoForWindowsDevice : ICaptureDevice
+    public sealed class VideoForWindowsDevice : CaptureDevice
     {
         private readonly int deviceIndex;
         private readonly bool transcodeIfYUV;
+        private readonly FrameProcessor frameProcessor;
 
         private IndependentSingleApartmentContext? workingContext = new();
         private IntPtr handle;
         private GCHandle thisPin;
         private NativeMethods_VideoForWindows.CAPVIDEOCALLBACK? callback;
         private IntPtr pBih;
-        private FrameArrivedEventArgs? e = new();
 
         internal unsafe VideoForWindowsDevice(
             int deviceIndex,
             VideoCharacteristics characteristics,
-            bool transcodeIfYUV)
+            bool transcodeIfYUV,
+            FrameProcessor frameProcessor)
         {
             this.deviceIndex = deviceIndex;
             this.Characteristics = characteristics;
             this.transcodeIfYUV = transcodeIfYUV;
+            this.frameProcessor = frameProcessor;
 
             if (!NativeMethods.GetCompressionAndBitCount(
                 characteristics.PixelFormat, out var compression, out var bitCount))
@@ -114,10 +117,7 @@ namespace FlashCap.Devices
             }, null);
         }
 
-        ~VideoForWindowsDevice() =>
-            this.Dispose();
-
-        public void Dispose()
+        protected override void Dispose(bool disposing)
         {
             if (this.handle != IntPtr.Zero)
             {
@@ -132,8 +132,6 @@ namespace FlashCap.Devices
                     this.callback = null;
                     NativeMethods.FreeMemory(this.pBih);
                     this.pBih = IntPtr.Zero;
-                    this.FrameArrived = null;
-                    this.e = null;
                 }, null);
 
                 this.workingContext.Dispose();
@@ -141,50 +139,43 @@ namespace FlashCap.Devices
             }
         }
 
-        public VideoCharacteristics Characteristics { get; }
-        public bool IsRunning { get; private set; }
-
-        public event EventHandler<FrameArrivedEventArgs>? FrameArrived;
-
         private void CallbackEntry(IntPtr hWnd, in NativeMethods_VideoForWindows.VIDEOHDR hdr)
         {
-            if (this.FrameArrived is { } fa)
+            // HACK: Dodge stupid camera devices...
+            if (hdr.dwBytesUsed >= 64)
             {
-                // HACK: Dodge stupid camera devices...
-                if (hdr.dwBytesUsed >= 64)
+                try
                 {
-                    try
-                    {
-                        // TODO: dwTimeCaptured always zero??
-                        e!.Update(hdr.lpData, hdr.dwBytesUsed, hdr.dwTimeCaptured);
-                        fa(this, e);
-                    }
-                    // DANGER: Stop leaking exception around outside of unmanaged area...
-                    catch (Exception ex)
-                    {
-                        Trace.WriteLine(ex);
-                    }
+                    // TODO: dwTimeCaptured always zero??
+                    this.frameProcessor.OnFrameArrived(
+                        this,
+                        hdr.lpData, hdr.dwBytesUsed, hdr.dwTimeCaptured);
+                }
+                // DANGER: Stop leaking exception around outside of unmanaged area...
+                catch (Exception ex)
+                {
+                    Trace.WriteLine(ex);
                 }
             }
         }
 
-        public void Start() =>
+        public override void Start() =>
             this.workingContext!.Send(_ =>
             {
                 NativeMethods_VideoForWindows.capShowPreview(this.handle, true);
                 this.IsRunning = true;
             }, null);
 
-        public void Stop() =>
+        public override void Stop() =>
             this.workingContext!.Send(_ =>
             {
                 this.IsRunning = false;
                 NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
             }, null);
 
-        public void Capture(FrameArrivedEventArgs e, PixelBuffer buffer) =>
-            buffer.CopyIn(
-                this.pBih, e.pData, e.size,
-                e.timestampMilliseconds, this.transcodeIfYUV);
+        public override void Capture(
+            IntPtr pData, int size, long timestampMilliseconds,
+            PixelBuffer buffer) =>
+            buffer.CopyIn(this.pBih, pData, size, timestampMilliseconds, this.transcodeIfYUV);
     }
 }

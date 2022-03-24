@@ -7,6 +7,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.FrameProcessors;
 using System;
 
 namespace FlashCap.Devices
@@ -27,9 +28,11 @@ namespace FlashCap.Devices
         public override DeviceTypes DeviceType =>
             DeviceTypes.V4L2;
 
-        public override ICaptureDevice Open(
+        public override ICaptureDevice OpenWithFrameProcessor(
             VideoCharacteristics characteristics,
-            bool transcodeIfYUV = true) =>
-            new V4L2Device(this.devicePath, characteristics, transcodeIfYUV);
+            bool transcodeIfYUV,
+            FrameProcessor frameProcessor) =>
+            new V4L2Device(
+                devicePath, characteristics, transcodeIfYUV, frameProcessor);
     }
 }

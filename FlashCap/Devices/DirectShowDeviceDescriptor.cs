@@ -7,6 +7,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.FrameProcessors;
+
 namespace FlashCap.Devices
 {
     public sealed class DirectShowDeviceDescriptor : CaptureDeviceDescriptor
@@ -25,9 +27,11 @@ namespace FlashCap.Devices
         public override DeviceTypes DeviceType =>
             DeviceTypes.DirectShow;
 
-        public override ICaptureDevice Open(
+        public override ICaptureDevice OpenWithFrameProcessor(
             VideoCharacteristics characteristics,
-            bool transcodeIfYUV = true) =>
-            new DirectShowDevice(this.devicePath, characteristics, transcodeIfYUV);
+            bool transcodeIfYUV,
+            FrameProcessor frameProcessor) =>
+            new DirectShowDevice(
+                this.devicePath, characteristics, transcodeIfYUV, frameProcessor);
     }
 }

@@ -7,6 +7,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.FrameProcessors;
+
 namespace FlashCap.Devices
 {
     public sealed class VideoForWindowsDeviceDescriptor : CaptureDeviceDescriptor
@@ -25,9 +27,11 @@ namespace FlashCap.Devices
         public override DeviceTypes DeviceType =>
             DeviceTypes.VideoForWindows;
 
-        public override unsafe ICaptureDevice Open(
+        public override unsafe ICaptureDevice OpenWithFrameProcessor(
             VideoCharacteristics characteristics,
-            bool transcodeIfYUV = true) =>
-            new VideoForWindowsDevice(this.deviceIndex, characteristics, transcodeIfYUV);
+            bool transcodeIfYUV,
+            FrameProcessor frameProcessor) =>
+            new VideoForWindowsDevice(
+                this.deviceIndex, characteristics, transcodeIfYUV, frameProcessor);
     }
 }

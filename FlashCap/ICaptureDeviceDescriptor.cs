@@ -7,6 +7,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.FrameProcessors;
+using System;
+
 namespace FlashCap
 {
     public enum DeviceTypes
@@ -24,8 +27,9 @@ namespace FlashCap
         string Description { get; }
         VideoCharacteristics[] Characteristics { get; }
 
-        ICaptureDevice Open(
+        ICaptureDevice OpenWithFrameProcessor(
             VideoCharacteristics characteristics,
-            bool transcodeIfYUV = true);
+            bool transcodeIfYUV,
+            FrameProcessor frameProcessor);
     }
 }

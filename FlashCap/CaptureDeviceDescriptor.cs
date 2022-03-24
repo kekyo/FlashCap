@@ -7,6 +7,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.FrameProcessors;
+
 namespace FlashCap
 {
     public abstract class CaptureDeviceDescriptor : ICaptureDeviceDescriptor
@@ -26,9 +28,10 @@ namespace FlashCap
         public string Description { get; }
         public VideoCharacteristics[] Characteristics { get; }
 
-        public abstract ICaptureDevice Open(
+        public abstract ICaptureDevice OpenWithFrameProcessor(
             VideoCharacteristics characteristics,
-            bool transcodeIfYUV = true);
+            bool transcodeIfYUV,
+            FrameProcessor frameProcessor);
 
         public override string ToString() =>
             $"{this.Name}: {this.Description}, Characteristics={this.Characteristics.Length}";

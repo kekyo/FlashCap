@@ -8,50 +8,62 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 
 namespace FlashCap.FrameProcessors
 {
-    internal abstract class ConstraintPixelBufferProcessor : FrameProcessor
+    internal abstract class ScatteringPixelBufferProcessor :
+        FrameProcessor
     {
-        private readonly PixelBuffer buffer = new();
+        private readonly Stack<PixelBuffer> reserver = new();
         private readonly WaitCallback pixelBufferArrivedEntry;
-        private volatile int isin;
 
-        protected ConstraintPixelBufferProcessor() =>
+        protected ScatteringPixelBufferProcessor() =>
             this.pixelBufferArrivedEntry = this.PixelBufferArrivedEntry;
 
         public override sealed void OnFrameArrived(
             CaptureDevice captureDevice,
             IntPtr pData, int size, long timestampMicroseconds)
         {
-            if (Interlocked.Increment(ref isin) == 1)
+            PixelBuffer? buffer = null;
+            lock (reserver)
             {
-                captureDevice.Capture(
-                    pData, size, timestampMicroseconds, this.buffer);
+                if (reserver.Count >= 1)
+                {
+                    buffer = reserver.Pop();
+                }
+            }
+            if (buffer == null)
+            {
+                buffer = new PixelBuffer();
+            }
 
-                ThreadPool.QueueUserWorkItem(
-                    this.pixelBufferArrivedEntry, this.buffer);
-            }
-            else
-            {
-                Interlocked.Decrement(ref isin);
-            }
+            captureDevice.Capture(
+                pData, size, timestampMicroseconds, buffer);
+
+            ThreadPool.QueueUserWorkItem(
+                this.pixelBufferArrivedEntry, buffer);
         }
 
-        protected void Finished() =>
-            Interlocked.Decrement(ref isin);
+        protected void Reserve(PixelBuffer buffer)
+        {
+            lock (this.reserver)
+            {
+                this.reserver.Push(buffer);
+            }
+        }
 
         protected abstract void PixelBufferArrivedEntry(object? parameter);
     }
 
-    internal sealed class DelegatedConstraintPixelBufferProcessor :
-        ConstraintPixelBufferProcessor
+    internal sealed class DelegatedScatteringPixelBufferProcessor :
+        ScatteringPixelBufferProcessor
     {
         private readonly PixelBufferArrivedDelegate pixelBufferArrived;
 
-        public DelegatedConstraintPixelBufferProcessor(
+        public DelegatedScatteringPixelBufferProcessor(
             PixelBufferArrivedDelegate pixelBufferArrived) =>
             this.pixelBufferArrived = pixelBufferArrived;
 
@@ -64,18 +76,18 @@ namespace FlashCap.FrameProcessors
             }
             finally
             {
-                this.Finished();
+                this.Reserve(buffer);
             }
         }
     }
 
 #if NET40_OR_GREATER || NETSTANDARD || NETCOREAPP
-    internal sealed class DelegatedConstraintPixelBufferTaskProcessor :
-        ConstraintPixelBufferProcessor
+    internal sealed class DelegatedScatteringPixelBufferTaskProcessor :
+        ScatteringPixelBufferProcessor
     {
         private readonly PixelBufferArrivedTaskDelegate pixelBufferArrived;
 
-        public DelegatedConstraintPixelBufferTaskProcessor(
+        public DelegatedScatteringPixelBufferTaskProcessor(
             PixelBufferArrivedTaskDelegate pixelBufferArrived) =>
             this.pixelBufferArrived = pixelBufferArrived;
 
@@ -85,7 +97,7 @@ namespace FlashCap.FrameProcessors
             this.pixelBufferArrived(buffer).
                 ContinueWith(task =>
                 {
-                    this.Finished();
+                    this.Reserve(buffer);
                     if (task.IsCanceled || task.IsFaulted)
                     {
                         Trace.WriteLine(task.Exception);
@@ -95,12 +107,12 @@ namespace FlashCap.FrameProcessors
     }
 
 #if NETSTANDARD2_1 || NETCOREAPP2_1_OR_GREATER
-    internal sealed class DelegatedConstraintPixelBufferValueTaskProcessor :
-        ConstraintPixelBufferProcessor
+    internal sealed class DelegatedScatteringPixelBufferValueTaskProcessor :
+        ScatteringPixelBufferProcessor
     {
         private readonly PixelBufferArrivedValueTaskDelegate pixelBufferArrived;
 
-        public DelegatedConstraintPixelBufferValueTaskProcessor(
+        public DelegatedScatteringPixelBufferValueTaskProcessor(
             PixelBufferArrivedValueTaskDelegate pixelBufferArrived) =>
             this.pixelBufferArrived = pixelBufferArrived;
 
@@ -116,7 +128,7 @@ namespace FlashCap.FrameProcessors
                 }
                 finally
                 {
-                    this.Finished();
+                    this.Reserve(buffer);
                 }
             }
             catch (Exception ex)
