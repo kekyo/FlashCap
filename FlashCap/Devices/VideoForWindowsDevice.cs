@@ -20,7 +20,7 @@ namespace FlashCap.Devices
         private readonly int deviceIndex;
         private readonly bool transcodeIfYUV;
         private readonly FrameProcessor frameProcessor;
-        private readonly Stopwatch stopwatch = new();
+        private readonly TimestampCounter counter = new();
 
         private IndependentSingleApartmentContext? workingContext = new();
         private IntPtr handle;
@@ -156,7 +156,7 @@ namespace FlashCap.Devices
                         this,
                         hdr.lpData, hdr.dwBytesUsed,
                         // HACK: `hdr.dwTimeCaptured` always zero on my environment...
-                        this.stopwatch.ElapsedMilliseconds * 1_000);
+                        this.counter.ElapsedMicroseconds);
                 }
                 // DANGER: Stop leaking exception around outside of unmanaged area...
                 catch (Exception ex)
@@ -174,7 +174,7 @@ namespace FlashCap.Devices
                 {
                     this.workingContext!.Send(_ =>
                     {
-                        this.stopwatch.Start();
+                        this.counter.Restart();
                         NativeMethods_VideoForWindows.capShowPreview(this.handle, true);
                     }, null);
                     this.IsRunning = true;
@@ -192,7 +192,6 @@ namespace FlashCap.Devices
                     this.workingContext!.Send(_ =>
                     {
                         NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
-                        this.stopwatch.Reset();
                     }, null);
                 }
             }
@@ -202,8 +201,8 @@ namespace FlashCap.Devices
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
         protected override void OnCapture(
-            IntPtr pData, int size, long timestampMilliseconds,
+            IntPtr pData, int size, double timestampMicroseconds,
             PixelBuffer buffer) =>
-            buffer.CopyIn(this.pBih, pData, size, timestampMilliseconds, this.transcodeIfYUV);
+            buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, this.transcodeIfYUV);
     }
 }
