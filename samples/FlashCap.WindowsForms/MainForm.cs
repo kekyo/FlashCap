@@ -103,7 +103,7 @@ namespace FlashCap.WindowsForms
                 // NOTE: WinForms sometimes will raise ObjectDisposedException in shutdown sequence.
                 // Because it is race condition between this thread context and UI thread context.
                 // We can safely ignore when terminating user interface.
-                // (Or you can dodge it with graceful shutdown technics.)
+                // (Or you can avoid it with graceful shutdown technics.)
             }
         }
 

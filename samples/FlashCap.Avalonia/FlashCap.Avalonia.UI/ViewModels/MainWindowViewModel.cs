@@ -64,7 +64,10 @@ namespace FlashCap.Avalonia.ViewModels
 
                     // Open capture device:
                     this.captureDevice = descriptor0.Open(
-                        characteristics, this.OnPixelBufferArrivedAsync);
+                        characteristics,
+                        true,
+                        HandlerStrategies.Scattering,
+                        this.OnPixelBufferArrivedAsync);
 
                     // Start capturing.
                     this.captureDevice.Start();

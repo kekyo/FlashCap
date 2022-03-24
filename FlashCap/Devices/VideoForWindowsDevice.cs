@@ -145,7 +145,7 @@ namespace FlashCap.Devices
 
         private void CallbackEntry(IntPtr hWnd, in NativeMethods_VideoForWindows.VIDEOHDR hdr)
         {
-            // HACK: Dodge stupid camera devices...
+            // HACK: Avoid stupid camera devices...
             if (hdr.dwBytesUsed >= 64)
             {
                 try

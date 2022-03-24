@@ -304,6 +304,24 @@ namespace System.Threading
 }
 #endif
 
+namespace System.Threading.Tasks
+{
+    internal static class TaskEx
+    {
+#if NET40
+        public static Task<T> FromResult<T>(T value)
+        {
+            var tcs = new TaskCompletionSource<T>();
+            tcs.SetResult(value);
+            return tcs.Task;
+        }
+#elif !(NET20 || NET35)
+        public static Task<T> FromResult<T>(T value) =>
+            Task.FromResult(value);
+#endif
+    }
+}
+
 #if NET20 || NET35 || NET40
 namespace System.Runtime.ExceptionServices
 {

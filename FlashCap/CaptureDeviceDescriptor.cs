@@ -8,6 +8,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using FlashCap.FrameProcessors;
+using System.Threading.Tasks;
 
 namespace FlashCap
 {
@@ -32,6 +33,13 @@ namespace FlashCap
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,
             FrameProcessor frameProcessor);
+
+#if NET40_OR_GREATER || NETSTANDARD || NETCOREAPP
+        public abstract Task<ICaptureDevice> OpenWithFrameProcessorAsync(
+            VideoCharacteristics characteristics,
+            bool transcodeIfYUV,
+            FrameProcessor frameProcessor);
+#endif
 
         public override string ToString() =>
             $"{this.Name}: {this.Description}, Characteristics={this.Characteristics.Length}";

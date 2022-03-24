@@ -368,7 +368,7 @@ Parallel.ForEach(
 ### 4. Reduce data copy
 
 Another topic, `PixelBuffer.ReferImage()` method will return `ArraySegment<byte>`.
-We can use it dodge copying image data (when transcode is not applicable).
+We can use it avoid copying image data (when transcode is not applicable).
 
 **Caution**: The resulting array segment is valid until the next `Capture()` is executed.
 

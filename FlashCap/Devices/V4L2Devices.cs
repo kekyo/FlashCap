@@ -33,7 +33,7 @@ namespace FlashCap.Devices
                     (NativeMethods_V4L2.v4l2_fmtdesc?)fmtdesc : null;
             }).
             Select(fmtdesc => fmtdesc!.Value).
-            ToArray();   // Important: Iteration process must be continuous, dodge ioctl calls with other requests.
+            ToArray();   // Important: Iteration process must be continuous, avoid ioctl calls with other requests.
 
         private static IEnumerable<NativeMethods_V4L2.v4l2_frmsize_discrete> EnumerateFrameSize(
             int fd, NativeMethods_V4L2.v4l2_pix_fmt pixelFormat) =>
@@ -93,7 +93,7 @@ namespace FlashCap.Devices
                         EnumerateContinuous(fse.stepwise),
                 };
             }).
-            ToArray();   // Important: Iteration process must be continuous, dodge ioctl calls with other requests.
+            ToArray();   // Important: Iteration process must be continuous, avoid ioctl calls with other requests.
 
         private static IEnumerable<Fraction> EnumerateFramesPerSecond(
             int fd, NativeMethods_V4L2.v4l2_pix_fmt pixelFormat, int width, int height) =>
@@ -156,7 +156,7 @@ namespace FlashCap.Devices
                         EnumerateContinuous(fie.stepwise),
                 };
             }).
-            ToArray();   // Important: Iteration process must be continuous, dodge ioctl calls with other requests.
+            ToArray();   // Important: Iteration process must be continuous, avoid ioctl calls with other requests.
 
         public IEnumerable<ICaptureDeviceDescriptor> EnumerateDescriptors() =>
             Directory.GetFiles("/dev", "video*").

@@ -42,7 +42,7 @@ namespace FlashCap.Devices
             [PreserveSig] public int BufferCB(
                 double sampleTime, IntPtr pBuffer, int bufferLen)
             {
-                // HACK: Dodge stupid camera devices...
+                // HACK: Avoid stupid camera devices...
                 if (bufferLen >= 64)
                 {
                     try

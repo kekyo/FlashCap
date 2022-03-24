@@ -7,7 +7,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-using FlashCap.FrameProcessors;
+using System.Threading.Tasks;
 
 namespace FlashCap.Devices
 {
@@ -33,5 +33,14 @@ namespace FlashCap.Devices
             FrameProcessor frameProcessor) =>
             new DirectShowDevice(
                 this.devicePath, characteristics, transcodeIfYUV, frameProcessor);
+
+#if NET40_OR_GREATER || NETSTANDARD || NETCOREAPP
+        public override Task<ICaptureDevice> OpenWithFrameProcessorAsync(
+            VideoCharacteristics characteristics,
+            bool transcodeIfYUV,
+            FrameProcessor frameProcessor) =>
+            TaskEx.FromResult(this.OpenWithFrameProcessor(          // TODO:
+                characteristics, transcodeIfYUV, frameProcessor));
+#endif
     }
 }
