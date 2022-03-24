@@ -16,6 +16,7 @@ namespace FlashCap.Internal
     internal static class NativeMethods_V4L2
     {
         public const int EINTR = 4;
+        public const int EINVAL = 22;
 
         [StructLayout(LayoutKind.Sequential)]
         public struct timeval
@@ -32,22 +33,22 @@ namespace FlashCap.Internal
             O_RDWR = 2,
         }
 
-        [DllImport("libc", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libc", CharSet = CharSet.Ansi, CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         public static extern int open(
             [MarshalAs(UnmanagedType.LPStr)] string pathname, OPENBITS flag);
 
-        [DllImport("libc", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         public static extern int read(
             int fd, byte[] buffer, int length);
 
-        [DllImport("libc", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         public static extern int write(
             int fd, byte[] buffer, int count);
 
-        [DllImport("libc", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         public static extern int close(int fd);
 
-        [DllImport("libc", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         public static extern int pipe(int[] filedes);
 
         [Flags]
@@ -76,7 +77,7 @@ namespace FlashCap.Internal
             public POLLBITS revents;
         }
 
-        [DllImport("libc", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         public static extern int poll(
             pollfd[] fds, int nfds, int timeout);
 
@@ -98,11 +99,11 @@ namespace FlashCap.Internal
 
         public static readonly IntPtr MAP_FAILED = (IntPtr)(-1);
 
-        [DllImport("libc", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         public static extern IntPtr mmap(
             IntPtr addr, IntPtr length, PROT prot, MAP flags, int fd, long offset);
 
-        [DllImport("libc", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         public static extern int munmap(
             IntPtr addr, IntPtr length);
 
@@ -219,7 +220,7 @@ namespace FlashCap.Internal
             public int[] reserved;
         }
 
-        [DllImport("libc", EntryPoint = "ioctl", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctl(
             int fd, uint request, out v4l2_capability caps);
 
@@ -316,7 +317,7 @@ namespace FlashCap.Internal
             public int[] reserved;
         }
 
-        [DllImport("libc", EntryPoint = "ioctl", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctl(
             int fd, uint request, out v4l2_input input);
 
@@ -388,7 +389,7 @@ namespace FlashCap.Internal
             public int[] reserved;
         }
 
-        [DllImport("libc", EntryPoint = "ioctl", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctl(
             int fd, uint request, ref v4l2_fmtdesc fmtdesc);
 
@@ -437,7 +438,7 @@ namespace FlashCap.Internal
             [FieldOffset(40)] public int reserved1;
         }
 
-        [DllImport("libc", EntryPoint = "ioctl", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctl(
             int fd, uint request, ref v4l2_frmsizeenum frmsizeenum);
 
@@ -485,7 +486,7 @@ namespace FlashCap.Internal
             [FieldOffset(48)] public int reserved1;
         }
 
-        [DllImport("libc", EntryPoint = "ioctl", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libc", EntryPoint = "ioctl", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctl(
             int fd, uint request, ref v4l2_frmivalenum frmivalenum);
 
@@ -614,7 +615,7 @@ namespace FlashCap.Internal
             public v4l2_format_fmt fmt;
         }
 
-        [DllImport("libc", EntryPoint = "ioctl", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libc", EntryPoint = "ioctl", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctls(
             int fd, uint request, in v4l2_format format);
 
@@ -624,7 +625,7 @@ namespace FlashCap.Internal
             int fd, in v4l2_format format) =>
             do_ioctl(fd, VIDIOC_S_FMT, in format, ioctls);
 
-        [DllImport("libc", EntryPoint = "ioctl", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libc", EntryPoint = "ioctl", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctlg(
             int fd, uint request, ref v4l2_format format);
 
@@ -664,7 +665,7 @@ namespace FlashCap.Internal
             public int reserved0;
         }
 
-        [DllImport("libc", EntryPoint = "ioctl", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctl(
             int fd, uint request, ref v4l2_requestbuffers requestbuffers);
 
@@ -767,7 +768,7 @@ namespace FlashCap.Internal
             public int request_fd;
         }
 
-        [DllImport("libc", EntryPoint="ioctl", CallingConvention=CallingConvention.Cdecl)]
+        [DllImport("libc", EntryPoint="ioctl", CallingConvention=CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctlr(
             int fd, uint request, ref v4l2_buffer buffer);
         private const uint VIDIOC_QUERYBUF = 0xc0585609;
@@ -777,7 +778,7 @@ namespace FlashCap.Internal
                   
         ///////////////////////////////////////////////////////////
                   
-        [DllImport("libc", EntryPoint="ioctl", CallingConvention=CallingConvention.Cdecl)]
+        [DllImport("libc", EntryPoint="ioctl", CallingConvention=CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctli(
             int fd, uint request, in v4l2_buffer buffer);
         private const uint VIDIOC_QBUF = 0xc058560f;
@@ -792,7 +793,7 @@ namespace FlashCap.Internal
                 
         ///////////////////////////////////////////////////////////
                 
-        [DllImport("libc", EntryPoint="ioctl", CallingConvention=CallingConvention.Cdecl)]
+        [DllImport("libc", CallingConvention=CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctl(
             int fd, uint request, in v4l2_buf_type type);
         private const uint VIDIOC_STREAMON = 0x40045612;
