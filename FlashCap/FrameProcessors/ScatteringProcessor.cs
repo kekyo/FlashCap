@@ -10,17 +10,18 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace FlashCap.FrameProcessors
 {
-    internal abstract class ScatteringPixelBufferProcessor :
+    internal abstract class ScatteringProcessor :
         FrameProcessor
     {
         private readonly Stack<PixelBuffer> reserver = new();
         private readonly WaitCallback pixelBufferArrivedEntry;
 
-        protected ScatteringPixelBufferProcessor() =>
+        protected ScatteringProcessor() =>
             this.pixelBufferArrivedEntry = this.PixelBufferArrivedEntry;
 
         public override sealed void OnFrameArrived(
@@ -40,13 +41,18 @@ namespace FlashCap.FrameProcessors
                 buffer = new PixelBuffer();
             }
 
-            captureDevice.Capture(
-                pData, size, timestampMicroseconds, buffer);
+            this.Capture(
+                captureDevice,
+                pData, size, timestampMicroseconds,
+                buffer);
 
             ThreadPool.QueueUserWorkItem(
                 this.pixelBufferArrivedEntry, buffer);
         }
 
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
         protected void Reserve(PixelBuffer buffer)
         {
             lock (this.reserver)
@@ -58,12 +64,12 @@ namespace FlashCap.FrameProcessors
         protected abstract void PixelBufferArrivedEntry(object? parameter);
     }
 
-    internal sealed class DelegatedScatteringPixelBufferProcessor :
-        ScatteringPixelBufferProcessor
+    internal sealed class DelegatedScatteringProcessor :
+        ScatteringProcessor
     {
         private readonly PixelBufferArrivedDelegate pixelBufferArrived;
 
-        public DelegatedScatteringPixelBufferProcessor(
+        public DelegatedScatteringProcessor(
             PixelBufferArrivedDelegate pixelBufferArrived) =>
             this.pixelBufferArrived = pixelBufferArrived;
 
@@ -82,12 +88,12 @@ namespace FlashCap.FrameProcessors
     }
 
 #if NET40_OR_GREATER || NETSTANDARD || NETCOREAPP
-    internal sealed class DelegatedScatteringPixelBufferTaskProcessor :
-        ScatteringPixelBufferProcessor
+    internal sealed class DelegatedScatteringTaskProcessor :
+        ScatteringProcessor
     {
         private readonly PixelBufferArrivedTaskDelegate pixelBufferArrived;
 
-        public DelegatedScatteringPixelBufferTaskProcessor(
+        public DelegatedScatteringTaskProcessor(
             PixelBufferArrivedTaskDelegate pixelBufferArrived) =>
             this.pixelBufferArrived = pixelBufferArrived;
 
@@ -107,12 +113,12 @@ namespace FlashCap.FrameProcessors
     }
 
 #if NETSTANDARD2_1 || NETCOREAPP2_1_OR_GREATER
-    internal sealed class DelegatedScatteringPixelBufferValueTaskProcessor :
-        ScatteringPixelBufferProcessor
+    internal sealed class DelegatedScatteringValueTaskProcessor :
+        ScatteringProcessor
     {
         private readonly PixelBufferArrivedValueTaskDelegate pixelBufferArrived;
 
-        public DelegatedScatteringPixelBufferValueTaskProcessor(
+        public DelegatedScatteringValueTaskProcessor(
             PixelBufferArrivedValueTaskDelegate pixelBufferArrived) =>
             this.pixelBufferArrived = pixelBufferArrived;
 

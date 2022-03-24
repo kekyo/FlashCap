@@ -8,11 +8,16 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using System;
+using System.Runtime.CompilerServices;
 
 namespace FlashCap
 {
     public abstract class CaptureDevice : ICaptureDevice
     {
+        protected CaptureDevice()
+        {
+        }
+
         ~CaptureDevice() =>
             this.Dispose(false);
 
@@ -27,11 +32,14 @@ namespace FlashCap
         public abstract void Start();
         public abstract void Stop();
 
-        public abstract void Capture(
+        protected abstract void OnCapture(
             IntPtr pData, int size, long timestampMicroseconds, PixelBuffer buffer);
 
-        void ICaptureDevice.Capture(
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+        internal void InternalOnCapture(
             IntPtr pData, int size, long timestampMicroseconds, PixelBuffer buffer) =>
-            this.Capture(pData, size, timestampMicroseconds, buffer);
+            this.OnCapture(pData, size, timestampMicroseconds, buffer);
     }
 }

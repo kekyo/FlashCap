@@ -9,18 +9,23 @@
 
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace FlashCap.FrameProcessors
 {
-    internal abstract class ConstraintPixelBufferProcessor : FrameProcessor
+    internal abstract class IgnoreDroppingProcessor : FrameProcessor
     {
         private readonly PixelBuffer buffer = new();
         private readonly WaitCallback pixelBufferArrivedEntry;
         private volatile int isin;
 
-        protected ConstraintPixelBufferProcessor() =>
+        protected IgnoreDroppingProcessor() =>
             this.pixelBufferArrivedEntry = this.PixelBufferArrivedEntry;
+
+        public override void Dispose()
+        {
+        }
 
         public override sealed void OnFrameArrived(
             CaptureDevice captureDevice,
@@ -28,8 +33,10 @@ namespace FlashCap.FrameProcessors
         {
             if (Interlocked.Increment(ref isin) == 1)
             {
-                captureDevice.Capture(
-                    pData, size, timestampMicroseconds, this.buffer);
+                this.Capture(
+                    captureDevice,
+                    pData, size, timestampMicroseconds,
+                    this.buffer);
 
                 ThreadPool.QueueUserWorkItem(
                     this.pixelBufferArrivedEntry, this.buffer);
@@ -40,18 +47,21 @@ namespace FlashCap.FrameProcessors
             }
         }
 
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
         protected void Finished() =>
             Interlocked.Decrement(ref isin);
 
         protected abstract void PixelBufferArrivedEntry(object? parameter);
     }
 
-    internal sealed class DelegatedConstraintPixelBufferProcessor :
-        ConstraintPixelBufferProcessor
+    internal sealed class DelegatedIgnoreDroppingProcessor :
+        IgnoreDroppingProcessor
     {
         private readonly PixelBufferArrivedDelegate pixelBufferArrived;
 
-        public DelegatedConstraintPixelBufferProcessor(
+        public DelegatedIgnoreDroppingProcessor(
             PixelBufferArrivedDelegate pixelBufferArrived) =>
             this.pixelBufferArrived = pixelBufferArrived;
 
@@ -70,12 +80,12 @@ namespace FlashCap.FrameProcessors
     }
 
 #if NET40_OR_GREATER || NETSTANDARD || NETCOREAPP
-    internal sealed class DelegatedConstraintPixelBufferTaskProcessor :
-        ConstraintPixelBufferProcessor
+    internal sealed class DelegatedIgnoreDroppingTaskProcessor :
+        IgnoreDroppingProcessor
     {
         private readonly PixelBufferArrivedTaskDelegate pixelBufferArrived;
 
-        public DelegatedConstraintPixelBufferTaskProcessor(
+        public DelegatedIgnoreDroppingTaskProcessor(
             PixelBufferArrivedTaskDelegate pixelBufferArrived) =>
             this.pixelBufferArrived = pixelBufferArrived;
 
@@ -95,12 +105,12 @@ namespace FlashCap.FrameProcessors
     }
 
 #if NETSTANDARD2_1 || NETCOREAPP2_1_OR_GREATER
-    internal sealed class DelegatedConstraintPixelBufferValueTaskProcessor :
-        ConstraintPixelBufferProcessor
+    internal sealed class DelegatedIgnoreDroppingValueTaskProcessor :
+        IgnoreDroppingProcessor
     {
         private readonly PixelBufferArrivedValueTaskDelegate pixelBufferArrived;
 
-        public DelegatedConstraintPixelBufferValueTaskProcessor(
+        public DelegatedIgnoreDroppingValueTaskProcessor(
             PixelBufferArrivedValueTaskDelegate pixelBufferArrived) =>
             this.pixelBufferArrived = pixelBufferArrived;
 

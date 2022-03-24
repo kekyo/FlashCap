@@ -10,22 +10,42 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace FlashCap.FrameProcessors
 {
-    internal abstract class QueuingPixelBufferProcessor :
+    internal abstract class QueuingProcessor :
         FrameProcessor
     {
         private readonly Stack<PixelBuffer> reserver = new();
         private readonly Queue<PixelBuffer> queue = new();
-        private readonly ManualResetEventSlim arrived = new(false);
-        private readonly Thread thread;
+        private ManualResetEventSlim arrived = new(false);
+        private ManualResetEventSlim abort = new(false);
+        private Thread thread;
 
-        protected QueuingPixelBufferProcessor()
+        protected QueuingProcessor()
         {
             this.thread = new Thread(this.ThreadEntry);
             this.thread.Start();
+        }
+
+        public override void Dispose()
+        {
+            if (this.thread != null)
+            {
+                this.abort.Set();
+                this.thread.Join();
+
+                this.reserver.Clear();
+                this.queue.Clear();
+
+                this.abort.Dispose();
+                this.abort = null!;
+                this.arrived.Dispose();
+                this.arrived = null!;
+                this.thread = null!;
+            }
         }
 
         public override sealed void OnFrameArrived(
@@ -45,8 +65,10 @@ namespace FlashCap.FrameProcessors
                 buffer = new PixelBuffer();
             }
 
-            captureDevice.Capture(
-                pData, size, timestampMicroseconds, buffer);
+            this.Capture(
+                captureDevice,
+                pData, size, timestampMicroseconds,
+                buffer);
 
             lock (this.queue)
             {
@@ -72,10 +94,15 @@ namespace FlashCap.FrameProcessors
                 }
             }
 
+            var handles = new[] { this.abort.WaitHandle, this.arrived.WaitHandle };
+
             while (true)
             {
-                // TODO: abort
-                this.arrived.Wait();
+                var index = WaitHandle.WaitAny(handles);
+                if (index == 0)
+                {
+                    return null;
+                }
 
                 lock (this.queue)
                 {
@@ -92,6 +119,9 @@ namespace FlashCap.FrameProcessors
             }
         }
 
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
         protected void Reserve(PixelBuffer buffer)
         {
             lock (this.reserver)
@@ -103,12 +133,12 @@ namespace FlashCap.FrameProcessors
         protected abstract void ThreadEntry();
     }
 
-    internal sealed class DelegatedQueuingPixelBufferProcessor :
-        QueuingPixelBufferProcessor
+    internal sealed class DelegatedQueuingProcessor :
+        QueuingProcessor
     {
         private readonly PixelBufferArrivedDelegate pixelBufferArrived;
 
-        public DelegatedQueuingPixelBufferProcessor(
+        public DelegatedQueuingProcessor(
             PixelBufferArrivedDelegate pixelBufferArrived) =>
             this.pixelBufferArrived = pixelBufferArrived;
 
@@ -143,12 +173,12 @@ namespace FlashCap.FrameProcessors
     }
 
 #if NET40_OR_GREATER || NETSTANDARD || NETCOREAPP
-    internal sealed class DelegatedQueuingPixelBufferTaskProcessor :
-        QueuingPixelBufferProcessor
+    internal sealed class DelegatedQueuingTaskProcessor :
+        QueuingProcessor
     {
         private readonly PixelBufferArrivedTaskDelegate pixelBufferArrived;
 
-        public DelegatedQueuingPixelBufferTaskProcessor(
+        public DelegatedQueuingTaskProcessor(
             PixelBufferArrivedTaskDelegate pixelBufferArrived) =>
             this.pixelBufferArrived = pixelBufferArrived;
 
@@ -175,12 +205,12 @@ namespace FlashCap.FrameProcessors
     }
 
 #if NETSTANDARD2_1 || NETCOREAPP2_1_OR_GREATER
-    internal sealed class DelegatedQueuingPixelBufferValueTaskProcessor :
-        QueuingPixelBufferProcessor
+    internal sealed class DelegatedQueuingValueTaskProcessor :
+        QueuingProcessor
     {
         private readonly PixelBufferArrivedValueTaskDelegate pixelBufferArrived;
 
-        public DelegatedQueuingPixelBufferValueTaskProcessor(
+        public DelegatedQueuingValueTaskProcessor(
             PixelBufferArrivedValueTaskDelegate pixelBufferArrived) =>
             this.pixelBufferArrived = pixelBufferArrived;
 

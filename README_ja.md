@@ -79,26 +79,20 @@ foreach (var descriptor in devices.EnumerateDescriptors())
 var descriptor0 = devices.EnumerateDescriptors().ElementAt(0);
 
 using var device = descriptor0.Open(
-    descriptor0.Characteristics[0])
+    descriptor0.Characteristics[0],
+    async buffer =>
+    {
+        // ピクセルバッファにキャプチャされている:
 
-// ピクセルバッファを予約します:
-var buffer = new PixelBuffer();
+        // イメージデータを取得 (恐らくDIB/Jpeg/PNGフォーマットのバイナリ):
+        byte[] image = buffer.ExtractImage();
 
-// フレーム到着イベントをフックします:
-device.FrameArrived += (s, e) =>
-{
-    // ピクセルバッファにフレームをキャプチャします:
-    device.Capture(e, buffer);
+        // 後はお好きに...
+        var ms = new MemoryStream(image);
+        var bitmap = Bitmap.FromStream(ms);
 
-    // 画像データのバイナリを取得します:
-    byte[] image = buffer.ExtractImage();
-
-    // 画像データを何かに使う...
-    var ms = new MemoryStream(image);
-    var bitmap = Bitmap.FromStream(ms);
-
-    // ...
-};
+        // ...
+    });
 
 // 処理を開始:
 device.Start();
@@ -130,6 +124,9 @@ AvaloniaはSkiaを使ったレンダラーを使用しています。かなり�
 ---
 
 ## FrameArrivedイベントについて
+
+TODO: rewrite to what is handler strategies.
+
 
 `FrameArrived`イベントは、画像データをキャプチャできる状態になったときに発生します。
 
@@ -227,6 +224,9 @@ device.FrameArrived += (s, e) =>
 ---
 
 ## ピクセルバッファをマスターする (Advanced topic)
+
+TODO: rewrite to what is frame processor.
+
 
 ピクセルバッファ（`PixelBuffer`クラス）は、
 画像データの割り当てとバッファリングを制御します。

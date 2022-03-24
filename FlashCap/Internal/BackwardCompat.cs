@@ -340,6 +340,9 @@ namespace System.Threading
         public void Dispose() =>
             this.mre.Close();
 
+        public WaitHandle WaitHandle =>
+            this.mre;
+
         public void Set() =>
             this.mre.Set();
 

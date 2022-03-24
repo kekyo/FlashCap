@@ -79,26 +79,20 @@ Then, capture it:
 var descriptor0 = devices.EnumerateDescriptors().ElementAt(0);
 
 using var device = descriptor0.Open(
-    descriptor0.Characteristics[0])
+    descriptor0.Characteristics[0],
+    async buffer =>
+    {
+        // Captured into a pixel buffer.
 
-// Reserved pixel buffer:
-var buffer = new PixelBuffer();
+        // Get image data (Maybe DIB/Jpeg/PNG):
+        byte[] image = buffer.ExtractImage();
 
-// Hook frame arrived event:
-device.FrameArrived += (s, e) =>
-{
-    // Capture a frame into pixel buffer:
-    device.Capture(e, buffer);
+        // Anything use of it...
+        var ms = new MemoryStream(image);
+        var bitmap = Bitmap.FromStream(ms);
 
-    // Get image data binary:
-    byte[] image = buffer.ExtractImage();
-
-    // Anything use of it:
-    var ms = new MemoryStream(image);
-    var bitmap = Bitmap.FromStream(ms);
-
-    // ...
-};
+        // ...
+    });
 
 // Start processing:
 device.Start();
@@ -130,6 +124,9 @@ Avalonia is using renderer with Skia. It is pretty fast.
 ---
 
 ## About FrameArrived event
+
+TODO: rewrite to what is handler strategies.
+
 
 `FrameArrived` event is fired when the image data is ready to be captured.
 
@@ -227,6 +224,9 @@ In other words, the `FrameArrived` event is ignored during this time.
 ---
 
 ## Master for pixel buffer (Advanced topic)
+
+TODO: rewrite to what is frame processor.
+
 
 Pixel buffer (`PixelBuffer` class) is controlled about
 image data allocation and buffering.

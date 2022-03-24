@@ -18,11 +18,5 @@ namespace FlashCap
 
         void Start();
         void Stop();
-
-        void Capture(
-            IntPtr pData,
-            int size,
-            long timestampMicroseconds,
-            PixelBuffer buffer);
     }
 }

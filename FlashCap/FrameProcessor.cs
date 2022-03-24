@@ -8,14 +8,26 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using System;
+using System.Runtime.CompilerServices;
 
-namespace FlashCap.FrameProcessors
+namespace FlashCap
 {
-    public abstract class FrameProcessor
+    public abstract class FrameProcessor : IDisposable
     {
         protected FrameProcessor()
         {
         }
+
+        public virtual void Dispose()
+        {
+        }
+
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+        protected void Capture(CaptureDevice captureDevice,
+            IntPtr pData, int size, long timestampMicroseconds, PixelBuffer buffer) =>
+            captureDevice.InternalOnCapture(pData, size, timestampMicroseconds, buffer);
 
         public abstract void OnFrameArrived(
             CaptureDevice captureDevice,

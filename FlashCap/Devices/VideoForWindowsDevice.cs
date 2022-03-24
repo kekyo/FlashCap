@@ -7,10 +7,10 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-using FlashCap.FrameProcessors;
 using FlashCap.Internal;
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace FlashCap.Devices
@@ -173,7 +173,10 @@ namespace FlashCap.Devices
                 NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
             }, null);
 
-        public override void Capture(
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+        protected override void OnCapture(
             IntPtr pData, int size, long timestampMilliseconds,
             PixelBuffer buffer) =>
             buffer.CopyIn(this.pBih, pData, size, timestampMilliseconds, this.transcodeIfYUV);
