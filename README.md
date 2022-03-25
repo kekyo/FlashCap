@@ -106,7 +106,7 @@ Then, capture it:
 // Open a device with a video characteristics:
 var descriptor0 = devices.EnumerateDescriptors().ElementAt(0);
 
-using var device = descriptor0.Open(
+using var device = await descriptor0.OpenAsync(
     descriptor0.Characteristics[0],
     async buffer =>
     {

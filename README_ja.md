@@ -106,7 +106,7 @@ foreach (var descriptor in devices.EnumerateDescriptors())
 // 映像特性を指定して、デバイスを開きます:
 var descriptor0 = devices.EnumerateDescriptors().ElementAt(0);
 
-using var device = descriptor0.Open(
+using var device = await descriptor0.OpenAsync(
     descriptor0.Characteristics[0],
     async buffer =>
     {
@@ -192,9 +192,13 @@ reserver.Push(buffer);
 
 ```csharp
 // トランスコーダを無効にしてデバイスを開く:
-using var device = descriptor0.Open(
+using var device = await descriptor0.OpenAsync(
     descriptor0.Characteristics[0],
-    false);    // transcodeIfYUV == false
+    false,   // transcodeIfYUV == false
+    async bufer =>
+    {
+        // ...
+    });
 
 // ...
 ```
