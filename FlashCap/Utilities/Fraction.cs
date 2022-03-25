@@ -102,6 +102,16 @@ namespace FlashCap.Utilities
         public Fraction Reciprocal() =>
             new(this.Denominator, this.Numerator);
 
+        private void Prepare(in Fraction rhs,
+            out long pd, out long tn, out long rn)
+        {
+            pd = lcm(this.Denominator, rhs.Denominator);
+            var tm = pd / this.Denominator;
+            var rm = pd / rhs.Denominator;
+            tn = this.Numerator * tm;
+            rn = rhs.Numerator * rm;
+        }
+
         /// <summary>
         /// Add fraction number.
         /// </summary>
@@ -120,11 +130,7 @@ namespace FlashCap.Utilities
                 Debug.Assert(rhs.Numerator == 0);
                 return rhs;
             }
-            var pd = lcm(this.Denominator, rhs.Denominator);
-            var tm = pd / this.Denominator;
-            var rm = pd / rhs.Denominator;
-            var tn = this.Numerator * tm;
-            var rn = rhs.Numerator * rm;
+            this.Prepare(in rhs, out var pd, out var tn, out var rn);
             var pn = tn + rn;
             return reduce ? Reduce(pn, pd) : new Fraction((int)pn, (int)pd);
         }
@@ -140,6 +146,29 @@ namespace FlashCap.Utilities
             var pn = (long)this.Numerator * rhs.Numerator;
             var pd = (long)this.Denominator * rhs.Denominator;
             return reduce ? Reduce(pn, pd) : new Fraction((int)pn, (int)pd);
+        }
+
+        /// <summary>
+        /// Modulo fraction number.
+        /// </summary>
+        /// <param name="rhs">Fraction</param>
+        /// <param name="reduce">Perform reducing fraction when calculated</param>
+        /// <returns>Calculated fraction</returns>
+        public Fraction Mod(Fraction rhs, bool reduce = true)
+        {
+            if (this.Denominator == 0)
+            {
+                Debug.Assert(this.Numerator == 0);
+                return rhs;
+            }
+            if (rhs.Denominator == 0)
+            {
+                Debug.Assert(rhs.Numerator == 0);
+                return rhs;
+            }
+            this.Prepare(in rhs, out var pd, out var tn, out var rn);
+            var m = tn % rn;
+            return reduce ? Reduce(m, pd) : new Fraction((int)m, (int)pd);
         }
 
         /// <summary>
@@ -267,6 +296,14 @@ namespace FlashCap.Utilities
         /// <returns>Fraction</returns>
         public static Fraction operator /(Fraction lhs, Fraction rhs) =>
             lhs.Mult(rhs.Reciprocal());
+        /// <summary>
+        /// Modulo fraction number.
+        /// </summary>
+        /// <param name="lhs">Fraction number</param>
+        /// <param name="rhs">Fraction number</param>
+        /// <returns>Fraction</returns>
+        public static Fraction operator %(Fraction lhs, Fraction rhs) =>
+            lhs.Mod(rhs);
 
         /// <summary>
         /// Compare equality.

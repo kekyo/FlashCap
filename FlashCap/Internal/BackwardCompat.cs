@@ -27,6 +27,23 @@ namespace System
     internal delegate TR Func<T0, TR>(T0 arg0);
 }
 
+namespace System.Collections.Generic
+{
+    internal sealed class HashSet<T> : IEnumerable<T>
+    {
+        private readonly Dictionary<T, bool> inner = new();
+
+        public void Add(T value) =>
+            this.inner.Add(value, true);
+
+        public IEnumerator<T> GetEnumerator() =>
+            this.inner.Keys.GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() =>
+            this.inner.Keys.GetEnumerator();
+    }
+}
+
 namespace System.Linq
 {
     internal static partial class Enumerable

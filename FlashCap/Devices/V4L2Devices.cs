@@ -52,24 +52,18 @@ namespace FlashCap.Devices
             SelectMany(frmsizeenum =>
             {
                 static IEnumerable<NativeMethods_V4L2.v4l2_frmsize_discrete> EnumerateStepWise(
-                    NativeMethods_V4L2.v4l2_frmsize_stepwise stepwise)
-                {
-                    for (var height = stepwise.min_height;
-                         height <= stepwise.max_height;
-                         height += stepwise.step_height)
-                    {
-                        for (var width = stepwise.min_width;
-                             width <= stepwise.max_width;
-                             width += stepwise.step_width)
-                        {
-                            yield return new NativeMethods_V4L2.v4l2_frmsize_discrete
-                            {
-                                width = width,
-                                height = height,
-                            };
-                        }
-                    }
-                }
+                    NativeMethods_V4L2.v4l2_frmsize_stepwise stepwise) =>
+                    NativeMethods.DefactoStandardResolutions.
+                        Where(r =>
+                            r.Width >= stepwise.min_width &&
+                            r.Width <= stepwise.max_height &&
+                            (r.Width - stepwise.min_width % stepwise.step_width) == 0 &&
+                            r.Height >= stepwise.min_height &&
+                            r.Height <= stepwise.max_height &&
+                            (r.Height - stepwise.min_height % stepwise.step_height) == 0).
+                        OrderByDescending(r => r).
+                        Select(r => new NativeMethods_V4L2.v4l2_frmsize_discrete
+                            { width = r.Width, height = r.Height });
 
                 static IEnumerable<NativeMethods_V4L2.v4l2_frmsize_discrete> EnumerateContinuous(
                     NativeMethods_V4L2.v4l2_frmsize_stepwise stepwise) =>
@@ -79,6 +73,7 @@ namespace FlashCap.Devices
                             r.Width <= stepwise.max_height &&
                             r.Height >= stepwise.min_height &&
                             r.Height <= stepwise.max_height).
+                        OrderByDescending(r => r).
                         Select(r => new NativeMethods_V4L2.v4l2_frmsize_discrete
                             { width = r.Width, height = r.Height });
 
@@ -117,23 +112,14 @@ namespace FlashCap.Devices
                 static IEnumerable<Fraction> EnumerateStepWise(
                     NativeMethods_V4L2.v4l2_frmival_stepwise stepwise)
                 {
-                    var minfract = new Fraction(
-                        stepwise.min.denominator, stepwise.min.numerator);
-                    var maxfract = new Fraction(
-                        stepwise.max.denominator, stepwise.max.numerator);
-                    var stepfract = new Fraction(
-                        stepwise.step.denominator, stepwise.step.numerator);
-                    var index = 0;
-                    while (true)
-                    {
-                        var fract = minfract + stepfract * index;
-                        if (fract > maxfract)
-                        {
-                            break;
-                        }
-                        yield return fract;
-                        index++;
-                    }
+                    var min = new Fraction(stepwise.min.denominator, stepwise.min.numerator);
+                    var max = new Fraction(stepwise.max.denominator, stepwise.max.numerator);
+                    var step = new Fraction(stepwise.step.denominator, stepwise.step.numerator);
+                    return NativeMethods.DefactoStandardFramesPerSecond.
+                        Where(fps =>
+                            fps >= min && fps <= max &&
+                            ((fps - min) % step) == 0).
+                        OrderByDescending(fps => fps);
                 }
 
                 static IEnumerable<Fraction> EnumerateContinuous(
@@ -142,7 +128,8 @@ namespace FlashCap.Devices
                     var min = new Fraction(stepwise.min.denominator, stepwise.min.numerator);
                     var max = new Fraction(stepwise.max.denominator, stepwise.max.numerator);
                     return NativeMethods.DefactoStandardFramesPerSecond.
-                        Where(fps => fps >= min && fps <= max);
+                        Where(fps => fps >= min && fps <= max).
+                        OrderByDescending(fps => fps);
                 }
 
                 var fie = frmivalenum!.Value;

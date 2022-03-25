@@ -8,6 +8,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security;
@@ -310,7 +311,8 @@ namespace FlashCap.Internal
         ////////////////////////////////////////////////////////////////////////
 
         // https://en.wikipedia.org/wiki/Computer_display_standard
-        public readonly struct Resolution
+        public readonly struct Resolution :
+            IEquatable<Resolution>, IComparable<Resolution>
         {
             public readonly int Width;
             public readonly int Height;
@@ -323,9 +325,28 @@ namespace FlashCap.Internal
 
             public static Resolution Create(int width, int height) =>
                 new Resolution(width, height);
+
+            public override int GetHashCode() =>
+                this.Width.GetHashCode() ^
+                this.Height.GetHashCode();
+
+            public bool Equals(Resolution other) =>
+                this.Width.Equals(other.Width) &&
+                this.Height.Equals(other.Height);
+
+            public override bool Equals(object? obj) =>
+                obj is Resolution other &&
+                this.Equals(other);
+
+            public int CompareTo(Resolution other) =>
+                (this.Width * this.Height).
+                CompareTo(other.Width * other.Height);
+
+            public override string ToString() =>
+                $"{this.Width},{this.Height}";
         }
         
-        public static readonly Resolution[] DefactoStandardResolutions = new[]
+        public static readonly HashSet<Resolution> DefactoStandardResolutions = new()
         {
             Resolution.Create(10240, 4320),
             Resolution.Create(7680, 4800),
@@ -399,7 +420,7 @@ namespace FlashCap.Internal
             Resolution.Create(160, 120),
         };
  
-        public static readonly Fraction[] DefactoStandardFramesPerSecond = new[]
+        public static readonly HashSet<Fraction> DefactoStandardFramesPerSecond = new()
         {
             Fraction.Create(120),
             Fraction.Create(120000, 1001),
