@@ -14,9 +14,9 @@ using System.Text;
 
 namespace FlashCap.Devices
 {
-    public sealed class VideoForWindowsDevices : ICaptureDevices
+    public sealed class VideoForWindowsDevices : CaptureDevices
     {
-        public IEnumerable<ICaptureDeviceDescriptor> EnumerateDescriptors() =>
+        public override IEnumerable<CaptureDeviceDescriptor> EnumerateDescriptors() =>
             Enumerable.Range(0, NativeMethods_VideoForWindows.MaxVideoForWindowsDevices).
             Collect(index =>
             {
@@ -29,7 +29,7 @@ namespace FlashCap.Devices
                     var n = name.ToString().Trim();
                     var d = description.ToString().Trim();
 
-                    return (ICaptureDeviceDescriptor)new VideoForWindowsDeviceDescriptor(   // Requires casting on net20
+                    return (CaptureDeviceDescriptor)new VideoForWindowsDeviceDescriptor(   // Requires casting on net20
                         index,
                         string.IsNullOrEmpty(n) ? "Default" : n,
                         string.IsNullOrEmpty(d) ? "VideoForWindows default" : d,

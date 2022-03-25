@@ -7,6 +7,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.Synchronized;
 using FlashCap.Utilities;
 using System;
 using System.Drawing;
@@ -17,15 +18,8 @@ namespace FlashCap.WindowsForms
 {
     public partial class MainForm : Form
     {
-        // Execute with limited only 1 task. (using FlashCap.Utilities)
-        private LimitedExecutor limitedExecutor = new();
-
         // Constructed capture device.
-        private ICaptureDevice? captureDevice;
-
-        // Preallocated pixel buffer.
-        private PixelBuffer buffer = new();
-
+        private CaptureDevice captureDevice;
 
         public MainForm() =>
             InitializeComponent();
@@ -44,7 +38,8 @@ namespace FlashCap.WindowsForms
                 ToArray();
 
             // Use first device.
-            if (descriptors.ElementAtOrDefault(0) is { } descriptor0)
+            var descriptor0 = descriptors.ElementAtOrDefault(0);
+            if (descriptor0 != null)
             {
 #if false
                 // Request video characteristics strictly:
@@ -61,57 +56,44 @@ namespace FlashCap.WindowsForms
                 this.characteristicsLabel.Text = characteristics.ToString();
 
                 // Open capture device:
-                this.captureDevice = descriptor0.Open(characteristics);
-
-                // Hook frame arrived event:
-                this.captureDevice.FrameArrived += this.OnFrameArrived!;
+                // (Non asynchronous version, using FlashCap.Synchronized)
+                this.captureDevice = descriptor0.Open(
+                    characteristics,
+                    this.OnPixelBufferArrived);
 
                 // Start capturing.
                 this.captureDevice.Start();
             }
         }
 
-        private void OnFrameArrived(object sender, FrameArrivedEventArgs e)
+        private void OnPixelBufferArrived(PixelBuffer buffer)
         {
             ////////////////////////////////////////////////
-            // Image frame has arrived
-
-            // Windows Forms is too slow, so there's making throttle with LimitedExecutor class.
-            this.limitedExecutor.ExecuteAndOffload(
-
-                // Step 1. Just now section:
-                //   Capture into a pixel buffer:
-                () => this.captureDevice?.Capture(e, this.buffer),
-
-                // Step 2. Offloaded section:
-                //   Caution: Offloaded section is on the worker thread context.
-                //   You have to switch main thread context before manipulates user interface.
-                () =>
-                {
+            // Pixel buffer has arrived.
+            // NOTE: Perhaps this thread context is NOT UI thread.
 #if false
-                    // Get image data binary:
-                    byte[] image = this.buffer.ExtractImage();
+            // Get image data binary:
+            byte[] image = buffer.ExtractImage();
 #else
-                    // Or, refer image data binary directly.
-                    // (Advanced manipulation, see README.)
-                    ArraySegment<byte> image = this.buffer.ReferImage();
+            // Or, refer image data binary directly.
+            // (Advanced manipulation, see README.)
+            ArraySegment<byte> image = buffer.ReferImage();
 #endif
-                    // Convert to Stream (using FlashCap.Utilities)
-                    using var stream = image.AsStream();
+            // Convert to Stream (using FlashCap.Utilities)
+            using (var stream = image.AsStream())
+            {
+                // Decode image data to a bitmap:
+                var bitmap = Image.FromStream(stream);
 
-                    // Decode image data to a bitmap:
-                    var bitmap = Image.FromStream(stream);
-
+                try
+                {
                     // Switch to UI thread:
-                    // NOTE: WinForms sometimes will raise ObjectDisposedException in shutdown sequence.
-                    // Because it is race condition between this thread context and UI thread context.
-                    // We can safely ignore when terminating user interface.
-                    // (Or you can dodge it with graceful shutdown technics.)
-                    this.Invoke(() =>
+                    this.Invoke(new Action(() =>
                     {
                         // HACK: on .NET Core, will be leaked (or delayed GC?)
                         //   So we could release manually before updates.
-                        if (this.BackgroundImage is { } oldImage)
+                        var oldImage = this.BackgroundImage;
+                        if (oldImage != null)
                         {
                             this.BackgroundImage = null;
                             oldImage.Dispose();
@@ -119,8 +101,16 @@ namespace FlashCap.WindowsForms
 
                         // Update a bitmap.
                         this.BackgroundImage = bitmap;
-                    });
-                });
+                    }));
+                }
+                catch (ObjectDisposedException)
+                {
+                    // NOTE: WinForms sometimes will raise ObjectDisposedException in shutdown sequence.
+                    // Because it is race condition between this thread context and UI thread context.
+                    // We can safely ignore when terminating user interface.
+                    // (Or you can avoid it with graceful shutdown technics.)
+                }
+            }
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)

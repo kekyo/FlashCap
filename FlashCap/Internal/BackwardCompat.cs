@@ -10,7 +10,7 @@
 using FlashCap.Internal;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 #if NET20
 namespace System.Runtime.CompilerServices
@@ -23,6 +23,7 @@ namespace System.Runtime.CompilerServices
 namespace System
 {
     internal delegate void Action();
+    internal delegate void Action<T0, T1, T2>(T0 arg0, T1 arg1, T2 arg2);
     internal delegate TR Func<T0, TR>(T0 arg0);
 }
 
@@ -160,6 +161,9 @@ namespace System
             public static readonly T[] Empty = new T[0];
         }
 
+#if NET45
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
         public static T[] Empty<T>() =>
             EmptyArray<T>.Empty;
     }
@@ -169,6 +173,9 @@ namespace System
 {
     internal static class ArrayEx
     {
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
         public static T[] Empty<T>() =>
             Array.Empty<T>();
     }
@@ -223,6 +230,7 @@ namespace System.Diagnostics
 {
     internal static class Trace
     {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void WriteLine(object? obj) =>
             Debug.WriteLine(obj);
     }
@@ -303,6 +311,20 @@ namespace System.Threading
 }
 #endif
 
+#if !(NET20 || NET35 || NET40)
+namespace System.Threading.Tasks
+{
+    internal static class TaskEx
+    {
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+        public static Task<T> FromResult<T>(T value) =>
+            Task.FromResult(value);
+    }
+}
+#endif
+
 #if NET20 || NET35 || NET40
 namespace System.Runtime.ExceptionServices
 {
@@ -326,7 +348,7 @@ namespace System.Runtime.ExceptionServices
 }
 #endif
 
-#if NET20 || NET35
+#if NET20
 namespace System.Threading
 {
     internal sealed class ManualResetEventSlim : IDisposable
@@ -339,8 +361,14 @@ namespace System.Threading
         public void Dispose() =>
             this.mre.Close();
 
+        public WaitHandle WaitHandle =>
+            this.mre;
+
         public void Set() =>
             this.mre.Set();
+
+        public void Reset() =>
+            this.mre.Reset();
 
         public void Wait() =>
             this.mre.WaitOne();
@@ -348,7 +376,7 @@ namespace System.Threading
 }
 #endif
 
-#if NET20 || NET35 || NETSTANDARD1_3
+#if NET20 || NETSTANDARD1_3
 namespace System.Threading.Tasks
 {
     internal static class Parallel

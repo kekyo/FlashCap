@@ -10,30 +10,34 @@
 using FlashCap.Internal;
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace FlashCap.Devices
 {
-    public sealed class VideoForWindowsDevice : ICaptureDevice
+    public sealed class VideoForWindowsDevice : CaptureDevice
     {
         private readonly int deviceIndex;
         private readonly bool transcodeIfYUV;
+        private readonly FrameProcessor frameProcessor;
+        private readonly TimestampCounter counter = new();
 
         private IndependentSingleApartmentContext? workingContext = new();
         private IntPtr handle;
         private GCHandle thisPin;
         private NativeMethods_VideoForWindows.CAPVIDEOCALLBACK? callback;
         private IntPtr pBih;
-        private FrameArrivedEventArgs? e = new();
 
         internal unsafe VideoForWindowsDevice(
             int deviceIndex,
             VideoCharacteristics characteristics,
-            bool transcodeIfYUV)
+            bool transcodeIfYUV,
+            FrameProcessor frameProcessor)
         {
             this.deviceIndex = deviceIndex;
             this.Characteristics = characteristics;
             this.transcodeIfYUV = transcodeIfYUV;
+            this.frameProcessor = frameProcessor;
 
             if (!NativeMethods.GetCompressionAndBitCount(
                 characteristics.PixelFormat, out var compression, out var bitCount))
@@ -114,16 +118,17 @@ namespace FlashCap.Devices
             }, null);
         }
 
-        ~VideoForWindowsDevice() =>
-            this.Dispose();
-
-        public void Dispose()
+        protected override void Dispose(bool disposing)
         {
+            // This class will only collect when explicitly disposing.
+            // Because it holds by objref pinning on running state.
+
             if (this.handle != IntPtr.Zero)
             {
                 this.workingContext!.Send(_ =>
                 {
-                    this.Stop();
+                    NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
+                    this.IsRunning = false;
                     NativeMethods_VideoForWindows.capSetCallbackFrame(this.handle, null);
                     NativeMethods_VideoForWindows.capDriverDisconnect(this.handle, this.deviceIndex);
                     NativeMethods_VideoForWindows.DestroyWindow(this.handle);
@@ -132,8 +137,6 @@ namespace FlashCap.Devices
                     this.callback = null;
                     NativeMethods.FreeMemory(this.pBih);
                     this.pBih = IntPtr.Zero;
-                    this.FrameArrived = null;
-                    this.e = null;
                 }, null);
 
                 this.workingContext.Dispose();
@@ -141,50 +144,65 @@ namespace FlashCap.Devices
             }
         }
 
-        public VideoCharacteristics Characteristics { get; }
-        public bool IsRunning { get; private set; }
-
-        public event EventHandler<FrameArrivedEventArgs>? FrameArrived;
-
-        private void CallbackEntry(IntPtr hWnd, in NativeMethods_VideoForWindows.VIDEOHDR hdr)
+        private void CallbackEntry(
+            IntPtr hWnd, in NativeMethods_VideoForWindows.VIDEOHDR hdr)
         {
-            if (this.FrameArrived is { } fa)
+            // HACK: Avoid stupid camera devices...
+            if (hdr.dwBytesUsed >= 64)
             {
-                // HACK: Dodge stupid camera devices...
-                if (hdr.dwBytesUsed >= 64)
+                try
                 {
-                    try
-                    {
-                        // TODO: dwTimeCaptured always zero??
-                        e!.Update(hdr.lpData, hdr.dwBytesUsed, hdr.dwTimeCaptured);
-                        fa(this, e);
-                    }
-                    // DANGER: Stop leaking exception around outside of unmanaged area...
-                    catch (Exception ex)
-                    {
-                        Trace.WriteLine(ex);
-                    }
+                    this.frameProcessor.OnFrameArrived(
+                        this,
+                        hdr.lpData, hdr.dwBytesUsed,
+                        // HACK: `hdr.dwTimeCaptured` always zero on my environment...
+                        this.counter.ElapsedMicroseconds);
+                }
+                // DANGER: Stop leaking exception around outside of unmanaged area...
+                catch (Exception ex)
+                {
+                    Trace.WriteLine(ex);
                 }
             }
         }
 
-        public void Start() =>
-            this.workingContext!.Send(_ =>
+        public override void Start()
+        {
+            lock (this)
             {
-                NativeMethods_VideoForWindows.capShowPreview(this.handle, true);
-                this.IsRunning = true;
-            }, null);
+                if (!this.IsRunning)
+                {
+                    this.workingContext!.Send(_ =>
+                    {
+                        this.counter.Restart();
+                        NativeMethods_VideoForWindows.capShowPreview(this.handle, true);
+                    }, null);
+                    this.IsRunning = true;
+                }
+            }
+        }
 
-        public void Stop() =>
-            this.workingContext!.Send(_ =>
+        public override void Stop()
+        {
+            lock (this)
             {
-                this.IsRunning = false;
-                NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
-            }, null);
+                if (this.IsRunning)
+                {
+                    this.IsRunning = false;
+                    this.workingContext!.Send(_ =>
+                    {
+                        NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
+                    }, null);
+                }
+            }
+        }
 
-        public void Capture(FrameArrivedEventArgs e, PixelBuffer buffer) =>
-            buffer.CopyIn(
-                this.pBih, e.pData, e.size,
-                e.timestampMilliseconds, this.transcodeIfYUV);
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+        protected override void OnCapture(
+            IntPtr pData, int size, double timestampMicroseconds,
+            PixelBuffer buffer) =>
+            buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, this.transcodeIfYUV);
     }
 }

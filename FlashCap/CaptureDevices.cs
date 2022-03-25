@@ -15,9 +15,9 @@ using System.Linq;
 
 namespace FlashCap
 {
-    public sealed class CaptureDevices : ICaptureDevices
+    public class CaptureDevices
     {
-        public IEnumerable<ICaptureDeviceDescriptor> EnumerateDescriptors() =>
+        public virtual IEnumerable<CaptureDeviceDescriptor> EnumerateDescriptors() =>
             NativeMethods.CurrentPlatform switch
             {
                 NativeMethods.Platforms.Windows =>

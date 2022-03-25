@@ -11,30 +11,27 @@ using FlashCap.Internal;
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using FlashCap.Utilities;
 
 namespace FlashCap.Devices
 {
-    public sealed class DirectShowDevice : ICaptureDevice
+    public sealed class DirectShowDevice :
+        CaptureDevice
     {
         private sealed class SampleGrabberSink :
-            NativeMethods_DirectShow.ISampleGrabberCB, IDisposable
+            NativeMethods_DirectShow.ISampleGrabberCB
         {
-            private DirectShowDevice? parent;
-            private FrameArrivedEventArgs? e = new();
+            private DirectShowDevice parent;
+            private FrameProcessor frameProcessor;
 
-            public SampleGrabberSink(DirectShowDevice parent) =>
-                this.parent = parent;
-
-            public void Dispose()
+            public SampleGrabberSink(
+                DirectShowDevice parent,
+                FrameProcessor frameProcessor)
             {
-                this.FrameArrived = null;
-                this.e = null;
-                this.parent = null;
+                this.parent = parent;
+                this.frameProcessor = frameProcessor;
             }
-
-            public event EventHandler<FrameArrivedEventArgs>? FrameArrived;
 
             // whichMethodToCallback: 0
             [PreserveSig] public int SampleCB(
@@ -45,21 +42,19 @@ namespace FlashCap.Devices
             [PreserveSig] public int BufferCB(
                 double sampleTime, IntPtr pBuffer, int bufferLen)
             {
-                if (this.FrameArrived is { } fa)
+                // HACK: Avoid stupid camera devices...
+                if (bufferLen >= 64)
                 {
-                    // HACK: Dodge stupid camera devices...
-                    if (bufferLen >= 64)
+                    try
                     {
-                        try
-                        {
-                            e!.Update(pBuffer, bufferLen, sampleTime * 1000);
-                            fa(this.parent, e);
-                        }
-                        // DANGER: Stop leaking exception around outside of unmanaged area...
-                        catch (Exception ex)
-                        {
-                            Trace.WriteLine(ex);
-                        }
+                        this.frameProcessor.OnFrameArrived(
+                            this.parent, pBuffer, bufferLen,
+                            (long)(sampleTime * 1_000_000));
+                    }
+                    // DANGER: Stop leaking exception around outside of unmanaged area...
+                    catch (Exception ex)
+                    {
+                        Trace.WriteLine(ex);
                     }
                 }
                 return 0;
@@ -67,14 +62,19 @@ namespace FlashCap.Devices
         }
 
         private readonly bool transcodeIfYUV;
+        private readonly FrameProcessor frameProcessor;
         private NativeMethods_DirectShow.IGraphBuilder? graphBuilder;
         private SampleGrabberSink? sampleGrabberSink;
         private IntPtr pBih;
 
         internal DirectShowDevice(
-            string devicePath, VideoCharacteristics characteristics, bool transcodeIfYUV)
+            string devicePath,
+            VideoCharacteristics characteristics,
+            bool transcodeIfYUV,
+            FrameProcessor frameProcessor)
         {
             this.transcodeIfYUV = transcodeIfYUV;
+            this.frameProcessor = frameProcessor;
 
             if (NativeMethods_DirectShow.EnumerateDeviceMoniker(
                 NativeMethods_DirectShow.CLSID_VideoInputDeviceCategory).
@@ -186,7 +186,8 @@ namespace FlashCap.Devices
 
                     ///////////////////////////////
 
-                    this.sampleGrabberSink = new SampleGrabberSink(this);
+                    this.sampleGrabberSink =
+                        new SampleGrabberSink(this, frameProcessor);
                     if (sampleGrabber.SetCallback(this.sampleGrabberSink, 1) < 0)
                     {
                         throw new ArgumentException(
@@ -209,72 +210,80 @@ namespace FlashCap.Devices
             }
         }
 
-        ~DirectShowDevice() =>
-            this.Dispose();
-
-        public void Dispose()
+        protected override void Dispose(bool disposing)
         {
-            if (this.graphBuilder != null)
+            if (disposing)
             {
-                Marshal.ReleaseComObject(this.graphBuilder);
-                this.graphBuilder = null!;
-                this.sampleGrabberSink!.Dispose();
-                this.sampleGrabberSink = null!;
-                NativeMethods.FreeMemory(this.pBih);
-                this.pBih = IntPtr.Zero;
-            }
-        }
-
-        public VideoCharacteristics Characteristics { get; }
-        public bool IsRunning { get; private set; }
-
-        public event EventHandler<FrameArrivedEventArgs>? FrameArrived
-        {
-            add
-            {
-                if (this.sampleGrabberSink is { } sgs)
+                lock (this)
                 {
-                    sgs.FrameArrived += value;
+                    if (this.graphBuilder != null)
+                    {
+                        this.Stop();
+
+                        this.frameProcessor.Dispose();
+
+                        Marshal.ReleaseComObject(this.graphBuilder);
+                        this.graphBuilder = null!;
+                        this.sampleGrabberSink = null!;
+                        NativeMethods.FreeMemory(this.pBih);
+                        this.pBih = IntPtr.Zero;
+                    }
                 }
             }
-            remove
+            else
             {
-                if (this.sampleGrabberSink is { } sgs)
+                if (this.pBih != IntPtr.Zero)
                 {
-                    sgs.FrameArrived -= value;
+                    NativeMethods.FreeMemory(this.pBih);
+                    this.pBih = IntPtr.Zero;
                 }
             }
         }
 
-        public void Start()
+        public override void Start()
         {
-            if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
+            lock (this)
             {
-                mediaControl.Run();
-                this.IsRunning = true;
-            }
-            else
-            {
-                throw new InvalidOperationException();
+                if (!this.IsRunning)
+                {
+                    if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
+                    {
+                        mediaControl.Run();
+                        this.IsRunning = true;
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException();
+                    }
+                }
             }
         }
 
-        public void Stop()
+        public override void Stop()
         {
-            if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
+            lock (this)
             {
-                this.IsRunning = false;
-                mediaControl.Stop();
-            }
-            else
-            {
-                throw new InvalidOperationException();
+                if (this.IsRunning)
+                {
+                    if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
+                    {
+                        this.IsRunning = false;
+                        mediaControl.Stop();
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException();
+                    }
+                }
             }
         }
 
-        public void Capture(FrameArrivedEventArgs e, PixelBuffer buffer) =>
-            buffer.CopyIn(
-                this.pBih, e.pData, e.size,
-                e.timestampMilliseconds, this.transcodeIfYUV);
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+        protected override void OnCapture(
+            IntPtr pData, int size, double timestampMicroseconds,
+            PixelBuffer buffer) =>
+            buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, this.transcodeIfYUV);
     }
 }

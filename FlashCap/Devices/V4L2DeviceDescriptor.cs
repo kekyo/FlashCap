@@ -7,7 +7,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-using System;
+using System.Threading.Tasks;
 
 namespace FlashCap.Devices
 {
@@ -27,9 +27,20 @@ namespace FlashCap.Devices
         public override DeviceTypes DeviceType =>
             DeviceTypes.V4L2;
 
-        public override ICaptureDevice Open(
+        protected override CaptureDevice OnOpenWithFrameProcessor(
             VideoCharacteristics characteristics,
-            bool transcodeIfYUV = true) =>
-            new V4L2Device(this.devicePath, characteristics, transcodeIfYUV);
+            bool transcodeIfYUV,
+            FrameProcessor frameProcessor) =>
+            new V4L2Device(
+                devicePath, characteristics, transcodeIfYUV, frameProcessor);
+
+#if NET35_OR_GREATER || NETSTANDARD || NETCOREAPP
+        public override Task<CaptureDevice> OpenWithFrameProcessorAsync(
+            VideoCharacteristics characteristics,
+            bool transcodeIfYUV,
+            FrameProcessor frameProcessor) =>
+            TaskEx.FromResult(this.OnOpenWithFrameProcessor(          // TODO:
+                characteristics, transcodeIfYUV, frameProcessor));
+#endif
     }
 }

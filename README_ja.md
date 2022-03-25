@@ -18,7 +18,7 @@ FlashCap - シンプルで依存性のない、カメラキャプチャライブ
 |:---------------------------------------------------------------------------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [![FlashCap CI build (main)](https://github.com/kekyo/FlashCap/workflows/.NET/badge.svg?branch=main)](https://github.com/kekyo/FlashCap/actions?query=branch%3Amain) | [![FlashCap CI build (develop)](https://github.com/kekyo/FlashCap/workflows/.NET/badge.svg?branch=develop)](https://github.com/kekyo/FlashCap/actions?query=branch%3Adevelop) |
 
----
+----
 
 [English language is here](https://github.com/kekyo/FlashCap)
 
@@ -29,8 +29,8 @@ FlashCap - シンプルで依存性のない、カメラキャプチャライブ
 
 このライブラリは、カメラのキャプチャ機能のみに特化したカメラ画像取り込みライブラリです。
 シンプルなAPIで使いやすく、簡素なアーキテクチャで、ネイティブライブラリを含んでいません。
-また、他のライブラリに依存することもありません。
-[NuGetの概要ページをご覧ください](https://www.nuget.org/packages/FlashCap)
+また、公式以外の他のライブラリに依存することもありません。
+[NuGetの依存ページを参照して下さい](https://www.nuget.org/packages/FlashCap)
 
 対応する.NETプラットフォームは以下の通りです（ほぼ全てです！）:
 
@@ -45,7 +45,35 @@ FlashCap - シンプルで依存性のない、カメラキャプチャライブ
 * Windows (Video for Windowsデバイス)
 * Linux (V4L2デバイス)
 
----
+### テスト済みデバイス
+
+サンプルコードを動作させて確認。
+
+確認したキャプチャユニット:
+
+* Elgato CamLink 4K (Windows/Linux)
+* Logitech WebCam C930e (Windows/Linux)
+* Unnamed cheap USB capture module (Windows/Linux)
+
+確認したコンピューター:
+
+* Generic PC Core i9-9960X (x64, Windows)
+* Generic PC Core i9-11900K (x64, Linux)
+* Microsoft Surface Go Gen1 内蔵カメラ (x64, Windows)
+* VAIO Z VJZ131A11N 内蔵カメラ (x64, Windows)
+* clockworks DevTerm A06 (arm64, Linux)
+
+テスト中:
+
+* Raspberry Pi 400 (arm64, Linux)
+* Seeed reTerminal (arm64, Linux)
+* NVIDIA Jetson TX2 評価ボード 内蔵カメラ (arm64, Linux)
+
+確認した、動作しない環境:
+
+* Surface2 (Windows RT 8.1 JB'd)
+
+----
 
 ## 使い方
 
@@ -65,8 +93,8 @@ foreach (var descriptor in devices.EnumerateDescriptors())
 
     foreach (var characteristics in descriptor.Characteristics)
     {
-        // "1920x1080 [JPEG, 30fps]"
-        // "640x480 [YUYV, 60fps]"
+        // "1920x1080 [JPEG, 30.000fps]"
+        // "640x480 [YUYV, 60.000fps]"
         Console.WriteLine(characteristics);
     }
 }
@@ -79,26 +107,20 @@ foreach (var descriptor in devices.EnumerateDescriptors())
 var descriptor0 = devices.EnumerateDescriptors().ElementAt(0);
 
 using var device = descriptor0.Open(
-    descriptor0.Characteristics[0])
+    descriptor0.Characteristics[0],
+    async buffer =>
+    {
+        // 引数に渡されるピクセルバッファにキャプチャされている:
 
-// ピクセルバッファを予約します:
-var buffer = new PixelBuffer();
+        // イメージデータを取得 (恐らくDIB/Jpeg/PNGフォーマットのバイナリ):
+        byte[] image = buffer.ExtractImage();
 
-// フレーム到着イベントをフックします:
-device.FrameArrived += (s, e) =>
-{
-    // ピクセルバッファにフレームをキャプチャします:
-    device.Capture(e, buffer);
+        // 後はお好きに...
+        var ms = new MemoryStream(image);
+        var bitmap = Bitmap.FromStream(ms);
 
-    // 画像データのバイナリを取得します:
-    byte[] image = buffer.ExtractImage();
-
-    // 画像データを何かに使う...
-    var ms = new MemoryStream(image);
-    var bitmap = Bitmap.FromStream(ms);
-
-    // ...
-};
+        // ...
+    });
 
 // 処理を開始:
 device.Start();
@@ -127,242 +149,17 @@ AvaloniaはSkiaを使ったレンダラーを使用しています。かなり�
 
 ![FlashCap.Avalonia](Images/FlashCap.Avalonia_Linux.png)
 
----
+----
 
-## FrameArrivedイベントについて
+## コールバックハンドラと処理方法
 
-`FrameArrived`イベントは、画像データをキャプチャできる状態になったときに発生します。
+TODO: rewrite to what is handler strategies.
 
-* このイベントはワーカスレッドで呼ばれることがあり、
-  ユーザーインターフェースに画像を反映させようとすると問題が発生することがあります。
-* ワーカースレッドで処理を実行しても問題ない場合でも、
-  スレッドが長時間占有されるとフレーム落ちが発生します。
+----
 
-この状況を回避するためには、以下のような複雑な処理を実装する必要があります:
+## データコピーの削減
 
-```csharp
-// FrameArrivedイベントが処理中であるかどうかを示す値。
-private int isin;
-
-// ...
-
-// フレームが到着した:
-device.FrameArrived += (s, e) =>
-{
-    // キャプチャが実行されていない場合:
-    if (Interlocked.Increment(ref this.isin) == 1)
-    {
-        try
-        {
-            // キャプチャを行う:
-            device.Capture(e, buffer);
-            // 非同期でユーザーインターフェースに反映させる:
-            this.BeginInvoke(() =>
-            {
-                try
-                {
-                    // ビットマップにデコードする:
-                    var bitmap = Image.FromStream(
-                        new MemoryStream(buffer.ExtractImage()));
-                    BackgroundImage = bitmap;
-                }
-                finally
-                {
-                    // 完了した。
-                    Interlocked.Decrement(ref this.isin);
-                }
-            });
-        }
-        catch
-        {
-            // 例外で中止した:
-            Interlocked.Decrement(ref this.isin);
-            throw;
-        }
-    }
-    else
-    {
-        // すでに実行中:
-        Interlocked.Decrement(ref this.isin);
-    }
-}
-````
-
-このように、問題を回避するために安全に書くのは骨が折れます。
-
-しかし、FlashCapは、より簡単に実装するために、
-このアルゴリズムをカプセル化した `LimitedExecutor` クラスを定義しています:
-
-```csharp
-// LimitedExecutorを用意する:
-private readonly LimitedExecutor limitedExecutor = new();
-
-// ...
-
-// フレームが到着した:
-device.FrameArrived += (s, e) =>
-    // LimitedExecutorを使用して、処理を1つだけ実行するように制限する
-    this.limitedExecutor.Execute(
-        // JustNowセクション: キャプチャを実行する
-        () => device.Capture(e, buffer);
-        // Offloadedセクション(非同期で実行):
-        () => this.Invoke(() =>
-        {
-            // ビットマップにデコードする:
-            var bitmap = Image.FromStream(
-                new MemoryStream(buffer.ExtractImage()));
-            // ユーザーインターフェースに反映させる:
-            this.BackgroundImage = bitmap;
-        }));
-````
-
-`JustNow` と `Offloaded` の両セクションは、何も実行されていない時にのみ実行されます。
-`JustNow` では、`device.Capture()` が呼び出されてフレームがキャプチャされます。
-`Offloaded` セクションは、`FrameArrived`イベントのスレッドとは
-別のワーカースレッドで実行されます。
-
-`Offloaded` セクションが完了すると、実行状態が解放されます。
-つまり、この間は `FrameArrived` イベントは無視され続けます。
-
----
-
-## ピクセルバッファをマスターする (Advanced topic)
-
-ピクセルバッファ（`PixelBuffer`クラス）は、
-画像データの割り当てとバッファリングを制御します。
-PixelBuffer` のインスタンスを使い分けることで、
-1フレーム分の画像データを効率的に処理することができます。
-
-例えば、次々と入ってくるフレームをキャプチャ（`ICaptureDevice.Capture`メソッド）して
-別々のピクセルバッファにキューイングし、
-取り出し操作（`PixelBuffer.ExtractImage`メソッド）は別のスレッドで実行することができます。
-
-この方式は、フレーム到着イベントの実行コストを最小化し、フレームドロップを回避することができます。
-
-もう一つ、関連する重要な機能があります。
-`ExtractImage` を呼び出すと、イメージングデバイスで使用されている固有の画像フォーマットから
-`RGB DIB` フォーマットに自動的にトランスコードされるのです。
-
-例えば、多くの画像キャプチャ装置はフレームデータを `YUY2` や `UYVY` などの
-"YUV" 形式で返しますが、これらの形式は一般的ではありません。
-
-そして、トランスコーダはマルチスレッドで高速化されます。
-しかし、できるだけ負荷を軽減するために、`PixelBuffer.ExtractImage`メソッドが
-呼ばれたときにトランスコーダが実行されます。
-
-以上の特性から、以下のような処理方法をお勧めします:
-
-1. `device.Capture(e, buffer)` は `FrameArrived` イベントのときに（だけ）処理します。
-2. 実際に画像データが必要となった時に、`buffer.ExtractImage()` を用いて画像データを取り出します。
-   この操作は、別のスレッドでオフロードすることができます。
-
-### 1. キューイングを有効にする
-
-前述の処理方法を見ていきます。
-
-* これらのサンプルコードには、[SkiaSharp](https://github.com/mono/SkiaSharp) が使用されています。
-  なぜなら、その方が高速で、スレッドコンテキストの難しさを想定する必要がないからです。
-
-```csharp
-using System.Collections.Concurrent;
-using SkiaSharp;
-
-// ピクセルバッファのキューを用意する
-var queue = new BlockingCollection<PixelBuffer>();
-
-// フレーム到着イベント:
-device.FrameArrived += (s, e) =>
-{
-    // フレームをピクセルバッファにキャプチャーする。
-    // FrameArrivedのイベント上でキャプチャを行う必要がある。
-    var buffer = new PixelBuffer();
-    device.Capture(e, buffer);
-
-    // ピクセルバッファをキューに入れる。
-    queue.Add(buffer);
-};
-
-// オフロードされたスレッドでデコードする:
-Task.Run(() =>
-{
-    foreach (var buffer in queue.GetConsumingEnumerable())
-    {
-        // 画像データのバイナリ取得:
-        byte[] image = buffer.ExtractImage();
-
-        // SkiaSharpでデコード:
-        var bitmap = SkiaSharp.SKBitmap.Decode(image);
-
-        // (ビットマップを何かに使う...)
-    }
-});
-```
-
-### 2. ピクセルバッファの再利用
-
-`PixelBuffer`のインスタンスが不要になったら、再利用することができます:
-
-```csharp
-// ピクセルバッファのキューとリサーバを用意する:
-var reserver = new ConcurrentStack<PixelBuffer>();
-var queue = new BlockingCollection<PixelBuffer>();
-
-// フレーム到着イベント:
-device.FrameArrived += (s, e) =>
-{
-    // ピクセルバッファをリサーバから取得してみる:
-    if (!reserver.TryPop(out var buffer))
-    {
-        // リサーバが空の場合は、この場で生成する:
-        buffer = new PixelBuffer();
-    }
-
-    // フレームをピクセルバッファにキャプチャする:
-    device.Capture(e, buffer);
-
-    // ピクセルバッファをキューに入れる。
-    queue.Add(buffer);
-};
-
-// オフロードされたスレッドでデコードする:
-Task.Run(() =>
-{
-    foreach (var buffer in queue.GetConsumingEnumerable())
-    {
-        // 画像データをコピーしてバイナリを取得:
-        byte[] image = buffer.CopyImage();  // 注意:コピーが必要
-
-        // これで、ピクセルバッファは不要になった。
-        // だから、それをリザーバに入れて再利用する事ができる。
-        reserver.Push(buffer);
-
-        // SkiaSharpでデコード:
-        var bitmap = SkiaSharp.SKBitmap.Decode(image);
-
-        // (ビットマップを何かに使う...)
-    }
-});
-```
-
-### 3. 複数のワーカースレッドでデコードする
-
-さらに、複数のワーカスレッドが、それぞれのピクセルバッファを処理する方法も考えられます:
-
-```csharp
-// 各ピクセルバッファを分散させる:
-Parallel.ForEach(
-    queue.GetConsumingEnumerable(),
-    buffer =>
-    {
-        byte[] image = buffer.CopyImage();  // 注意:コピーが必要
-        reserver.Push(buffer);
-        var bitmap = SkiaSharp.SKBitmap.Decode(image);
-
-        // (ビットマップを何かに使う...)
-    });
-```
-
-### 4. データコピーの削減
+TODO: rewrite
 
 もう一つのトピックは、`PixelBuffer.ReferImage()` メソッドが
 `ArraySegment<byte>` を返すことです。
@@ -404,6 +201,12 @@ using var device = descriptor0.Open(
 
 ---
 
+## フレームプロセッサをマスターする (Advanced topic)
+
+TODO: rewrite to what is frame processor.
+
+---
+
 ## 制限
 
 * Video for Windowsでは、プログラムで「ソースデバイス」を選択することはできません。VFWの論理構成は:
@@ -421,6 +224,15 @@ Apache-v2.
 
 ## 履歴
 
+* 0.10.0:
+  * フレームプロセッサを実装し、より使いやすく、拡張性のあるフレーム/ピクセル取得方法を実装できるようにしました。
+  * イベントベースのインターフェイスを削除し、コールバックのインターフェイスを追加しました。
+  * net35/net40 プラットフォームでサポートする非同期メソッドを追加しました (公式の非同期パッケージが必要です)。
+  * net461 以上のプラットフォームでサポートする ValueTask非同期メソッドを追加しました (公式の非同期パッケージが必要です)。
+  * 同期と非同期のメソッドを完全に分離しました。
+  * インターフェース型を削除しました。
+  * mono-linux環境でランダムに例外が発生するのを修正。
+  * (1.0.0までもうすぐです)
 * 0.9.0:
   * Linux V4L2に対応しました 🎉
 * 0.8.0:

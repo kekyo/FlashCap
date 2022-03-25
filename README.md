@@ -28,9 +28,9 @@ Do you need to get camera capturing ability on .NET?
 Is you tired for camera capturing library solutions on .NET?
 
 This is a camera image capture library by specializing only capturing image data.
-It has simple API, easy to use, simple architecture, without native libraries
-and without any other library dependencies.
-[See NuGet summary page.](https://www.nuget.org/packages/FlashCap)
+It has simple API, easy to use, simple architecture and without native libraries.
+It also does not depend on any non-official libraries.
+[See NuGet dependencies page.](https://www.nuget.org/packages/FlashCap)
 
 .NET platforms supported are as follows (almost all!):
 
@@ -44,6 +44,34 @@ Platforms on which camera devices can be used:
 * Windows (DirectShow devices)
 * Windows (Video for Windows devices)
 * Linux (V4L2 devices)
+
+### Tested devices
+
+Run the sample code to verify.
+
+Verified capture devices:
+
+* Elgato CamLink 4K (Windows/Linux)
+* Logitech WebCam C930e (Windows/Linux)
+* Unnamed cheap USB capture module (Windows/Linux)
+
+Verified computers:
+
+* Generic PC Core i9-9960X (x64, Windows)
+* Generic PC Core i9-11900K (x64, Linux)
+* Microsoft Surface Go Gen1 inside camera (x64, Windows)
+* Sony VAIO Z VJZ131A11N inside camera (x64, Windows)
+* clockworks DevTerm A06 (arm64, Linux)
+
+Testing:
+
+* Raspberry Pi 400 (arm64, Linux)
+* Seeed reTerminal (arm64, Linux)
+* NVIDIA Jetson TX2 evaluation board inside camera (arm64, Linux)
+
+Couldn't detect any devices on FlashCap:
+
+* Surface2 (Windows RT 8.1 JB'd)
 
 ---
 
@@ -79,26 +107,20 @@ Then, capture it:
 var descriptor0 = devices.EnumerateDescriptors().ElementAt(0);
 
 using var device = descriptor0.Open(
-    descriptor0.Characteristics[0])
+    descriptor0.Characteristics[0],
+    async buffer =>
+    {
+        // Captured into a pixel buffer from an argument.
 
-// Reserved pixel buffer:
-var buffer = new PixelBuffer();
+        // Get image data (Maybe DIB/Jpeg/PNG):
+        byte[] image = buffer.ExtractImage();
 
-// Hook frame arrived event:
-device.FrameArrived += (s, e) =>
-{
-    // Capture a frame into pixel buffer:
-    device.Capture(e, buffer);
+        // Anything use of it...
+        var ms = new MemoryStream(image);
+        var bitmap = Bitmap.FromStream(ms);
 
-    // Get image data binary:
-    byte[] image = buffer.ExtractImage();
-
-    // Anything use of it:
-    var ms = new MemoryStream(image);
-    var bitmap = Bitmap.FromStream(ms);
-
-    // ...
-};
+        // ...
+    });
 
 // Start processing:
 device.Start();
@@ -129,246 +151,18 @@ Avalonia is using renderer with Skia. It is pretty fast.
 
 ---
 
-## About FrameArrived event
+## About handler and strategies
 
-`FrameArrived` event is fired when the image data is ready to be captured.
-
-* This event may be called on a worker thread, which can cause problems when trying to reflect the image in the user interface.
-* Even if it is safe to execute the process on a worker thread, frame dropping will occur if the thread is occupied for a long time.
-
-To avoid this situation, it is necessary to implement a complicated process such as the following:
-
-```csharp
-// Value indicating whether FrameArrived events are being processed.
-private int isin;
-
-// ...
-
-// Frame has arrived:
-device.FrameArrived += (s, e) =>
-{
-    // If the capture is not running.
-    if (Interlocked.Increment(ref this.isin) == 1)
-    {
-        try
-        {
-            // Do capture.
-            device.Capture(e, buffer);
-            // Reflect in user interface asynchronously.
-            this.BeginInvoke(() =>
-            {
-                try
-                {
-                    // Decode to bitmap.
-                    var bitmap = Image.FromStream(
-                        new MemoryStream(buffer.ExtractImage()));
-                    BackgroundImage = bitmap;
-                }
-                finally
-                {
-                    // Finished.
-                    Interlocked.Decrement(ref this.isin);
-                }
-            });
-        }
-        catch
-        {
-            // Abort with exception.
-            Interlocked.Decrement(ref this.isin);
-            throw;
-        }
-    }
-    else
-    {
-        // Already running.
-        Interlocked.Decrement(ref this.isin);
-    }
-}
-````
-
-As you can see, writing such a process safely is painful.
-Of course, you may implement such subtlety if you wish.
-
-However, to make it easier to implement,
-FlashCap defines `LimitedExecutor` class that encapsulates this algorithm:
-
-```csharp
-// Prepare a LimitedExecutor.
-private readonly LimitedExecutor limitedExecutor = new();
-
-// ...
-
-// Frame has arrived:
-device.FrameArrived += (s, e) =>
-    // Use LimitedExecutor to limit processing
-    // to execute only one task:
-    this.limitedExecutor.ExecuteAndOffload(
-        // JustNow section: Perform capture.
-        () => device.Capture(e, buffer);
-        // Offloaded section (Execute asynchronously):
-        () => this.Invoke(() =>
-        {
-            // Decode to bitmap.
-            var bitmap = Image.FromStream(
-                new MemoryStream(buffer.ExtractImage()));
-            // Reflect in user interface.
-            this.BackgroundImage = bitmap;
-        }));
-````
-
-Both `JustNow` and `Offloaded` sections run only when nothing is running.
-In `JustNow`, `device.Capture()` is called to capture the frame.
-`Offloaded` section is executed in a different worker thread than
-the `FrameArrived` event thread.
-
-When `Offloaded` section is completed, the execution state is released.
-In other words, the `FrameArrived` event is ignored during this time.
+TODO: rewrite to what is handler strategies.
 
 ---
 
-## Master for pixel buffer (Advanced topic)
+## Reduce data copy
 
-Pixel buffer (`PixelBuffer` class) is controlled about
-image data allocation and buffering.
-You can efficiently handle one frame of image data
-by using different instances of `PixelBuffer`.
-
-For example, frames that come in one after another can be captured
-(`ICaptureDevice.Capture` method) and queued in separate pixel buffers,
-and the retrieval operation (`PixelBuffer.ExtractImage` method)
-can be performed in a separate thread.
-
-This method minimizes the cost of frame arrival events and avoids frame dropping.
-
-There is one more important feature that is relevant.
-When calling `ExtractImage`, it automatically transcodes from unique image format
-used by the imaging device to `RGB DIB` format.
-
-For example, many image capture devices return frame data in
-"YUV" formats such as `YUY2` or `UYVY`, but these formats are not common.
-
-The transcoder is faster with multi-threaded.
-However, in order to offload as much as possible,
-the transcoder is performed when the `PixelBuffer.ExtractImage` method is called.
-
-Therefore, the following method is recommended:
-
-1. `device.Capture(e, buffer)` is (only) handled when the `FrameArrived` event.
-2. When the image data is actually needed, use `buffer.ExtractImage` to extract the image data.
-This operation can be offloaded in a separate thread.
-
-### 1. Enable queuing
-
-This is illustrated for it strategy:
-
-* These sample code contain using [SkiaSharp](https://github.com/mono/SkiaSharp).
-  Because it is faster and not needed to assume any thread context difficulty.
-
-```csharp
-using System.Collections.Concurrent;
-using SkiaSharp;
-
-// Pixel buffer queue:
-var queue = new BlockingCollection<PixelBuffer>();
-
-// Hook frame arrived event:
-device.FrameArrived += (s, e) =>
-{
-    // Capture a frame into a pixel buffer.
-    // We have to do capturing on only FrameArrived event context.
-    var buffer = new PixelBuffer();
-    device.Capture(e, buffer);
-
-    // Enqueue pixel buffer.
-    queue.Add(buffer);
-};
-
-// Decoding with offloaded thread:
-Task.Run(() =>
-{
-    foreach (var buffer in queue.GetConsumingEnumerable())
-    {
-        // Get image data binary:
-        byte[] image = buffer.ExtractImage();
-
-        // Decode by SkiaSharp:
-        var bitmap = SkiaSharp.SKBitmap.Decode(image);
-
-        // (Anything use of it...)
-    }
-});
-```
-
-### 2. Reuse pixel buffers
-
-We can reuse `PixelBuffer` instance when it is not needed.
-These code completes reusing:
-
-```csharp
-// Pixel buffer queue and reserver:
-var reserver = new ConcurrentStack<PixelBuffer>();
-var queue = new BlockingCollection<PixelBuffer>();
-
-// Hook frame arrived event:
-device.FrameArrived += (s, e) =>
-{
-    // Try dispence a pixel buffer:
-    if (!reserver.TryPop(out var buffer))
-    {
-        // If empty, create now:
-        buffer = new PixelBuffer();
-    }
-
-    // Capture a frame into a dispensed pixel buffer.
-    device.Capture(e, buffer);
-
-    // Enqueue pixel buffer.
-    queue.Add(buffer);
-};
-
-// Decoding with offloaded thread:
-Task.Run(() =>
-{
-    foreach (var buffer in queue.GetConsumingEnumerable())
-    {
-        // Get image data binary with copy:
-        byte[] image = buffer.CopyImage();  // Need to copy.
-
-        // Now, the pixel buffer isn't needed.
-        // So we can push it into reserver.
-        reserver.Push(buffer);
-
-        // Decode by SkiaSharp:
-        var bitmap = SkiaSharp.SKBitmap.Decode(image);
-
-        // (Anything use of it...)
-    }
-});
-```
-
-### 3. Decode with multiple worker threads
-
-Furthermore, it is possible to consider offloading
-with multiple worker threads each scattering pixel buffers:
-
-```csharp
-// Scattering each pixel buffers.
-Parallel.ForEach(
-    queue.GetConsumingEnumerable(),
-    buffer =>
-    {
-        byte[] image = buffer.CopyImage();  // Need to copy.
-        reserver.Push(buffer);
-        var bitmap = SkiaSharp.SKBitmap.Decode(image);
-
-        // (Anything use of it...)
-    });
-```
-
-### 4. Reduce data copy
+TODO: rewrite
 
 Another topic, `PixelBuffer.ReferImage()` method will return `ArraySegment<byte>`.
-We can use it dodge copying image data (when transcode is not applicable).
+We can use it avoid copying image data (when transcode is not applicable).
 
 **Caution**: The resulting array segment is valid until the next `Capture()` is executed.
 
@@ -396,12 +190,22 @@ And disable transcoding when become "YUV" format, it performs referring image da
 
 ```csharp
 // Open device with disable transcoder:
-using var device = descriptor0.Open(
+using var device = await descriptor0.OpenAsync(
     descriptor0.Characteristics[0],
-    false);    // transcodeIfYUV == false
+    false,    // transcodeIfYUV == false
+    async bufer =>
+    {
+        // ...
+    });
 
 // ...
 ```
+
+---
+
+## Master for frame processor (Advanced topic)
+
+TODO: rewrite to what is frame processor.
 
 ---
 
@@ -422,6 +226,15 @@ Apache-v2.
 
 ## History
 
+* 0.10.0:
+  * Implemented frame processor and exposed easier to use and be expandable frame/pixel grabbing strategies.
+  * Removed event based interface and added callback interface.
+  * Added supporting async methods on net35/net40 platform. (Need depending official async packages.)
+  * Added supporting ValueTask async methods on net461 or upper platform. (Need depending official async packages.)
+  * Completely separated between sync and async methods.
+  * Removed any interface types.
+  * Fixed causing randomly exception on mono-linux environment.
+  * (We are almost to 1.0.0)
 * 0.9.0:
   * Supported Linux V4L2 devices 🎉
 * 0.8.0:

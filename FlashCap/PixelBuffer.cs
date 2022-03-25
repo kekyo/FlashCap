@@ -13,20 +13,20 @@ using System.Diagnostics;
 
 namespace FlashCap
 {
-    public sealed class PixelBuffer : IPixelBuffer
+    public sealed class PixelBuffer
     {
         private byte[]? imageContainer;
         private int imageContainerSize;
         private byte[]? transcodedImageContainer = null;
         private bool isValidTranscodedImage;
-        private double timestampMilliseconds;
+        private double timestampMicroseconds;
         private bool transcodeIfYUV;
 
         internal unsafe void CopyIn(
             IntPtr pih, IntPtr pData, int size,
-            double timestampMilliseconds, bool transcodeIfYUV)
+            double timestampMicroseconds, bool transcodeIfYUV)
         {
-            this.timestampMilliseconds = timestampMilliseconds;
+            this.timestampMicroseconds = timestampMicroseconds;
 
             var pBih = (NativeMethods.BITMAPINFOHEADER*)pih.ToPointer();
 
@@ -95,7 +95,7 @@ namespace FlashCap
         }
 
         public TimeSpan Timestamp =>
-            TimeSpan.FromMilliseconds(this.timestampMilliseconds);
+            TimeSpan.FromMilliseconds(this.timestampMicroseconds / 1000.0);
 
         private enum BufferStrategies
         {
