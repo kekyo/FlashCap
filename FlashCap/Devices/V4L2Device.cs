@@ -77,6 +77,7 @@ namespace FlashCap.Devices
                     format.fmt.pix.width = characteristics.Width;
                     format.fmt.pix.height = characteristics.Height;
                     format.fmt.pix.pixelformat = pix_fmt;
+                    format.fmt.pix.field = NativeMethods_V4L2.v4l2_field.ANY;
                     if (NativeMethods_V4L2.ioctls(fd, in format) == 0)
                     {
                         applied = true;
