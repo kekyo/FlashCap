@@ -62,10 +62,11 @@ FlashCap - シンプルで依存性のない、カメラキャプチャライブ
 * Microsoft Surface Go Gen1 内蔵カメラ (x64, Windows)
 * VAIO Z VJZ131A11N 内蔵カメラ (x64, Windows)
 * clockworks DevTerm A06 (arm64, Linux)
+* Raspberry Pi 400 (armhf, Linux)
+* Teclast X89 E7ED Tablet PC inside camera (x86, Windows)
 
 テスト中:
 
-* Raspberry Pi 400 (arm64, Linux)
 * Seeed reTerminal (arm64, Linux)
 * NVIDIA Jetson TX2 評価ボード 内蔵カメラ (arm64, Linux)
 
