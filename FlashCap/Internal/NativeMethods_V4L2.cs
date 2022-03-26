@@ -560,6 +560,21 @@ namespace FlashCap.Internal
             SMPTE240M,
         }
 
+        public enum v4l2_hsv_encoding
+        {
+            VALUE_180,
+            VALUE_256,
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        public struct v4l2_pix_format_encoding
+        {
+            [FieldOffset(0)]
+            public v4l2_ycbcr_encoding ycbcr_enc;
+            [FieldOffset(0)]
+            public v4l2_hsv_encoding hsv_enc;
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         public struct v4l2_pix_format
         {
@@ -572,7 +587,7 @@ namespace FlashCap.Internal
             public v4l2_colorspace colorspace;
             public int priv;
             public v4l2_pix_format_flag flags;
-            public v4l2_ycbcr_encoding ycbcr_enc; // union { ycbcr_enc, hsv_enc }
+            public v4l2_pix_format_encoding encoding;   // unnamed union { ... }
             public v4l2_quantization quantization;
             public v4l2_xfer_func xfer_func;
         }
@@ -602,7 +617,7 @@ namespace FlashCap.Internal
             [FieldOffset(0)] private v4l2_format_fmt_raw_data200 raw_data;
         }
 
-        [StructLayout(LayoutKind.Sequential, Pack = 8)]
+        [StructLayout(LayoutKind.Sequential)]
         public struct v4l2_format
         {
             public v4l2_buf_type type;
