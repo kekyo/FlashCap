@@ -8,6 +8,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using System;
+using System.Runtime.InteropServices;
 
 namespace FlashCap.Internal.V4L2
 {
@@ -17,6 +18,21 @@ namespace FlashCap.Internal.V4L2
 
         protected RequestCode()
         {
+        }
+
+        protected static void AssertSize<T>(int nativeSize)
+            where T : struct
+        {
+#if NETSTANDARD || NETCOREAPP
+            var managedSize = Marshal.SizeOf<T>();
+#else
+            var managedSize = Marshal.SizeOf(typeof(T));
+#endif
+            if (managedSize != nativeSize)
+            {
+                throw new InvalidOperationException(
+                    $"FlashCap: Invalid structure size configuration: Type={typeof(T).Name}, ManagedSize={managedSize}, NativeSize={nativeSize}");
+            }
         }
 
         public abstract UIntPtr VIDIOC_QUERYCAP { get; }

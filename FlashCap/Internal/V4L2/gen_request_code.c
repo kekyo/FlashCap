@@ -31,6 +31,20 @@ int main(int argc, char* argv[])
     fprintf(fp, "{\n");
     fprintf(fp, "    public RequestCode%d()\n", bitCount);
     fprintf(fp, "    {\n");
+
+    #define print_assertion(symbol) \
+        fprintf(fp, "        AssertSize<NativeMethods_V4L2." #symbol ">(%d);\n", (int)sizeof(struct symbol))
+
+    print_assertion(v4l2_capability);
+    print_assertion(v4l2_input);
+    print_assertion(v4l2_fmtdesc);
+    print_assertion(v4l2_frmsizeenum);
+    print_assertion(v4l2_frmivalenum);
+    print_assertion(v4l2_format);
+    print_assertion(v4l2_requestbuffers);
+    print_assertion(v4l2_buffer);
+    //print_assertion(v4l2_buf_type);
+
     fprintf(fp, "    }\n");
     fprintf(fp, "\n");
 

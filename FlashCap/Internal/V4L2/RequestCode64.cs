@@ -10,6 +10,14 @@ internal sealed class RequestCode64 : RequestCode
 {
     public RequestCode64()
     {
+        AssertSize<NativeMethods_V4L2.v4l2_capability>(104);
+        AssertSize<NativeMethods_V4L2.v4l2_input>(80);
+        AssertSize<NativeMethods_V4L2.v4l2_fmtdesc>(64);
+        AssertSize<NativeMethods_V4L2.v4l2_frmsizeenum>(44);
+        AssertSize<NativeMethods_V4L2.v4l2_frmivalenum>(52);
+        AssertSize<NativeMethods_V4L2.v4l2_format>(208);
+        AssertSize<NativeMethods_V4L2.v4l2_requestbuffers>(20);
+        AssertSize<NativeMethods_V4L2.v4l2_buffer>(88);
     }
 
     public override UIntPtr VIDIOC_QUERYCAP => new UIntPtr(0x80685600);
