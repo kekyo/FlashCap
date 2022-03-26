@@ -10,6 +10,7 @@ internal sealed class RequestCode64 : RequestCode
 {
     public RequestCode64()
     {
+        AssertSize<NativeMethods_V4L2.timeval>(16);
         AssertSize<NativeMethods_V4L2.v4l2_capability>(104);
         AssertSize<NativeMethods_V4L2.v4l2_input>(80);
         AssertSize<NativeMethods_V4L2.v4l2_fmtdesc>(64);

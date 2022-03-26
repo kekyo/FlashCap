@@ -25,8 +25,8 @@ namespace FlashCap.Internal
         [StructLayout(LayoutKind.Sequential)]
         public struct timeval
         {
-            public long tv_sec;
-            public long tv_usec;
+            public IntPtr tv_sec;
+            public IntPtr tv_usec;
         }
 
         [Flags]
@@ -592,7 +592,7 @@ namespace FlashCap.Internal
             public v4l2_xfer_func xfer_func;
         }
 
-        [StructLayout(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential, Pack=1)]
         private struct v4l2_format_fmt_raw_data200
         {
             private Guid raw_data0;
@@ -617,10 +617,17 @@ namespace FlashCap.Internal
             [FieldOffset(0)] private v4l2_format_fmt_raw_data200 raw_data;
         }
 
-        [StructLayout(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Explicit)]
+        public struct v4l2_format_type
+        {
+            [FieldOffset(0)] public v4l2_buf_type type;
+            [FieldOffset(0)] private IntPtr __hack;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack=1)]
         public struct v4l2_format
         {
-            public v4l2_buf_type type;
+            public v4l2_format_type type;   // HACK: Unknown padding insertion at after this field on 32bit environment...
             public v4l2_format_fmt fmt;
         }
 

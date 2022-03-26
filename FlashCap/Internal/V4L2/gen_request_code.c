@@ -35,6 +35,7 @@ int main(int argc, char* argv[])
     #define print_assertion(symbol) \
         fprintf(fp, "        AssertSize<NativeMethods_V4L2." #symbol ">(%d);\n", (int)sizeof(struct symbol))
 
+    print_assertion(timeval);
     print_assertion(v4l2_capability);
     print_assertion(v4l2_input);
     print_assertion(v4l2_fmtdesc);
