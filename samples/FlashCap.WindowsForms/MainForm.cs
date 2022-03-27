@@ -21,8 +21,10 @@ namespace FlashCap.WindowsForms
         // Constructed capture device.
         private CaptureDevice captureDevice;
 
-        public MainForm() =>
-            InitializeComponent();
+        public MainForm()
+        {
+            this.InitializeComponent();
+        }
 
         private void Form1_Load(object sender, EventArgs e)
         {
