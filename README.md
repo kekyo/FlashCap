@@ -225,6 +225,10 @@ Apache-v2.
 
 ## History
 
+* 0.11.0:
+  * Added `PixelBufferScope` to allow early release of pixel buffers.
+  * Add `IsDiscrete` so that it can determine whether the video characteristics are defined by the device or not.
+  * Fixed some bugs by testing on various devices and computers.
 * 0.10.0:
   * Implemented frame processor and exposed easier to use and be expandable frame/pixel grabbing strategies.
   * Removed event based interface and added callback interface.
