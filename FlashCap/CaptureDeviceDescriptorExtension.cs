@@ -8,6 +8,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using FlashCap.FrameProcessors;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace FlashCap
@@ -20,16 +21,11 @@ namespace FlashCap
     }
 
     public delegate void PixelBufferArrivedDelegate(
-        PixelBuffer buffer);
+        PixelBufferScope bufferScope);
 
 #if NET35_OR_GREATER || NETSTANDARD || NETCOREAPP
     public delegate Task PixelBufferArrivedTaskDelegate(
-        PixelBuffer buffer);
-
-#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
-    public delegate ValueTask PixelBufferArrivedValueTaskDelegate(
-        PixelBuffer buffer);
-#endif
+        PixelBufferScope bufferScope);
 
     public static class CaptureDeviceDescriptorExtension
     {
@@ -84,34 +80,6 @@ namespace FlashCap
                     _ =>
                         new DelegatedIgnoreDroppingTaskProcessor(pixelBufferArrived),
                 });
-
-#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
-        public static Task<CaptureDevice> OpenAsync(
-            this CaptureDeviceDescriptor descriptor,
-            VideoCharacteristics characteristics,
-            PixelBufferArrivedValueTaskDelegate pixelBufferArrived) =>
-            descriptor.OpenWithFrameProcessorAsync(
-                characteristics, true,
-                new DelegatedIgnoreDroppingValueTaskProcessor(pixelBufferArrived));
-
-        public static Task<CaptureDevice> OpenAsync(
-            this CaptureDeviceDescriptor descriptor,
-            VideoCharacteristics characteristics,
-            bool transcodeIfYUV,
-            HandlerStrategies handlerStrategy,
-            PixelBufferArrivedValueTaskDelegate pixelBufferArrived) =>
-            descriptor.OpenWithFrameProcessorAsync(
-                characteristics, transcodeIfYUV,
-                handlerStrategy switch
-                {
-                    HandlerStrategies.Queuing =>
-                        new DelegatedQueuingValueTaskProcessor(pixelBufferArrived),
-                    HandlerStrategies.Scattering =>
-                        new DelegatedScatteringValueTaskProcessor(pixelBufferArrived),
-                    _ =>
-                        new DelegatedIgnoreDroppingValueTaskProcessor(pixelBufferArrived),
-                });
-#endif
     }
 #endif
 }

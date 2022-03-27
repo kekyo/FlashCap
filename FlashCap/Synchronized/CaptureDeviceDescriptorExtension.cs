@@ -73,34 +73,6 @@ namespace FlashCap.Synchronized
                     _ =>
                         new DelegatedIgnoreDroppingTaskProcessor(pixelBufferArrived),
                 });
-
-#if NETSTANDARD2_1 || NETCOREAPP2_1_OR_GREATER
-        public static CaptureDevice Open(
-            this CaptureDeviceDescriptor descriptor,
-            VideoCharacteristics characteristics,
-            PixelBufferArrivedValueTaskDelegate pixelBufferArrived) =>
-            descriptor.InternalOpenWithFrameProcessor(
-                characteristics, true,
-                new DelegatedIgnoreDroppingValueTaskProcessor(pixelBufferArrived));
-
-        public static CaptureDevice Open(
-            this CaptureDeviceDescriptor descriptor,
-            VideoCharacteristics characteristics,
-            bool transcodeIfYUV,
-            HandlerStrategies handlerStrategy,
-            PixelBufferArrivedValueTaskDelegate pixelBufferArrived) =>
-            descriptor.InternalOpenWithFrameProcessor(
-                characteristics, transcodeIfYUV,
-                handlerStrategy switch
-                {
-                    HandlerStrategies.Queuing =>
-                        new DelegatedQueuingValueTaskProcessor(pixelBufferArrived),
-                    HandlerStrategies.Scattering =>
-                        new DelegatedScatteringValueTaskProcessor(pixelBufferArrived),
-                    _ =>
-                        new DelegatedIgnoreDroppingValueTaskProcessor(pixelBufferArrived),
-                });
-#endif
 #endif
     }
 }

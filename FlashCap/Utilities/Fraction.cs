@@ -40,12 +40,20 @@ namespace FlashCap.Utilities
         /// <exception cref="DivideByZeroException">Denominator is zero and real number is not zero.</exception>
         public Fraction(int numerator, int denominator)
         {
-            if (denominator == 0 && numerator != 0)
+            if (numerator == 0)
+            {
+                this.Numerator = 0;
+                this.Denominator = 0;
+            }
+            else if (denominator != 0)
+            {
+                this.Numerator = numerator;
+                this.Denominator = denominator;
+            }
+            else
             {
                 throw new DivideByZeroException();
             }
-            this.Numerator = numerator;
-            this.Denominator = denominator;
         }
 
         /// <summary>

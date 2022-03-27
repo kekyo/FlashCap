@@ -35,7 +35,14 @@ namespace FlashCap.Devices
             Select(fmtdesc => fmtdesc!.Value).
             ToArray();   // Important: Iteration process must be continuous, avoid ioctl calls with other requests.
 
-        private static IEnumerable<NativeMethods_V4L2.v4l2_frmsize_discrete> EnumerateFrameSize(
+        private struct FrameSize
+        {
+            public int Width;
+            public int Height;
+            public bool IsDiscrete;
+        }
+
+        private static IEnumerable<FrameSize> EnumerateFrameSize(
             int fd, NativeMethods_V4L2.v4l2_pix_fmt pixelFormat) =>
             Enumerable.Range(0, 1000).
             CollectWhile(index =>
@@ -51,7 +58,7 @@ namespace FlashCap.Devices
             // Expand when both stepwise and continuous:
             SelectMany(frmsizeenum =>
             {
-                static IEnumerable<NativeMethods_V4L2.v4l2_frmsize_discrete> EnumerateStepWise(
+                static IEnumerable<FrameSize> EnumerateStepWise(
                     NativeMethods_V4L2.v4l2_frmsize_stepwise stepwise) =>
                     NativeMethods.DefactoStandardResolutions.
                         Where(r =>
@@ -62,10 +69,10 @@ namespace FlashCap.Devices
                             r.Height <= stepwise.max_height &&
                             (r.Height - stepwise.min_height % stepwise.step_height) == 0).
                         OrderByDescending(r => r).
-                        Select(r => new NativeMethods_V4L2.v4l2_frmsize_discrete
-                            { width = r.Width, height = r.Height });
+                        Select(r => new FrameSize
+                            { Width = r.Width, Height = r.Height, IsDiscrete = false, });
 
-                static IEnumerable<NativeMethods_V4L2.v4l2_frmsize_discrete> EnumerateContinuous(
+                static IEnumerable<FrameSize> EnumerateContinuous(
                     NativeMethods_V4L2.v4l2_frmsize_stepwise stepwise) =>
                     NativeMethods.DefactoStandardResolutions.
                         Where(r =>
@@ -74,14 +81,15 @@ namespace FlashCap.Devices
                             r.Height >= stepwise.min_height &&
                             r.Height <= stepwise.max_height).
                         OrderByDescending(r => r).
-                        Select(r => new NativeMethods_V4L2.v4l2_frmsize_discrete
-                            { width = r.Width, height = r.Height });
+                        Select(r => new FrameSize
+                            { Width = r.Width, Height = r.Height, IsDiscrete = false, });
 
                 var fse = frmsizeenum!.Value;
                 return fse.type switch
                 {
                     NativeMethods_V4L2.v4l2_frmsizetypes.DISCRETE =>
-                        new[] { fse.discrete },
+                        new[] { new FrameSize
+                            { Width = fse.discrete.width, Height = fse.discrete.height, IsDiscrete = true, }, },
                     NativeMethods_V4L2.v4l2_frmsizetypes.STEPWISE =>
                         EnumerateStepWise(fse.stepwise),
                     _ =>
@@ -90,7 +98,13 @@ namespace FlashCap.Devices
             }).
             ToArray();   // Important: Iteration process must be continuous, avoid ioctl calls with other requests.
 
-        private static IEnumerable<Fraction> EnumerateFramesPerSecond(
+        private struct FramesPerSecond
+        {
+            public Fraction Value;
+            public bool IsDiscrete;
+        }
+
+        private static IEnumerable<FramesPerSecond> EnumerateFramesPerSecond(
             int fd, NativeMethods_V4L2.v4l2_pix_fmt pixelFormat, int width, int height) =>
             Enumerable.Range(0, 1000).
             CollectWhile(index =>
@@ -109,7 +123,7 @@ namespace FlashCap.Devices
             {
                 // v4l2_fract is "interval", so makes fps to do reciprocal.
                 // (numerator <--> denominator)
-                static IEnumerable<Fraction> EnumerateStepWise(
+                static IEnumerable<FramesPerSecond> EnumerateStepWise(
                     NativeMethods_V4L2.v4l2_frmival_stepwise stepwise)
                 {
                     var min = new Fraction(stepwise.min.denominator, stepwise.min.numerator);
@@ -119,24 +133,27 @@ namespace FlashCap.Devices
                         Where(fps =>
                             fps >= min && fps <= max &&
                             ((fps - min) % step) == 0).
-                        OrderByDescending(fps => fps);
+                        OrderByDescending(fps => fps).
+                        Select(fps => new FramesPerSecond { Value = fps, IsDiscrete = false, });
                 }
 
-                static IEnumerable<Fraction> EnumerateContinuous(
+                static IEnumerable<FramesPerSecond> EnumerateContinuous(
                     NativeMethods_V4L2.v4l2_frmival_stepwise stepwise)
                 {
                     var min = new Fraction(stepwise.min.denominator, stepwise.min.numerator);
                     var max = new Fraction(stepwise.max.denominator, stepwise.max.numerator);
                     return NativeMethods.DefactoStandardFramesPerSecond.
                         Where(fps => fps >= min && fps <= max).
-                        OrderByDescending(fps => fps);
+                        OrderByDescending(fps => fps).
+                        Select(fps => new FramesPerSecond { Value = fps, IsDiscrete = false, });
                 }
 
                 var fie = frmivalenum!.Value;
                 return fie.type switch
                 {
                     NativeMethods_V4L2.v4l2_frmivaltypes.DISCRETE =>
-                        new [] { new Fraction(fie.discrete.denominator, fie.discrete.numerator) },
+                        new [] { new FramesPerSecond
+                            { Value = new Fraction(fie.discrete.denominator, fie.discrete.numerator), IsDiscrete = true, }, },
                     NativeMethods_V4L2.v4l2_frmivaltypes.STEPWISE =>
                         EnumerateStepWise(fie.stepwise),
                     _ =>
@@ -163,11 +180,12 @@ namespace FlashCap.Devices
                                 SelectMany(fmtdesc =>
                                     EnumerateFrameSize(fd, fmtdesc.pixelformat).
                                     SelectMany(frmsize =>
-                                        EnumerateFramesPerSecond(fd, fmtdesc.pixelformat, frmsize.width, frmsize.height).
+                                        EnumerateFramesPerSecond(fd, fmtdesc.pixelformat, frmsize.Width, frmsize.Height).
                                         Collect(framesPerSecond =>
                                             NativeMethods_V4L2.CreateVideoCharacteristics(
-                                                fmtdesc.pixelformat, frmsize.width, frmsize.height,
-                                                framesPerSecond, fmtdesc.description)))).
+                                                fmtdesc.pixelformat, frmsize.Width, frmsize.Height,
+                                                framesPerSecond.Value, fmtdesc.description,
+                                                frmsize.IsDiscrete && framesPerSecond.IsDiscrete)))).
                                 Distinct().
                                 OrderByDescending(vc => vc).
                                 ToArray());

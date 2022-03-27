@@ -70,13 +70,12 @@ namespace FlashCap.Devices
                 var applied = false;
                 foreach (var pix_fmt in pix_fmts)
                 {
-                    var format = new NativeMethods_V4L2.v4l2_format
-                    {
-                        type = NativeMethods_V4L2.v4l2_buf_type.VIDEO_CAPTURE,
-                    };
+                    var format = new NativeMethods_V4L2.v4l2_format();
+                    format.type.type = NativeMethods_V4L2.v4l2_buf_type.VIDEO_CAPTURE;
                     format.fmt.pix.width = characteristics.Width;
                     format.fmt.pix.height = characteristics.Height;
                     format.fmt.pix.pixelformat = pix_fmt;
+                    format.fmt.pix.field = NativeMethods_V4L2.v4l2_field.ANY;
                     if (NativeMethods_V4L2.ioctls(fd, in format) == 0)
                     {
                         applied = true;

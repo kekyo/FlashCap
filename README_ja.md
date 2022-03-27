@@ -47,7 +47,7 @@ FlashCap - シンプルで依存性のない、カメラキャプチャライブ
 
 ### テスト済みデバイス
 
-サンプルコードを動作させて確認。
+サンプルコードを動作させて確認(0.11.0)。
 
 確認したキャプチャユニット:
 
@@ -62,16 +62,15 @@ FlashCap - シンプルで依存性のない、カメラキャプチャライブ
 * Microsoft Surface Go Gen1 内蔵カメラ (x64, Windows)
 * VAIO Z VJZ131A11N 内蔵カメラ (x64, Windows)
 * clockworks DevTerm A06 (arm64, Linux)
-
-テスト中:
-
-* Raspberry Pi 400 (arm64, Linux)
-* Seeed reTerminal (arm64, Linux)
-* NVIDIA Jetson TX2 評価ボード 内蔵カメラ (arm64, Linux)
+* Raspberry Pi 400 (armhf/arm64, Linux)
+* Seeed reTerminal (armhf, Linux)
+* Teclast X89 E7ED Tablet PC 内蔵カメラ (x86, Windows)
+* NVIDIA Jetson TX2 評価ボード (arm64, Linux)
 
 確認した、動作しない環境:
 
 * Surface2 (Windows RT 8.1 JB'd)
+  * デバイスが見つかりませんでした。VFWとDirectShowの両方に対応していない可能性があります。
 
 ----
 
@@ -108,12 +107,12 @@ var descriptor0 = devices.EnumerateDescriptors().ElementAt(0);
 
 using var device = await descriptor0.OpenAsync(
     descriptor0.Characteristics[0],
-    async buffer =>
+    async bufferScope =>
     {
         // 引数に渡されるピクセルバッファにキャプチャされている:
 
         // イメージデータを取得 (恐らくDIB/Jpeg/PNGフォーマットのバイナリ):
-        byte[] image = buffer.ExtractImage();
+        byte[] image = bufferScope.Buffer.ExtractImage();
 
         // 後はお好きに...
         var ms = new MemoryStream(image);
@@ -228,6 +227,10 @@ Apache-v2.
 
 ## 履歴
 
+* 0.11.0:
+  * `PixelBufferScope` を追加し、ピクセルバッファを早期に解放することが出来るようにした。
+  * `IsDiscrete` を追加し、デバイスによって定義された画像特性かどうかを判別出来るようにした。
+  * 様々なデバイスとコンピューターで動作検証を行い、不具合を修正。
 * 0.10.0:
   * フレームプロセッサを実装し、より使いやすく、拡張性のあるフレーム/ピクセル取得方法を実装できるようにしました。
   * イベントベースのインターフェイスを削除し、コールバックのインターフェイスを追加しました。

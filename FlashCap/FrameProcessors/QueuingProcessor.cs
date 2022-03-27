@@ -7,7 +7,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-using FlashCap.Synchronized;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -17,7 +16,7 @@ using System.Threading;
 namespace FlashCap.FrameProcessors
 {
     internal abstract class QueuingProcessor :
-        FrameProcessor
+        InternalFrameProcessor
     {
         private readonly Stack<PixelBuffer> reserver = new();
         private readonly Queue<PixelBuffer> queue = new();
@@ -127,7 +126,7 @@ namespace FlashCap.FrameProcessors
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-        protected void Reserve(PixelBuffer buffer)
+        public override void ReleaseNow(PixelBuffer buffer)
         {
             lock (this.reserver)
             {
@@ -155,14 +154,8 @@ namespace FlashCap.FrameProcessors
                 {
                     try
                     {
-                        try
-                        {
-                            this.pixelBufferArrived(buffer);
-                        }
-                        finally
-                        {
-                            this.Reserve(buffer);
-                        }
+                        using var scope = new InternalPixelBufferScope(this, buffer);
+                        this.pixelBufferArrived(scope);
                     }
                     catch (Exception ex)
                     {
@@ -195,14 +188,9 @@ namespace FlashCap.FrameProcessors
                 {
                     try
                     {
-                        try
-                        {
-                            await this.pixelBufferArrived(buffer).ConfigureAwait(false);
-                        }
-                        finally
-                        {
-                            this.Reserve(buffer);
-                        }
+                        using var scope = new InternalPixelBufferScope(this, buffer);
+                        await this.pixelBufferArrived(scope).
+                            ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
@@ -216,46 +204,5 @@ namespace FlashCap.FrameProcessors
             }
         }
     }
-
-#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
-    internal sealed class DelegatedQueuingValueTaskProcessor :
-        QueuingProcessor
-    {
-        private readonly PixelBufferArrivedValueTaskDelegate pixelBufferArrived;
-
-        public DelegatedQueuingValueTaskProcessor(
-            PixelBufferArrivedValueTaskDelegate pixelBufferArrived) =>
-            this.pixelBufferArrived = pixelBufferArrived;
-
-        protected override async void ThreadEntry()
-        {
-            while (true)
-            {
-                if (this.Dequeue() is { } buffer)
-                {
-                    try
-                    {
-                        try
-                        {
-                            await this.pixelBufferArrived(buffer).ConfigureAwait(false);
-                        }
-                        finally
-                        {
-                            this.Reserve(buffer);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Trace.WriteLine(ex);
-                    }
-                }
-                else
-                {
-                    break;
-                }
-            }
-        }
-    }
-#endif
 #endif
 }

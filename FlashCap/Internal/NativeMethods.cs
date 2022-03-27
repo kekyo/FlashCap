@@ -456,6 +456,7 @@ namespace FlashCap.Internal
             Compression compression,
             int width, int height, int clrBits,
             Fraction framesPerSecond,
+            bool isDiscrete = true,
             string? rawPixelFormat = null)
         {
             static PixelFormats? GetRGBPixelFormat(int clrBits) =>
@@ -488,6 +489,7 @@ namespace FlashCap.Internal
                     pixelFormat, width, height,
                     framesPerSecond,
                     compression.ToString(),
+                    isDiscrete,
                     rawPixelFormat ?? GetFourCCString((int)compression));
             }
             else
@@ -497,13 +499,15 @@ namespace FlashCap.Internal
         }
         
         public static unsafe VideoCharacteristics? CreateVideoCharacteristics(
-            IntPtr pih, Fraction framesPerSecond, string? rawPixelFormat = null)
+            IntPtr pih, Fraction framesPerSecond,
+            bool isDiscrete = true,
+            string? rawPixelFormat = null)
         {
             var pBih = (BITMAPINFOHEADER*)pih.ToPointer();
             return CreateVideoCharacteristics(
                 pBih->biCompression, pBih->biWidth, pBih->biHeight,
                 pBih->GetClrBits(), framesPerSecond,
-                rawPixelFormat);
+                isDiscrete, rawPixelFormat);
         }
         
 

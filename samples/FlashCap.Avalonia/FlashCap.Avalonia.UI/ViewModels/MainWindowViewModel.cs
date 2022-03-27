@@ -76,23 +76,26 @@ namespace FlashCap.Avalonia.ViewModels
             });
         }
  
-        private async ValueTask OnPixelBufferArrivedAsync(PixelBuffer buffer)
+        private async Task OnPixelBufferArrivedAsync(PixelBufferScope bufferScope)
         {
             ////////////////////////////////////////////////
             // Pixel buffer has arrived.
             // NOTE: Perhaps this thread context is NOT UI thread.
 #if false
             // Get image data binary:
-            byte[] image = buffer.ExtractImage();
+            byte[] image = bufferScope.Buffer.ExtractImage();
 #else
             // Or, refer image data binary directly.
-            ArraySegment<byte> image = buffer.ReferImage();
+            ArraySegment<byte> image = bufferScope.Buffer.ReferImage();
 #endif
             // Convert to Stream (using FlashCap.Utilities)
             using var stream = image.AsStream();
 
             // Decode image data to a bitmap:
             var bitmap = new Bitmap(stream);
+
+            // `bitmap` is copied, so we can release pixel buffer now.
+            bufferScope.ReleaseNow();
 
             // Switch to UI thread:
             await UIThread.Bind();

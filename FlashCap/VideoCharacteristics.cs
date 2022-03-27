@@ -34,6 +34,7 @@ namespace FlashCap
         public readonly int Height;
         public readonly Fraction FramesPerSecond;
         public readonly string Description;
+        public readonly bool IsDiscrete;
         public readonly string RawPixelFormat;
 
         public VideoCharacteristics(
@@ -46,6 +47,7 @@ namespace FlashCap
             this.Height = height;
             this.FramesPerSecond = framesPerSecond;
             this.Description = pixelFormat.ToString();
+            this.IsDiscrete = true;
             this.RawPixelFormat = pixelFormat.ToString();
         }
 
@@ -54,6 +56,7 @@ namespace FlashCap
             int width, int height,
             Fraction framesPerSecond,
             string description,
+            bool isDiscrete,
             string rawPixelFormat)
         {
             this.PixelFormat = pixelFormat;
@@ -61,6 +64,7 @@ namespace FlashCap
             this.Height = height;
             this.FramesPerSecond = framesPerSecond;
             this.Description = description;
+            this.IsDiscrete = isDiscrete;
             this.RawPixelFormat = rawPixelFormat;
         }
 

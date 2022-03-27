@@ -9,20 +9,24 @@
 
 using System;
 using System.Runtime.InteropServices;
+using FlashCap.Internal.V4L2;
 using FlashCap.Utilities;
 
 namespace FlashCap.Internal
 {
     internal static class NativeMethods_V4L2
     {
+        private static readonly RequestCode RequestCode =
+            IntPtr.Size == 4 ? new RequestCode32() : new RequestCode64();
+
         public const int EINTR = 4;
         public const int EINVAL = 22;
 
         [StructLayout(LayoutKind.Sequential)]
         public struct timeval
         {
-            public long tv_sec;
-            public long tv_usec;
+            public IntPtr tv_sec;
+            public IntPtr tv_usec;
         }
 
         [Flags]
@@ -107,23 +111,23 @@ namespace FlashCap.Internal
         public static extern int munmap(
             IntPtr addr, IntPtr length);
 
-        private delegate int IoctlIn<T>(int fd, uint req, in T arg)
+        private delegate int IoctlIn<T>(int fd, UIntPtr req, in T arg)
             where T : struct;
 
-        private delegate int IoctlOut<T>(int fd, uint req, out T arg)
+        private delegate int IoctlOut<T>(int fd, UIntPtr req, out T arg)
             where T : struct;
 
-        private delegate int IoctlRef<T>(int fd, uint req, ref T arg)
+        private delegate int IoctlRef<T>(int fd, UIntPtr req, ref T arg)
             where T : struct;
 
         private static int do_ioctl<T>(
-            int fd, uint req, in T arg, IoctlIn<T> ioctl)
+            int fd, UIntPtr req, in T arg, IoctlIn<T> ioctl)
             where T : struct
         {
             while (true)
             {
                 var result = ioctl(fd, req, in arg);
-                if (result == EINTR)
+                if (result < 0 && Marshal.GetLastWin32Error() == EINTR)
                 {
                     continue;
                 }
@@ -133,13 +137,13 @@ namespace FlashCap.Internal
         }
 
         private static int do_ioctl<T>(
-            int fd, uint req, out T arg, IoctlOut<T> ioctl)
+            int fd, UIntPtr req, out T arg, IoctlOut<T> ioctl)
             where T : struct
         {
             while (true)
             {
                 var result = ioctl(fd, req, out arg);
-                if (result == EINTR)
+                if (result < 0 && Marshal.GetLastWin32Error() == EINTR)
                 {
                     continue;
                 }
@@ -149,13 +153,13 @@ namespace FlashCap.Internal
         }
 
         private static int do_ioctl<T>(
-            int fd, uint req, ref T arg, IoctlRef<T> ioctl)
+            int fd, UIntPtr req, ref T arg, IoctlRef<T> ioctl)
             where T : struct
         {
             while (true)
             {
                 var result = ioctl(fd, req, ref arg);
-                if (result == EINTR)
+                if (result < 0 && Marshal.GetLastWin32Error() == EINTR)
                 {
                     continue;
                 }
@@ -222,13 +226,11 @@ namespace FlashCap.Internal
 
         [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctl(
-            int fd, uint request, out v4l2_capability caps);
-
-        private const uint VIDIOC_QUERYCAP = 0x80685600;
+            int fd, UIntPtr request, out v4l2_capability caps);
 
         public static int ioctl(
             int fd, out v4l2_capability caps) =>
-            do_ioctl(fd, VIDIOC_QUERYCAP, out caps, ioctl);
+            do_ioctl(fd, RequestCode.VIDIOC_QUERYCAP, out caps, ioctl);
 
         ///////////////////////////////////////////////////////////
 
@@ -319,13 +321,11 @@ namespace FlashCap.Internal
 
         [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctl(
-            int fd, uint request, out v4l2_input input);
-
-        private const uint VIDIOC_ENUMINPUT = 0xc04c561a;
+            int fd, UIntPtr request, out v4l2_input input);
 
         public static int ioctl(
             int fd, out v4l2_input input) =>
-            do_ioctl(fd, VIDIOC_ENUMINPUT, out input, ioctl);
+            do_ioctl(fd, RequestCode.VIDIOC_ENUMINPUT, out input, ioctl);
 
         ///////////////////////////////////////////////////////////
 
@@ -391,13 +391,11 @@ namespace FlashCap.Internal
 
         [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctl(
-            int fd, uint request, ref v4l2_fmtdesc fmtdesc);
-
-        private const uint VIDIOC_ENUM_FMT = 0xc0405602;
+            int fd, UIntPtr request, ref v4l2_fmtdesc fmtdesc);
 
         public static int ioctl(
             int fd, ref v4l2_fmtdesc fmtdesc) =>
-            do_ioctl(fd, VIDIOC_ENUM_FMT, ref fmtdesc, ioctl);
+            do_ioctl(fd, RequestCode.VIDIOC_ENUM_FMT, ref fmtdesc, ioctl);
 
         ///////////////////////////////////////////////////////////
 
@@ -440,13 +438,11 @@ namespace FlashCap.Internal
 
         [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctl(
-            int fd, uint request, ref v4l2_frmsizeenum frmsizeenum);
-
-        private const uint VIDIOC_ENUM_FRAMESIZES = 0xc02c564a;
+            int fd, UIntPtr request, ref v4l2_frmsizeenum frmsizeenum);
 
         public static int ioctl(
             int fd, ref v4l2_frmsizeenum frmsizeenum) =>
-            do_ioctl(fd, VIDIOC_ENUM_FRAMESIZES, ref frmsizeenum, ioctl);
+            do_ioctl(fd, RequestCode.VIDIOC_ENUM_FRAMESIZES, ref frmsizeenum, ioctl);
 
         ///////////////////////////////////////////////////////////
 
@@ -488,13 +484,11 @@ namespace FlashCap.Internal
 
         [DllImport("libc", EntryPoint = "ioctl", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctl(
-            int fd, uint request, ref v4l2_frmivalenum frmivalenum);
-
-        private const uint VIDIOC_ENUM_FRAMEINTERVALS = 0xc034564b;
+            int fd, UIntPtr request, ref v4l2_frmivalenum frmivalenum);
 
         public static int ioctl(
             int fd, ref v4l2_frmivalenum frmivalenum) =>
-            do_ioctl(fd, VIDIOC_ENUM_FRAMEINTERVALS, ref frmivalenum, ioctl);
+            do_ioctl(fd, RequestCode.VIDIOC_ENUM_FRAMEINTERVALS, ref frmivalenum, ioctl);
 
         ///////////////////////////////////////////////////////////
 
@@ -566,6 +560,21 @@ namespace FlashCap.Internal
             SMPTE240M,
         }
 
+        public enum v4l2_hsv_encoding
+        {
+            VALUE_180,
+            VALUE_256,
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        public struct v4l2_pix_format_encoding
+        {
+            [FieldOffset(0)]
+            public v4l2_ycbcr_encoding ycbcr_enc;
+            [FieldOffset(0)]
+            public v4l2_hsv_encoding hsv_enc;
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         public struct v4l2_pix_format
         {
@@ -578,12 +587,12 @@ namespace FlashCap.Internal
             public v4l2_colorspace colorspace;
             public int priv;
             public v4l2_pix_format_flag flags;
-            public v4l2_ycbcr_encoding ycbcr_enc; // union { ycbcr_enc, hsv_enc }
+            public v4l2_pix_format_encoding encoding;   // unnamed union { ... }
             public v4l2_quantization quantization;
             public v4l2_xfer_func xfer_func;
         }
 
-        [StructLayout(LayoutKind.Sequential)]
+        [StructLayout(LayoutKind.Sequential, Pack=1)]
         private struct v4l2_format_fmt_raw_data200
         {
             private Guid raw_data0;
@@ -608,32 +617,35 @@ namespace FlashCap.Internal
             [FieldOffset(0)] private v4l2_format_fmt_raw_data200 raw_data;
         }
 
-        [StructLayout(LayoutKind.Sequential, Pack = 8)]
+        [StructLayout(LayoutKind.Explicit)]
+        public struct v4l2_format_type
+        {
+            [FieldOffset(0)] public v4l2_buf_type type;
+            [FieldOffset(0)] private IntPtr __hack;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack=1)]
         public struct v4l2_format
         {
-            public v4l2_buf_type type;
+            public v4l2_format_type type;   // HACK: Unknown padding insertion at after this field on 32bit environment...
             public v4l2_format_fmt fmt;
         }
 
         [DllImport("libc", EntryPoint = "ioctl", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctls(
-            int fd, uint request, in v4l2_format format);
-
-        private const uint VIDIOC_S_FMT = 0xc0d05605;
+            int fd, UIntPtr request, in v4l2_format format);
 
         public static int ioctls(
             int fd, in v4l2_format format) =>
-            do_ioctl(fd, VIDIOC_S_FMT, in format, ioctls);
+            do_ioctl(fd, RequestCode.VIDIOC_S_FMT, in format, ioctls);
 
         [DllImport("libc", EntryPoint = "ioctl", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctlg(
-            int fd, uint request, ref v4l2_format format);
-
-        private const uint VIDIOC_G_FMT = 0xc0d05604;
+            int fd, UIntPtr request, ref v4l2_format format);
 
         public static int ioctlg(
             int fd, ref v4l2_format format) =>
-            do_ioctl(fd, VIDIOC_G_FMT, ref format, ioctlg);
+            do_ioctl(fd, RequestCode.VIDIOC_G_FMT, ref format, ioctlg);
 
         ///////////////////////////////////////////////////////////
 
@@ -667,13 +679,11 @@ namespace FlashCap.Internal
 
         [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctl(
-            int fd, uint request, ref v4l2_requestbuffers requestbuffers);
-
-        private const uint VIDIOC_REQBUFS = 0xc0145608;
+            int fd, UIntPtr request, ref v4l2_requestbuffers requestbuffers);
 
         public static int ioctl(
             int fd, ref v4l2_requestbuffers requestbuffers) =>
-            do_ioctl(fd, VIDIOC_REQBUFS, ref requestbuffers, ioctl);
+            do_ioctl(fd, RequestCode.VIDIOC_REQBUFS, ref requestbuffers, ioctl);
 
         ///////////////////////////////////////////////////////////
 
@@ -770,41 +780,38 @@ namespace FlashCap.Internal
 
         [DllImport("libc", EntryPoint="ioctl", CallingConvention=CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctlr(
-            int fd, uint request, ref v4l2_buffer buffer);
-        private const uint VIDIOC_QUERYBUF = 0xc0585609;
+            int fd, UIntPtr request, ref v4l2_buffer buffer);
         public static int ioctl_querybuf(
             int fd, ref v4l2_buffer buffer) =>
-            do_ioctl(fd, VIDIOC_QUERYBUF, ref buffer, ioctlr);
+            do_ioctl(fd, RequestCode.VIDIOC_QUERYBUF, ref buffer, ioctlr);
                   
         ///////////////////////////////////////////////////////////
                   
         [DllImport("libc", EntryPoint="ioctl", CallingConvention=CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctli(
-            int fd, uint request, in v4l2_buffer buffer);
-        private const uint VIDIOC_QBUF = 0xc058560f;
+            int fd, UIntPtr request, in v4l2_buffer buffer);
+
         public static int ioctl_qbuf(
             int fd, in v4l2_buffer buffer) =>
-            do_ioctl(fd, VIDIOC_QBUF, in buffer, ioctli);
+            do_ioctl(fd, RequestCode.VIDIOC_QBUF, in buffer, ioctli);
                     
-        private const uint VIDIOC_DQBUF = 0xc0585611;
         public static int ioctl_dqbuf(
             int fd, in v4l2_buffer buffer) =>
-            do_ioctl(fd, VIDIOC_DQBUF, in buffer, ioctli);
+            do_ioctl(fd, RequestCode.VIDIOC_DQBUF, in buffer, ioctli);
                 
         ///////////////////////////////////////////////////////////
                 
         [DllImport("libc", CallingConvention=CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctl(
-            int fd, uint request, in v4l2_buf_type type);
-        private const uint VIDIOC_STREAMON = 0x40045612;
+            int fd, UIntPtr request, in v4l2_buf_type type);
+
         public static int ioctl_streamon(
             int fd, v4l2_buf_type type) =>
-            do_ioctl(fd, VIDIOC_STREAMON, in type, ioctl);
+            do_ioctl(fd, RequestCode.VIDIOC_STREAMON, in type, ioctl);
 
-        private const uint VIDIOC_STREAMOFF = 0x40045613;
         public static int ioctl_streamoff(
             int fd, v4l2_buf_type type) =>
-            do_ioctl(fd, VIDIOC_STREAMOFF, in type, ioctl);
+            do_ioctl(fd, RequestCode.VIDIOC_STREAMOFF, in type, ioctl);
         
         ///////////////////////////////////////////////////////////
 
@@ -812,7 +819,8 @@ namespace FlashCap.Internal
             v4l2_pix_fmt pix_fmt,
             int width, int height,
             Fraction framesPerSecond,
-            string description)
+            string description,
+            bool isDiscrete)
         {
             if (pix_fmt switch
             {
@@ -838,6 +846,7 @@ namespace FlashCap.Internal
                     pixelFormat, width, height,
                     framesPerSecond.Reduce(),
                     description,
+                    isDiscrete,
                     NativeMethods.GetFourCCString((int)pix_fmt));
             }
             else
