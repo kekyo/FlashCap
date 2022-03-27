@@ -47,7 +47,7 @@ Platforms on which camera devices can be used:
 
 ### Tested devices
 
-Run the sample code to verify.
+Run the sample code to verify in 0.11.0.
 
 Verified capture devices:
 
@@ -70,6 +70,7 @@ Verified computers:
 Couldn't detect any devices on FlashCap:
 
 * Surface2 (Windows RT 8.1 JB'd)
+  * Any devices are not found, may not be compatible with both VFW and DirectShow.
 
 ---
 
