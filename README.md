@@ -62,12 +62,12 @@ Verified computers:
 * Microsoft Surface Go Gen1 inside camera (x64, Windows)
 * Sony VAIO Z VJZ131A11N inside camera (x64, Windows)
 * clockworks DevTerm A06 (arm64, Linux)
-* Raspberry Pi 400 (armhf, Linux)
+* Raspberry Pi 400 (armhf/arm64, Linux)
+* Seeed reTerminal (armhf, Linux)
 * Teclast X89 E7ED Tablet PC inside camera (x86, Windows)
 
 Testing:
 
-* Seeed reTerminal (arm64, Linux)
 * NVIDIA Jetson TX2 evaluation board inside camera (arm64, Linux)
 
 Couldn't detect any devices on FlashCap:
