@@ -807,6 +807,7 @@ namespace FlashCap.Internal
                         // Precision is only under 3 digits (0.001)
                         (int)(10_000_000_000.0 / this.VideoInformation.AvgTimePerFrame),
                         1_000).Reduce(),
+                    true, // TODO: support non discrete entries.
                     this.PartialMediaType.subtype.ToString());
         }
 

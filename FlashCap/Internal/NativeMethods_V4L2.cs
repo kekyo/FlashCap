@@ -819,7 +819,8 @@ namespace FlashCap.Internal
             v4l2_pix_fmt pix_fmt,
             int width, int height,
             Fraction framesPerSecond,
-            string description)
+            string description,
+            bool isDiscrete)
         {
             if (pix_fmt switch
             {
@@ -845,6 +846,7 @@ namespace FlashCap.Internal
                     pixelFormat, width, height,
                     framesPerSecond.Reduce(),
                     description,
+                    isDiscrete,
                     NativeMethods.GetFourCCString((int)pix_fmt));
             }
             else
