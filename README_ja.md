@@ -64,11 +64,8 @@ FlashCap - シンプルで依存性のない、カメラキャプチャライブ
 * clockworks DevTerm A06 (arm64, Linux)
 * Raspberry Pi 400 (armhf/arm64, Linux)
 * Seeed reTerminal (armhf, Linux)
-* Teclast X89 E7ED Tablet PC inside camera (x86, Windows)
-
-テスト中:
-
-* NVIDIA Jetson TX2 評価ボード 内蔵カメラ (arm64, Linux)
+* Teclast X89 E7ED Tablet PC 内蔵カメラ (x86, Windows)
+* NVIDIA Jetson TX2 評価ボード (arm64, Linux)
 
 確認した、動作しない環境:
 

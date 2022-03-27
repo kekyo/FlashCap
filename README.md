@@ -65,10 +65,7 @@ Verified computers:
 * Raspberry Pi 400 (armhf/arm64, Linux)
 * Seeed reTerminal (armhf, Linux)
 * Teclast X89 E7ED Tablet PC inside camera (x86, Windows)
-
-Testing:
-
-* NVIDIA Jetson TX2 evaluation board inside camera (arm64, Linux)
+* NVIDIA Jetson TX2 evaluation board (arm64, Linux)
 
 Couldn't detect any devices on FlashCap:
 
