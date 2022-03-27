@@ -106,32 +106,5 @@ namespace FlashCap.FrameProcessors
             }
         }
     }
-
-#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
-    internal sealed class DelegatedScatteringValueTaskProcessor :
-        ScatteringProcessor
-    {
-        private readonly PixelBufferArrivedValueTaskDelegate pixelBufferArrived;
-
-        public DelegatedScatteringValueTaskProcessor(
-            PixelBufferArrivedValueTaskDelegate pixelBufferArrived) =>
-            this.pixelBufferArrived = pixelBufferArrived;
-
-        protected override async void PixelBufferArrivedEntry(object? parameter)
-        {
-            var buffer = (PixelBuffer)parameter!;
-            try
-            {
-                using var scope = new InternalPixelBufferScope(this, buffer);
-                await this.pixelBufferArrived(scope).
-                    ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                Trace.WriteLine(ex);
-            }
-        }
-    }
-#endif
 #endif
 }

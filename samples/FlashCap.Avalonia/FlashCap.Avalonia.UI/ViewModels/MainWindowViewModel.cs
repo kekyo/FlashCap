@@ -76,7 +76,7 @@ namespace FlashCap.Avalonia.ViewModels
             });
         }
  
-        private async ValueTask OnPixelBufferArrivedAsync(PixelBufferScope bufferScope)
+        private async Task OnPixelBufferArrivedAsync(PixelBufferScope bufferScope)
         {
             ////////////////////////////////////////////////
             // Pixel buffer has arrived.

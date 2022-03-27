@@ -27,11 +27,6 @@ namespace FlashCap
     public delegate Task PixelBufferArrivedTaskDelegate(
         PixelBufferScope bufferScope);
 
-#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
-    public delegate ValueTask PixelBufferArrivedValueTaskDelegate(
-        PixelBufferScope bufferScope);
-#endif
-
     public static class CaptureDeviceDescriptorExtension
     {
         public static Task<CaptureDevice> OpenAsync(
@@ -85,34 +80,6 @@ namespace FlashCap
                     _ =>
                         new DelegatedIgnoreDroppingTaskProcessor(pixelBufferArrived),
                 });
-
-#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
-        public static Task<CaptureDevice> OpenAsync(
-            this CaptureDeviceDescriptor descriptor,
-            VideoCharacteristics characteristics,
-            PixelBufferArrivedValueTaskDelegate pixelBufferArrived) =>
-            descriptor.OpenWithFrameProcessorAsync(
-                characteristics, true,
-                new DelegatedIgnoreDroppingValueTaskProcessor(pixelBufferArrived));
-
-        public static Task<CaptureDevice> OpenAsync(
-            this CaptureDeviceDescriptor descriptor,
-            VideoCharacteristics characteristics,
-            bool transcodeIfYUV,
-            HandlerStrategies handlerStrategy,
-            PixelBufferArrivedValueTaskDelegate pixelBufferArrived) =>
-            descriptor.OpenWithFrameProcessorAsync(
-                characteristics, transcodeIfYUV,
-                handlerStrategy switch
-                {
-                    HandlerStrategies.Queuing =>
-                        new DelegatedQueuingValueTaskProcessor(pixelBufferArrived),
-                    HandlerStrategies.Scattering =>
-                        new DelegatedScatteringValueTaskProcessor(pixelBufferArrived),
-                    _ =>
-                        new DelegatedIgnoreDroppingValueTaskProcessor(pixelBufferArrived),
-                });
-#endif
     }
 #endif
 }
