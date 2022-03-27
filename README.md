@@ -106,12 +106,12 @@ var descriptor0 = devices.EnumerateDescriptors().ElementAt(0);
 
 using var device = await descriptor0.OpenAsync(
     descriptor0.Characteristics[0],
-    async buffer =>
+    async bufferScope =>
     {
         // Captured into a pixel buffer from an argument.
 
         // Get image data (Maybe DIB/Jpeg/PNG):
-        byte[] image = buffer.ExtractImage();
+        byte[] image = bufferScope.Buffer.ExtractImage();
 
         // Anything use of it...
         var ms = new MemoryStream(image);

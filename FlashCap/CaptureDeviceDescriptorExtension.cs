@@ -8,6 +8,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using FlashCap.FrameProcessors;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace FlashCap
@@ -20,15 +21,15 @@ namespace FlashCap
     }
 
     public delegate void PixelBufferArrivedDelegate(
-        PixelBuffer buffer);
+        PixelBufferScope bufferScope);
 
 #if NET35_OR_GREATER || NETSTANDARD || NETCOREAPP
     public delegate Task PixelBufferArrivedTaskDelegate(
-        PixelBuffer buffer);
+        PixelBufferScope bufferScope);
 
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
     public delegate ValueTask PixelBufferArrivedValueTaskDelegate(
-        PixelBuffer buffer);
+        PixelBufferScope bufferScope);
 #endif
 
     public static class CaptureDeviceDescriptorExtension

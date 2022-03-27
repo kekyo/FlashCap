@@ -7,7 +7,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-using FlashCap.Synchronized;
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -15,7 +14,7 @@ using System.Threading;
 
 namespace FlashCap.FrameProcessors
 {
-    internal abstract class IgnoreDroppingProcessor : FrameProcessor
+    internal abstract class IgnoreDroppingProcessor : InternalFrameProcessor
     {
         private readonly PixelBuffer buffer = new();
         private readonly WaitCallback pixelBufferArrivedEntry;
@@ -51,7 +50,7 @@ namespace FlashCap.FrameProcessors
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-        protected void Finished() =>
+        public override void ReleaseNow(PixelBuffer buffer) =>
             Interlocked.Decrement(ref isin);
 
         protected abstract void PixelBufferArrivedEntry(object? parameter);
@@ -69,14 +68,8 @@ namespace FlashCap.FrameProcessors
         protected override void PixelBufferArrivedEntry(object? parameter)
         {
             var buffer = (PixelBuffer)parameter!;
-            try
-            {
-                this.pixelBufferArrived(buffer);
-            }
-            finally
-            {
-                this.Finished();
-            }
+            using var scope = new InternalPixelBufferScope(this, buffer);
+            this.pixelBufferArrived(scope);
         }
     }
 
@@ -95,15 +88,9 @@ namespace FlashCap.FrameProcessors
             var buffer = (PixelBuffer)parameter!;
             try
             {
-                try
-                {
-                    await this.pixelBufferArrived(buffer).
-                        ConfigureAwait(false);
-                }
-                finally
-                {
-                    this.Finished();
-                }
+                using var scope = new InternalPixelBufferScope(this, buffer);
+                await this.pixelBufferArrived(scope).
+                    ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -127,15 +114,9 @@ namespace FlashCap.FrameProcessors
             var buffer = (PixelBuffer)parameter!;
             try
             {
-                try
-                {
-                    await this.pixelBufferArrived(buffer).
-                        ConfigureAwait(false);
-                }
-                finally
-                {
-                    this.Finished();
-                }
+                using var scope = new InternalPixelBufferScope(this, buffer);
+                await this.pixelBufferArrived(scope).
+                    ConfigureAwait(false);
             }
             catch (Exception ex)
             {

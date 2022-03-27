@@ -68,24 +68,27 @@ namespace FlashCap.WindowsForms
             }
         }
 
-        private void OnPixelBufferArrived(PixelBuffer buffer)
+        private void OnPixelBufferArrived(PixelBufferScope bufferScope)
         {
             ////////////////////////////////////////////////
             // Pixel buffer has arrived.
             // NOTE: Perhaps this thread context is NOT UI thread.
 #if false
             // Get image data binary:
-            byte[] image = buffer.ExtractImage();
+            byte[] image = bufferScope.Buffer.ExtractImage();
 #else
             // Or, refer image data binary directly.
             // (Advanced manipulation, see README.)
-            ArraySegment<byte> image = buffer.ReferImage();
+            ArraySegment<byte> image = bufferScope.Buffer.ReferImage();
 #endif
             // Convert to Stream (using FlashCap.Utilities)
             using (var stream = image.AsStream())
             {
                 // Decode image data to a bitmap:
                 var bitmap = Image.FromStream(stream);
+
+                // `bitmap` is copied, so we can release pixel buffer now.
+                bufferScope.ReleaseNow();
 
                 try
                 {

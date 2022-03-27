@@ -106,12 +106,12 @@ var descriptor0 = devices.EnumerateDescriptors().ElementAt(0);
 
 using var device = await descriptor0.OpenAsync(
     descriptor0.Characteristics[0],
-    async buffer =>
+    async bufferScope =>
     {
         // 引数に渡されるピクセルバッファにキャプチャされている:
 
         // イメージデータを取得 (恐らくDIB/Jpeg/PNGフォーマットのバイナリ):
-        byte[] image = buffer.ExtractImage();
+        byte[] image = bufferScope.Buffer.ExtractImage();
 
         // 後はお好きに...
         var ms = new MemoryStream(image);
