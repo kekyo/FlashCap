@@ -139,14 +139,170 @@ TODO:
 
 * [WPFアプリケーション](samples/FlashCap.WPF/)
 
-Avaloniaのサンプルコードは、単一のコードで、WindowsとLinuxの両方で動作します。
-ユーザーモードプロセスでリアルタイムにキャプチャを行い、
-（MJPEGから）ビットマップをデコードし、ウィンドウにレンダリングします。
-AvaloniaはSkiaを使ったレンダラーを使用しています。かなり高速です。
+Avaloniaのサンプルコードは、単一のコードで、WindowsとLinuxの両方で動作します。ユーザーモードプロセスでリアルタイムにキャプチャを行い、（MJPEGから）ビットマップをデコードし、ウィンドウにレンダリングします。AvaloniaはSkiaを使ったレンダラーを使用しています。かなり高速です。
 
 ![FlashCap.Avalonia](Images/FlashCap.Avalonia_Windows.png)
 
 ![FlashCap.Avalonia](Images/FlashCap.Avalonia_Linux.png)
+
+----
+
+## データコピーの削減
+
+以降では、FlashCapを使って、大容量の画像データを処理するための、様々な手法を解説します。これは、応用例なので、必ず読む必要はありませんが、実装のヒントになると思います。
+
+動画を処理するには、大量のデータを扱う必要があります。FlashCapでは、動画の1枚1枚を「フレーム」と呼びます。そして、そのフレームが、1秒当たり60や30回という速さでやって来ます。
+
+ここで重要になるのが、各フレームのデータを、いかにコピーする事なく処理できるか、という事です。現在のFlashCapは、最低1回のコピーが発生します。しかし、使用方法によっては、2回や3回、あるいはそれ以上のコピーが発生してしまう可能性があります。
+
+`OpenAsync`メソッドを呼び出す際のコールバックは、`PixelBufferScope`の引数を渡してきます。この引数に、1回コピーされたフレームのデータが格納されています。ここで、「最も安全」なメソッドである、`CopyImage()` メソッドを呼び出してみます:
+
+```csharp
+using var device = await descriptor0.OpenAsync(
+  descriptor0.Characteristics[0],
+  async bufferScope =>  // <-- `PixelBufferScope` (この時点で1回コピー済み)
+  {
+    // ここで2回目のコピーが発生する
+    byte[] image = bufferScope.Buffer.CopyImage();
+
+    // 結果的に、ここで3回目のコピーが発生する
+    var ms = new MemoryStream(image);
+    var bitmap = Bitmap.FromStream(ms);
+
+    // ...
+  });
+```
+
+すると、少なくとも合計2回のコピーが発生することになります。更に、得られた画像データ（`image`）を、`Bitmap.FromStream()`でデコードする事で、結果的に3回のコピーが発生したことになります。
+
+では、最初のコード例である、`ExtractImage()`を使った場合はどうでしょうか:
+
+```csharp
+using var device = await descriptor0.OpenAsync(
+  descriptor0.Characteristics[0],
+  async bufferScope =>  // <-- `PixelBufferScope` (この時点で1回コピー済み)
+  {
+    // ここで2回目のコピーが発生する（かも知れない）
+    byte[] image = bufferScope.Buffer.ExtractImage();
+
+    // Streamに変換する
+    var ms = new MemoryStream(image);
+    // デコードする。結果的に、ここで2回目、又は3回目のコピーが発生する
+    var bitmap = Bitmap.FromStream(ms);
+
+    // ...
+  });
+```
+
+「コピーが発生する（かも知れない）」と言うのは、状況によっては、コピーが発生しない場合がある、という事です。そうであれば、`CopyImage()` を使わずに、`ExtractImage()`だけを使えば良い、と考えるかも知れません。しかし、`ExtractImage()`の場合は、得られたデータの有効期限が短い、と言う問題があります。
+
+以下のようなコードを考えます:
+
+```csharp
+// コールバックのスコープ外に画像データを保存
+byte[]? image = null;
+
+using var device = await descriptor0.OpenAsync(
+  descriptor0.Characteristics[0],
+  async bufferScope =>  // <-- `PixelBufferScope` (この時点で1回コピー済み)
+  {
+    // スコープ外に保存（2回目のコピー）
+    image = bufferScope.Buffer.CopyImage();
+    //image = bufferScope.ExtractImage();  // 危険!!!
+  });
+
+// スコープ外で使う
+var ms = new MemoryStream(image);
+// デコードする（3回目のコピー）
+var bitmap = Bitmap.FromStream(ms);
+```
+
+このように、`CopyImage()`でコピーしていれば、コールバックのスコープ外でも安全に参照する事が出来ます。しかし、`ExtractImage()`を使った場合は、スコープ外で参照すると、画像データが破損している可能性があるため、注意が必要です。
+
+同様に、`ReferImage()`メソッドを使うと、基本的にコピーが発生しません。（トランスコードが発生する場合を除きます。後述。）この場合も、スコープ外での参照は行えません。また、画像データはバイト配列ではなく、
+`ArraySegment<byte>` で参照する事になります。
+
+この型は、配列の部分参照を示しているため、そのまま使用する事が出来ません。例えば、`Stream`として使用したい場合は、以下のようにします:
+
+```csharp
+using var device = await descriptor0.OpenAsync(
+  descriptor0.Characteristics[0],
+  async bufferScope =>  // <-- `PixelBufferScope` (この時点で1回コピー済み)
+  {
+    // ここでは基本的にコピーが発生しない
+    ArraySegment<byte> image =
+      bufferScope.Buffer.ReferImage();
+
+    // Streamに変換する
+    var ms = new MemoryStream(
+      image.Array, image.Offset, image.Count);
+    // デコードする（2回目のコピー）
+    var bitmap = Bitmap.LoadFrom(ms);
+
+    // ...
+  });
+```
+
+`MemoryStream`を使う場合は、このコード例と同様の拡張メソッド `AsStream()` が定義されているので、こちらを使用しても良いでしょう。また、SkiaSharpを使う場合は、`SKBitmap.Decode()`を使って、直接`ArraySegment<byte>`を渡す事が出来ます。
+
+ここまでで説明した、画像データを取得する方法の一覧を示します:
+
+| メソッド              | 速度        | スコープ外 | イメージの型               |
+|:-----------------|:----------|:--------|:---------------------|
+| `CopyImage()`    | 遅い        | 安全 | `byte[]`             |
+| `ExtractImage()` | 場合によっては遅い | 使用不可 | `byte[]`             |
+| `ReferImage()`   | 高速        | 使用不可 | `ArraySegment<byte>` |
+
+`ReferImage()`を使用すれば、最低2回のコピーで実現することが分かりました。では、1回まで短縮するにはどうすれば良いでしょうか？
+
+1回のコピーだけで実現するには、画像データのデコードを諦める必要があります。もしかしたら、画像データをハードウェアで処理できる環境であれば、画像データを直接、ハードウェアに渡すことで、2回目のコピーをオフロードできるかも知れません。
+
+ここでは分かりやすい例として、以下のように、画像データを直接ファイルに保存する操作を考えます。この場合、デコードも行わないので、コピーは1回という事になります。（その代わり、I/O操作は途方もなく遅いのですが...）
+
+```csharp
+using var device = await descriptor0.OpenAsync(
+  descriptor0.Characteristics[0],
+  async bufferScope =>  // <-- `PixelBufferScope` (この時点で1回コピー済み)
+  {
+    // ここでは基本的にコピーが発生しない
+    ArraySegment<byte> image = bufferScope.Buffer.ReferImage();
+
+    // 画像データを直接ファイルに出力する
+    using var fs = File.Create(
+      descriptor0.Characteristics[0].PixelFormat switch
+      {
+        PixelFormats.Jpeg => "output.jpg",
+        _ => "output.bmp",
+      });
+    await fs.WriteAsync(image.Array, image.Offset, image.Count);
+    await fs.FlushAsync();
+  });
+```
+
+### トランスコードについて
+
+デバイスから得られた「生の画像データ」は、私たちが扱いやすい、JPEGやDIBビットマップ
+ではない場合があります。一般的に、動画形式の画像データで、MEPGのような連続ストリームではない場合、
+"MJPEG"や"YUV"と呼ばれる形式です。
+
+"MJPEG"は、中身が完全にJPEGと同じであるため、FlashCapはそのまま画像データとして返します。対して、"YUV"形式の場合は、データヘッダ形式はDIBビットマップと同じですが、中身は完全に別物です。従って、これをそのまま "output.bmp" のようなファイルで保存しても、多くの画像デコーダはこれを処理できません。
+
+そこで、FlashCapは、"YUV"形式の画像データの場合は、自動的にRGB DIB形式に変換します。この処理の事を「トランスコード」と呼んでいます。先ほど、`ReferImage()`は「基本的にコピーが発生しない」と説明しましたが、"YUV"形式の場合は、トランスコードが発生するため、一種のコピーが行われます。
+
+もし、画像データが"YUV"であっても、そのまま後続の処理を行えることが分かっている場合は、トランスコードを無効化することで、コピー処理を1回のみにする事が出来ます:
+
+```csharp
+// トランスコードを無効にしてデバイスを開く:
+using var device = await descriptor0.OpenAsync(
+  descriptor0.Characteristics[0],
+  false,   // transcodeIfYUV == false
+  async buferScope =>
+  {
+      // ...
+  });
+
+// ...
+```
 
 ----
 
@@ -156,59 +312,11 @@ TODO: rewrite to what is handler strategies.
 
 ----
 
-## データコピーの削減
-
-TODO: rewrite
-
-もう一つのトピックは、`PixelBuffer.ReferImage()` メソッドが
-`ArraySegment<byte>` を返すことです。
-これは、画像データのコピーを回避するために利用できます（トランスコードが適用されない場合）。
-
-**注意**: 結果の配列セグメントの有効期間は、次の `Capture()` が実行されるまでです。
-
-```csharp
-// デコードを実行:
-ArraySegment<byte> image = buffer.ReferImage();
-var bitmap = SkiaSharp.SKBitmap.Decode(image);
-
-// デコードが完了すると、ピクセルバッファは不要となる:
-reserver.Push(buffer);
-
-// (ビットマップを何かに使う...)
-```
-
-画像抽出操作を比較する表を示します:
-
-| メソッド             | 速度        | スレッドセーフ | イメージの型               |
-|:-----------------|:----------|:--------|:---------------------|
-| `CopyImage()`    | 遅い        | 安全      | `byte[]`             |
-| `ExtractImage()` | 場合によっては遅い | 保護が必要   | `byte[]`             |
-| `ReferImage()`   | 高速        | 保護が必要   | `ArraySegment<byte>` |
-
-また、"YUV" 形式の場合でもトランスコードを実行しないように無効化し、
-完全な生画像データを参照するようにします。
-(もちろん、生データをデコードするのはあなたの責任となります...）
-
-```csharp
-// トランスコーダを無効にしてデバイスを開く:
-using var device = await descriptor0.OpenAsync(
-    descriptor0.Characteristics[0],
-    false,   // transcodeIfYUV == false
-    async bufer =>
-    {
-        // ...
-    });
-
-// ...
-```
-
----
-
 ## フレームプロセッサをマスターする (Advanced topic)
 
 TODO: rewrite to what is frame processor.
 
----
+----
 
 ## 制限
 
@@ -217,13 +325,13 @@ TODO: rewrite to what is frame processor.
   2. ソースデバイス（本当のカメラデバイス）に対応する各ドライバ。しかし、プログラマブルに選択することはできません。
      複数のカメラデバイスが検出された場合、自動的に選択ダイアログが表示されます。
 
----
+----
 
 ## License
 
 Apache-v2.
 
----
+----
 
 ## 履歴
 

@@ -140,9 +140,9 @@ TODO:
 * [WPF application](samples/FlashCap.WPF/)
 
 This is an Avalonia sample application on both Windows and Linux.
-It is performed realtime usermode capturing,
-decoding bitmap (from MJPEG) and render to window.
-Avalonia is using renderer with Skia. It is pretty fast.
+It is performed realtime usermode capturing, decoding bitmap (from MJPEG) and render to window.
+Avalonia is using renderer with Skia.
+It is pretty fast.
 
 ![FlashCap.Avalonia](Images/FlashCap.Avalonia_Windows.png)
 
@@ -150,55 +150,188 @@ Avalonia is using renderer with Skia. It is pretty fast.
 
 ---
 
-## About handler and strategies
-
-TODO: rewrite to what is handler strategies.
-
----
-
 ## Reduce data copy
 
-TODO: rewrite
+In the following sections, we will explain various techniques for processing large amounts of image data using FlashCap.
+This is an application example, so it is not necessary to read it, but it will give you some hints for implementation.
 
-Another topic, `PixelBuffer.ReferImage()` method will return `ArraySegment<byte>`.
-We can use it avoid copying image data (when transcode is not applicable).
+Processing video requires handling large amounts of data; in FlashCap, each piece of video is called "a frame."
+The frames come and go at a rate of 60 or 30 times per second.
 
-**Caution**: The resulting array segment is valid until the next `Capture()` is executed.
+The key here is how to process the data in each frame without copying it.
+Currently, FlashCap requires at least one copy.
+However, depending on how it is used, two, three, or even more copies may occur.
+
+The callback when calling the `OpenAsync` method will pass a `PixelBufferScope` argument.
+This argument contains the data of the frame that was copied once.
+Now let's call the `CopyImage()` method, which is the "safest" method:
 
 ```csharp
-// Perform decode:
-ArraySegment<byte> image = buffer.ReferImage();
-var bitmap = SkiaSharp.SKBitmap.Decode(image);
+using var device = await descriptor0.OpenAsync(
+  descriptor0.Characteristics[0],
+  async bufferScope =>  // <-- `PixelBufferScope` (already copied once at this point)
+  {
+    // This is where the second copy occurs.
+    byte[] image = bufferScope.Buffer.CopyImage();
 
-// AFTER decoded, the pixel buffer isn't needed.
-reserver.Push(buffer);
+    // Convert to Stream.
+    var ms = new MemoryStream(image);
+    // Consequently, a third copy occurs here.
+    var bitmap = Bitmap.FromStream(ms);
 
-// (Anything use of it...)
+    // ...
+  });
 ```
 
-There is a table for overall image extractions:
+This would result in at least two copies in total.
+Furthermore, by decoding the resulting image data (`image`) with `Bitmap.FromStream()`, three copies will have occurred as a result.
 
-| Method           | Speed            | Thread safe       | Image data type      |
-|:-----------------|:-----------------|:------------------|:---------------------|
-| `CopyImage()`    | Slow             | Safe              | `byte[]`             |
-| `ExtractImage()` | Sometimes slower | Protection needed | `byte[]`             |
-| `ReferImage()`   | Fastest          | Protection needed | `ArraySegment<byte>` |
-
-And disable transcoding when become "YUV" format, it performs referring image data absolutely raw.
-(Of course, it is your responsibility to decode the raw data...)
+Now, what about the first code example, using `ExtractImage()`?
 
 ```csharp
-// Open device with disable transcoder:
 using var device = await descriptor0.OpenAsync(
-    descriptor0.Characteristics[0],
-    false,    // transcodeIfYUV == false
-    async bufer =>
-    {
-        // ...
-    });
+  descriptor0.Characteristics[0],
+  async bufferScope =>  // <-- `PixelBufferScope` (already copied once at this point)
+  {
+    // This is where the second copy (may) occur.
+    byte[] image = bufferScope.Buffer.ExtractImage();
+
+    // Convert to Stream.
+    var ms = new MemoryStream(image);
+    // Decode. Consequently, a second or third copy occurs here.
+    var bitmap = Bitmap.FromStream(ms);
+
+    // ...
+  });
+```
+
+When I say "copying (may) occur," I mean that under some circumstances, copying may not occur.
+If so, you may think that you should use only `ExtractImage()` instead of `CopyImage()`. 
+However, `ExtractImage()` has a problem that the validity period of obtained data is short.
+
+Consider the following code:
+
+```csharp
+// Stores image data outside the scope of the callback.
+byte[]? image = null;
+
+using var device = await descriptor0.OpenAsync(
+  descriptor0.Characteristics[0],
+  async bufferScope =>  // <-- `PixelBufferScope` (already copied once at this point)
+  {
+    // Save out of scope. (second copy)
+    image = bufferScope.Buffer.CopyImage();
+    //image = bufferScope.ExtractImage();  // DANGER!!!
+  });
+
+// Use outside of scope.
+var ms = new MemoryStream(image);
+// Decode (Third copy)
+var bitmap = Bitmap.FromStream(ms);
+```
+
+Thus, if the image is copied with `CopyImage()`, it can be safely referenced outside the scope of the callback.
+However, if you use `ExtractImage()`, you must be careful because the image data may be corrupted if you reference it outside the scope.
+
+Similarly, using the `ReferImage()` method, basically no copying occurs. (Except when transcoding occurs. See below.)
+Again, out-of-scope references cannot be made. Also, the image data is not stored in a byte array, but in a `ArraySegment<byte>` is used to refer to the image data.
+
+This type cannot be used as is because it represents a partial reference to an array.
+For example, if you want to use it as a `Stream`, use the following:
+
+```csharp
+using var device = await descriptor0.OpenAsync(
+  descriptor0.Characteristics[0],
+  async bufferScope =>  // <-- `PixelBufferScope` (already copied once at this point)
+  {
+    // Basically no copying occurs here.
+    ArraySegment<byte> image =
+      bufferScope.Buffer.ReferImage();
+
+    // Convert to Stream.
+    var ms = new MemoryStream(
+      image.Array, image.Offset, image.Count);
+    // Decode (Second copy)
+    var bitmap = Bitmap.LoadFrom(ms);
+
+    // ...
+  });
+```
+
+If you use `MemoryStream`, you may use the extension method `AsStream()`, which is defined similar to this code example.
+Also, if you use SkiaSharp, you can pass `ArraySegment<byte>` directly using `SKBitmap.Decode()`.
+
+The following is a list of methods for acquiring image data described up to this point:
+
+| method | speed | out of scope | image type |
+|:-----------------|:----------|:--------|:---------------------|
+| `CopyImage()` | Slow | Safe | `byte[]` |
+| `ExtractImage()` | Slow in some cases | Danger | `byte[]` |
+| `ReferImage()` | Fast | Danger | `ArraySegment<byte>` |
+
+I found that using `ReferImage()`, I can achieve this with at least two copies.
+So how can we shorten it to once?
+
+To achieve this with only one copy, the decoding of the image data must be given up.
+Perhaps, if the environment allows hardware to process the image data, the second copy could be offloaded by passing the image data directly to the hardware.
+
+As an easy-to-understand example, consider the following operation, which saves image data directly to a file. In this case, since no decoding is performed, it means that the copying is done once. (Instead, the I/O operation is tremendously slow...)
+
+```csharp
+using var device = await descriptor0.OpenAsync(
+  descriptor0.Characteristics[0],
+  async bufferScope =>  // <-- `PixelBufferScope` (already copied once at this point)
+  {
+    // Basically no copying occurs here.
+    ArraySegment<byte> image = bufferScope.Buffer.ReferImage();
+
+    // Output image data directly to a file.
+    using var fs = File.Create(
+      descriptor0.Characteristics[0].PixelFormat switch
+      {
+        PixelFormats.Jpeg => "output.jpg",
+        _ => "output.bmp",
+      });
+    await fs.WriteAsync(image.Array, image.Offset, image.Count);
+    await fs.FlushAsync();
+  });
+```
+
+### About transcoder
+
+The "raw image data" from the device is a JPEG or DIB bitmap, which we can easily handle.
+In some cases, it may not be.
+In general, if the image data is in video format and not a continuous stream such as in MEPG,
+the format is called "MJPEG" (Motion JPEG) or "YUV".
+
+MJPEG" is completely the same as JPEG, so FlashCap returns the image data as is.
+In contrast, the "YUV" format has the same data header format as a DIB bitmap, but the contents are completely different.
+Therefore, many image decoders will not be able to process it if it is saved as is in a file such as "output.bmp".
+
+Therefore, FlashCap automatically converts "YUV" format image data into RGB DIB format.
+This process is called "transcoding."
+Earlier, I explained that `ReferImage()` "basically no copying occurs here," but in the case of "YUV" format, transcoding occurs, so a kind of copying is performed.
+
+If you know that the image data is "YUV" and can be processed without modification, you can disable transcoding so that the image is copied only once:
+
+```csharp
+// Open device with transcoding disabled:
+using var device = await descriptor0.OpenAsync(
+  descriptor0.Characteristics[0],
+  false,   // transcodeIfYUV == false
+  async buferScope =>
+  {
+      // ...
+  });
 
 // ...
 ```
+
+---
+
+## About callback handler and strategies
+
+TODO: rewrite to what is handler strategies.
 
 ---
 
