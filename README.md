@@ -135,6 +135,11 @@ Couldn't detect any devices on FlashCap:
 * Surface2 (Windows RT 8.1 JB'd)
   * Any devices are not found, may not be compatible with both VFW and DirectShow.
 
+Verifying now:
+
+* BlackMagic Design ATEM Mini Pro
+* Acer Aspire One ZA3 inside camera (x86, Linux)
+
 ----
 
 ## Fully sample code

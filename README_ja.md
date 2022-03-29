@@ -134,6 +134,11 @@ device.Stop();
 * Surface2 (Windows RT 8.1 JB'd)
   * デバイスが見つかりませんでした。VFWとDirectShowの両方に対応していない可能性があります。
 
+現在検証中:
+
+* Blackmagic Design ATEM Mini Pro
+* Acer Aspire One ZA3 inside camera (x86, Linux)
+
 ----
 
 ## 完全なサンプルコード
