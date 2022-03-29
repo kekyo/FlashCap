@@ -204,7 +204,7 @@ byte[]? image = null;
 
 using var device = await descriptor0.OpenAsync(
   descriptor0.Characteristics[0],
-  async bufferScope =>  // <-- `PixelBufferScope` (この時点で1回コピー済み)
+  bufferScope =>  // <-- `PixelBufferScope` (この時点で1回コピー済み)
   {
     // スコープ外に保存（2回目のコピー）
     image = bufferScope.Buffer.CopyImage();
@@ -271,7 +271,8 @@ using var device = await descriptor0.OpenAsync(
     using var fs = File.Create(
       descriptor0.Characteristics[0].PixelFormat switch
       {
-        PixelFormats.Jpeg => "output.jpg",
+        PixelFormats.JPEG => "output.jpg",
+        PixelFormats.PNG => "output.jpg",
         _ => "output.bmp",
       });
     await fs.WriteAsync(image.Array, image.Offset, image.Count);
@@ -281,15 +282,13 @@ using var device = await descriptor0.OpenAsync(
 
 ### トランスコードについて
 
-デバイスから得られた「生の画像データ」は、私たちが扱いやすい、JPEGやDIBビットマップ
-ではない場合があります。一般的に、動画形式の画像データで、MEPGのような連続ストリームではない場合、
-"MJPEG"や"YUV"と呼ばれる形式です。
+デバイスから得られた「生の画像データ」は、私たちが扱いやすい、JPEGやDIBビットマップではない場合があります。一般的に、動画形式の画像データは、MPEGのような連続ストリームではない場合、"MJPEG" (Motion JPEG)や"YUV"と呼ばれる形式です。
 
 "MJPEG"は、中身が完全にJPEGと同じであるため、FlashCapはそのまま画像データとして返します。対して、"YUV"形式の場合は、データヘッダ形式はDIBビットマップと同じですが、中身は完全に別物です。従って、これをそのまま "output.bmp" のようなファイルで保存しても、多くの画像デコーダはこれを処理できません。
 
-そこで、FlashCapは、"YUV"形式の画像データの場合は、自動的にRGB DIB形式に変換します。この処理の事を「トランスコード」と呼んでいます。先ほど、`ReferImage()`は「基本的にコピーが発生しない」と説明しましたが、"YUV"形式の場合は、トランスコードが発生するため、一種のコピーが行われます。
+そこで、FlashCapは、"YUV"形式の画像データの場合は、自動的に"RGB" DIB形式に変換します。この処理の事を「トランスコード」と呼んでいます。先ほど、`ReferImage()`は「基本的にコピーが発生しない」と説明しましたが、"YUV"形式の場合は、トランスコードが発生するため、一種のコピーが行われます。（FlashCapはトランスコードをマルチスレッドで処理しますが、それでも画像データが大きい場合は、性能に影響します。）
 
-もし、画像データが"YUV"であっても、そのまま後続の処理を行えることが分かっている場合は、トランスコードを無効化することで、コピー処理を1回のみにする事が出来ます:
+もし、画像データが"YUV"であっても、そのままで問題ないのであれば、トランスコードを無効化することで、コピー処理を完全に1回のみにする事が出来ます:
 
 ```csharp
 // トランスコードを無効にしてデバイスを開く:

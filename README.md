@@ -217,7 +217,7 @@ byte[]? image = null;
 
 using var device = await descriptor0.OpenAsync(
   descriptor0.Characteristics[0],
-  async bufferScope =>  // <-- `PixelBufferScope` (already copied once at this point)
+  bufferScope =>  // <-- `PixelBufferScope` (already copied once at this point)
   {
     // Save out of scope. (second copy)
     image = bufferScope.Buffer.CopyImage();
@@ -299,20 +299,19 @@ using var device = await descriptor0.OpenAsync(
 
 ### About transcoder
 
-The "raw image data" from the device is a JPEG or DIB bitmap, which we can easily handle.
-In some cases, it may not be.
-In general, if the image data is in video format and not a continuous stream such as in MEPG,
-the format is called "MJPEG" (Motion JPEG) or "YUV".
+The "raw image data" obtained from a device may not be a JPEG or DIB bitmap, which we can easily handle.
+Typically, video format is called "MJPEG" (Motion JPEG) or "YUV" if it is not a continuous stream such as MPEG.
 
-MJPEG" is completely the same as JPEG, so FlashCap returns the image data as is.
+"MJPEG" is completely the same as JPEG, so FlashCap returns the image data as is.
 In contrast, the "YUV" format has the same data header format as a DIB bitmap, but the contents are completely different.
 Therefore, many image decoders will not be able to process it if it is saved as is in a file such as "output.bmp".
 
-Therefore, FlashCap automatically converts "YUV" format image data into RGB DIB format.
+Therefore, FlashCap automatically converts "YUV" format image data into "RGB" DIB format.
 This process is called "transcoding."
 Earlier, I explained that `ReferImage()` "basically no copying occurs here," but in the case of "YUV" format, transcoding occurs, so a kind of copying is performed.
+(FlashCap handles transcoding in multi-threaded, but even so, large image data can affect performance.)
 
-If you know that the image data is "YUV" and can be processed without modification, you can disable transcoding so that the image is copied only once:
+If the image data is "YUV" and you do not have any problem, you can disable transcoding so that the copying process is completely one time only:
 
 ```csharp
 // Open device with transcoding disabled:
