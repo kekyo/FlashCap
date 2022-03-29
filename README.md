@@ -274,7 +274,7 @@ Also, if you use SkiaSharp, you can pass `ArraySegment<byte>` directly using `SK
 
 The following is a list of methods for acquiring image data described up to this point:
 
-| method | speed | out of scope | image type |
+| Method | Speed | Out of scope | Image type |
 |:-----------------|:----------|:--------|:---------------------|
 | `CopyImage()` | Slow | Safe | `byte[]` |
 | `ExtractImage()` | Slow in some cases | Danger | `byte[]` |
@@ -308,7 +308,7 @@ using var device = await descriptor0.OpenAsync(
   });
 ```
 
-### About transcoder
+## About transcoder
 
 The "raw image data" obtained from a device may not be a JPEG or DIB bitmap, which we can easily handle.
 Typically, video format is called "MJPEG" (Motion JPEG) or "YUV" if it is not a continuous stream such as MPEG.
@@ -337,13 +337,47 @@ using var device = await descriptor0.OpenAsync(
 // ...
 ```
 
-----
+## Callback handler and invoke trigger
 
-## About callback handler and strategies
+The callback handlers described so far are invoked "when a frame is obtained," but this trigger can be selected from several patterns.
+This choice can be made with the `HandlerStrategies` enumeration value, which is specified with the overloaded argument of `OpenAsync`:
 
-TODO: rewrite to what is handler strategies.
+```csharp
+// Specifies the trigger for invoking the handler:
+using var device = await descriptor0.OpenAsync(
+  descriptor0.Characteristics[0],
+  true,
+  HandlerStrategies.Scattering,   // Specifying the invoking trigger
+  async buferScope =>
+  {
+      // ...
+  });
 
-----
+// ...
+```
+
+The following is a list of pattern types:
+
+| Enumeration value | Summary |
+|:----|:----|
+| `IgnoreDropping` | Default call trigger. Ignore subsequent frames unless the handler returns control. Suitable for general usage. |
+| `Queuing` | Subsequent frames are stored in a queue even if the handler does not return control. If computer performance is sufficient, frames are not lost. |
+| `Scattering` | Handlers are processed in parallel by multi-threaded workers. Although the order of corresponding frames is not guaranteed, processing can be accelerated if the CPU supports multiple cores. |
+
+The name `IgnoreDropping` seems ominous.
+However, this default invocation trigger is appropriate for many cases.
+For example, if you choose `Queuing` and the handler is slow, the queue will hold an endless amount of image data, and the process will eventually run out of memory and terminate.
+Processing beyond the capability of the computer's processor requires a compromise somewhere.
+`IgnoreDropping` can easily handle this situation by intentionally discarding frames that occur when processing is not complete.
+
+Similarly, `Scattering` is more difficult to master.
+The handler you write will be called and processed simultaneously in multi-threaded.
+Therefore, at the very least, your handler should be implemented in such a way that it is thread-safe.
+Also, multi-threaded invocation means that the buffers to be processed may not necessarily remain in order.
+For example, if the handler is a UI display handler, using `Scattering` will cause the video to momentarily go back in time or feel choppy.
+
+To deal with the frame order confusion with `Scattering`, the `PixelBuffer` class has a `Timestamp` property and a `FrameIndex` property.
+By referring to these properties, the order of the frames can be determined even if the order of the frames is not maintained.
 
 ## Master for frame processor (Advanced topic)
 
