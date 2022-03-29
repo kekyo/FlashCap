@@ -32,49 +32,9 @@ FlashCap - シンプルで依存性のない、カメラキャプチャライブ
 また、公式以外の他のライブラリに依存することもありません。
 [NuGetの依存ページを参照して下さい](https://www.nuget.org/packages/FlashCap)
 
-対応する.NETプラットフォームは以下の通りです（ほぼ全てです！）:
-
-* .NET 6, 5 (`net6.0`, `net5.0`)
-* .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (`netcoreapp3.1` and etc)
-* .NET Standard 2.1, 2.0, 1.3 (`netstandard2.1` and etc)
-* .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5, 2.0 (`net48` and etc)
-
-カメラデバイスが使用できるプラットフォーム:
-
-* Windows (DirectShowデバイス)
-* Windows (Video for Windowsデバイス)
-* Linux (V4L2デバイス)
-
-### テスト済みデバイス
-
-サンプルコードを動作させて確認(0.11.0)。
-
-確認したキャプチャユニット:
-
-* Elgato CamLink 4K (Windows/Linux)
-* Logitech WebCam C930e (Windows/Linux)
-* Unnamed cheap USB capture module (Windows/Linux)
-
-確認したコンピューター:
-
-* Generic PC Core i9-9960X (x64, Windows)
-* Generic PC Core i9-11900K (x64, Linux)
-* Microsoft Surface Go Gen1 内蔵カメラ (x64, Windows)
-* VAIO Z VJZ131A11N 内蔵カメラ (x64, Windows)
-* clockworks DevTerm A06 (arm64, Linux)
-* Raspberry Pi 400 (armhf/arm64, Linux)
-* Seeed reTerminal (armhf, Linux)
-* Teclast X89 E7ED Tablet PC 内蔵カメラ (x86, Windows)
-* NVIDIA Jetson TX2 評価ボード (arm64, Linux)
-
-確認した、動作しない環境:
-
-* Surface2 (Windows RT 8.1 JB'd)
-  * デバイスが見つかりませんでした。VFWとDirectShowの両方に対応していない可能性があります。
-
 ----
 
-## 使い方
+## 簡単なコード例
 
 最初に、対象デバイスと映像の特性を列挙します:
 
@@ -130,6 +90,54 @@ device.Start();
 device.Stop();
 ```
 
+----
+
+## 動作環境
+
+対応する.NETプラットフォームは以下の通りです（ほぼ全てです！）:
+
+* .NET 6, 5 (`net6.0`, `net5.0`)
+* .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (`netcoreapp3.1` and etc)
+* .NET Standard 2.1, 2.0, 1.3 (`netstandard2.1` and etc)
+* .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5, 2.0 (`net48` and etc)
+
+カメラデバイスが使用できるプラットフォーム:
+
+* Windows (DirectShowデバイス)
+* Windows (Video for Windowsデバイス)
+* Linux (V4L2デバイス)
+
+## テスト済みデバイス
+
+サンプルコードを動作させて確認(0.11.0)。
+
+確認したキャプチャユニット:
+
+* Elgato CamLink 4K (Windows/Linux)
+* Logitech WebCam C930e (Windows/Linux)
+* Unnamed cheap USB capture module (Windows/Linux)
+
+確認したコンピューター:
+
+* Generic PC Core i9-9960X (x64, Windows)
+* Generic PC Core i9-11900K (x64, Linux)
+* Microsoft Surface Go Gen1 内蔵カメラ (x64, Windows)
+* VAIO Z VJZ131A11N 内蔵カメラ (x64, Windows)
+* clockworks DevTerm A06 (arm64, Linux)
+* Raspberry Pi 400 (armhf/arm64, Linux)
+* Seeed reTerminal (armhf, Linux)
+* Teclast X89 E7ED Tablet PC 内蔵カメラ (x86, Windows)
+* NVIDIA Jetson TX2 評価ボード (arm64, Linux)
+
+確認した、動作しない環境:
+
+* Surface2 (Windows RT 8.1 JB'd)
+  * デバイスが見つかりませんでした。VFWとDirectShowの両方に対応していない可能性があります。
+
+----
+
+## 完全なサンプルコード
+
 完全なサンプルコードはこちらです:
 
 * [Windowsフォームアプリケーション](samples/FlashCap.WindowsForms/)
@@ -147,9 +155,11 @@ Avaloniaのサンプルコードは、単一のコードで、WindowsとLinuxの
 
 ----
 
-## データコピーの削減
+## 実装ガイドライン
 
 以降では、FlashCapを使って、大容量の画像データを処理するための、様々な手法を解説します。これは、応用例なので、必ず読む必要はありませんが、実装のヒントになると思います。
+
+## データコピーの削減
 
 動画を処理するには、大量のデータを扱う必要があります。FlashCapでは、動画の1枚1枚を「フレーム」と呼びます。そして、そのフレームが、1秒当たり60や30回という速さでやって来ます。
 

@@ -32,49 +32,10 @@ It has simple API, easy to use, simple architecture and without native libraries
 It also does not depend on any non-official libraries.
 [See NuGet dependencies page.](https://www.nuget.org/packages/FlashCap)
 
-.NET platforms supported are as follows (almost all!):
 
-* .NET 6, 5 (`net6.0`, `net5.0`)
-* .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (`netcoreapp3.1` and etc)
-* .NET Standard 2.1, 2.0, 1.3 (`netstandard2.1` and etc)
-* .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5, 2.0 (`net48` and etc)
+----
 
-Platforms on which camera devices can be used:
-
-* Windows (DirectShow devices)
-* Windows (Video for Windows devices)
-* Linux (V4L2 devices)
-
-### Tested devices
-
-Run the sample code to verify in 0.11.0.
-
-Verified capture devices:
-
-* Elgato CamLink 4K (Windows/Linux)
-* Logitech WebCam C930e (Windows/Linux)
-* Unnamed cheap USB capture module (Windows/Linux)
-
-Verified computers:
-
-* Generic PC Core i9-9960X (x64, Windows)
-* Generic PC Core i9-11900K (x64, Linux)
-* Microsoft Surface Go Gen1 inside camera (x64, Windows)
-* Sony VAIO Z VJZ131A11N inside camera (x64, Windows)
-* clockworks DevTerm A06 (arm64, Linux)
-* Raspberry Pi 400 (armhf/arm64, Linux)
-* Seeed reTerminal (armhf, Linux)
-* Teclast X89 E7ED Tablet PC inside camera (x86, Windows)
-* NVIDIA Jetson TX2 evaluation board (arm64, Linux)
-
-Couldn't detect any devices on FlashCap:
-
-* Surface2 (Windows RT 8.1 JB'd)
-  * Any devices are not found, may not be compatible with both VFW and DirectShow.
-
----
-
-## How to use
+## Short sample code
 
 Enumerate target devices and video characteristics:
 
@@ -130,6 +91,54 @@ device.Start();
 device.Stop();
 ```
 
+----
+
+## Target environments
+
+.NET platforms supported are as follows (almost all!):
+
+* .NET 6, 5 (`net6.0`, `net5.0`)
+* .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (`netcoreapp3.1` and etc)
+* .NET Standard 2.1, 2.0, 1.3 (`netstandard2.1` and etc)
+* .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5, 2.0 (`net48` and etc)
+
+Platforms on which camera devices can be used:
+
+* Windows (DirectShow devices)
+* Windows (Video for Windows devices)
+* Linux (V4L2 devices)
+
+## Tested devices
+
+Run the sample code to verify in 0.11.0.
+
+Verified capture devices:
+
+* Elgato CamLink 4K (Windows/Linux)
+* Logitech WebCam C930e (Windows/Linux)
+* Unnamed cheap USB capture module (Windows/Linux)
+
+Verified computers:
+
+* Generic PC Core i9-9960X (x64, Windows)
+* Generic PC Core i9-11900K (x64, Linux)
+* Microsoft Surface Go Gen1 inside camera (x64, Windows)
+* Sony VAIO Z VJZ131A11N inside camera (x64, Windows)
+* clockworks DevTerm A06 (arm64, Linux)
+* Raspberry Pi 400 (armhf/arm64, Linux)
+* Seeed reTerminal (armhf, Linux)
+* Teclast X89 E7ED Tablet PC inside camera (x86, Windows)
+* NVIDIA Jetson TX2 evaluation board (arm64, Linux)
+
+Couldn't detect any devices on FlashCap:
+
+* Surface2 (Windows RT 8.1 JB'd)
+  * Any devices are not found, may not be compatible with both VFW and DirectShow.
+
+----
+
+## Fully sample code
+
 Fully sample code is here:
 
 * [Windows Forms application](samples/FlashCap.WindowsForms/)
@@ -148,12 +157,14 @@ It is pretty fast.
 
 ![FlashCap.Avalonia](Images/FlashCap.Avalonia_Linux.png)
 
----
+----
 
-## Reduce data copy
+## Implementation Guidelines
 
 In the following sections, we will explain various techniques for processing large amounts of image data using FlashCap.
 This is an application example, so it is not necessary to read it, but it will give you some hints for implementation.
+
+## Reduce data copy
 
 Processing video requires handling large amounts of data; in FlashCap, each piece of video is called "a frame."
 The frames come and go at a rate of 60 or 30 times per second.
@@ -326,19 +337,19 @@ using var device = await descriptor0.OpenAsync(
 // ...
 ```
 
----
+----
 
 ## About callback handler and strategies
 
 TODO: rewrite to what is handler strategies.
 
----
+----
 
 ## Master for frame processor (Advanced topic)
 
 TODO: rewrite to what is frame processor.
 
----
+----
 
 ## Limitation
 
@@ -347,13 +358,13 @@ TODO: rewrite to what is frame processor.
   2. Source devices (truly real camera devices) each drivers. But we could not select programmable.
      Will show up selection dialog automatically when multiple camera devices are found.
 
----
+----
 
 ## License
 
 Apache-v2.
 
----
+----
 
 ## History
 
