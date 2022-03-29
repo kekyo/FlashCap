@@ -352,7 +352,114 @@ using var device = await descriptor0.OpenAsync(
 
 ## フレームプロセッサをマスターする (Advanced topic)
 
-TODO: rewrite to what is frame processor.
+地下ダンジョンへようこそ。FlashCapのフレームプロセッサは、磨けば光る宝石です。余程のことが無い限り、フレームプロセッサを取り扱う必要はありません。この解説は、フレームプロセッサが存在するから解説しているだけで、ほとんどの読者は把握不要です。
+
+前節で解説した、コールバックハンドラの呼び出し契機は、内部的にはこのフレームプロセッサによって実現されています。つまり、フレームをどのように取り扱うのかや、その振る舞いを抽象化したものです。
+
+フレームプロセッサは、非常に単純な基底クラスを継承して実装します:
+
+```csharp
+// (細かい定義は省きます)
+public abstract class FrameProcessor : IDisposable
+{
+  // 必要なら実装する
+  public virtual void Dispose()
+  {
+  }
+
+  // ピクセルバッファを取得する
+  protected PixelBuffer GetPixelBuffer()
+  { /* ... */ }
+
+  // デバイスを使用してキャプチャを実行する
+  protected void Capture(CaptureDevice captureDevice,
+    IntPtr pData, int size,
+    double timestampMicroseconds, long frameIndex,
+    PixelBuffer buffer)
+  { /* ... */ }
+
+  // フレームが到達した際に呼び出される
+  public abstract void OnFrameArrived(
+    CaptureDevice captureDevice,
+    IntPtr pData, int size, double timestampMicroseconds, long frameIndex);
+}
+```
+
+少なくとも実装する必要があるのは、`OnFrameArrived()`メソッドです。これは、文字通りフレームが到達した時に呼び出されます。シグネチャを見れば分かる通り、生のポインタと画像データのサイズ、タイムスタンプ、そしてフレーム番号が渡されます。
+
+戻り値がvoidである事にも注意して下さい。このメソッドは非同期処理に出来ません。引数で渡される情報は、このメソッドを抜けるときには無効とみなされます。
+
+このメソッドの、典型的な実装例を示します:
+
+```csharp
+public sealed class CoolFrameProcessor : IDisposable
+{
+  private readonly Action<PixelBuffer> action;
+
+  // キャプチャしたら実行するデリゲートを保持する
+  public CoolFrameProcessor(Action<PixelBuffer> action) =>
+    this.action = action;
+
+  // フレームが到達した際に呼び出される
+  public override void OnFrameArrived(
+    CaptureDevice captureDevice,
+    IntPtr pData, int size, double timestampMicroseconds, long frameIndex)
+  {
+    // ピクセルバッファを取得する
+    var buffer = base.GetPixelBuffer();
+
+    // キャプチャを実行する
+    // ピクセルバッファに画像データが格納される (最初のコピーが発生)
+    base.Capture(
+      captureDevice,
+      pData, size,
+      timestampMicroseconds, frameIndex,
+      buffer);
+
+    // デリゲートを呼び出す
+    this.action(buffer);
+  }
+}
+```
+
+このメソッドが、フレーム到達時に毎回呼び出されることを思い出してください。つまり、この実装例は、フレーム到達毎にピクセルバッファを生成し、キャプチャし、そしてデリゲートを呼び出します。
+
+ではこれを使ってみます:
+
+```csharp
+var devices = new CaptureDevices();
+var descriptor0 = devices.EnumerateDevices().ElementAt(0);
+
+// フレームプロセッサを指定してオープンする
+using var device = await descriptor0.OpenWitFrameProcessorAsync(
+  descriptor0.Characteristics[0],
+  true,   // transcode
+  new CoolFrameProcessor(buffer =>
+  {
+    // キャプチャされたピクセルバッファが渡される
+    var image = buffer.ReferImage();
+
+    // デコードする
+    var bitmap = Bitmap.FromStream(image.AsStream());
+
+    // ...
+  });
+
+device.Start();
+
+// ...
+```
+
+あなたの最初のフレームプロセッサが出来上がりました。そして、実際に動かさなくても、特徴と問題に気が付いていると思います:
+
+* デリゲートは、フレーム到達時に最短で呼び出される。（呼び出されるところまでは最速である。）
+* デリゲートの処理が完了するまで、`OnFrameArrived()`がブロックされる。
+* デリゲートは、同期処理を想定している。そのため、デコード処理に時間がかかり、スレッドをブロックすると、容易にフレームドロップが発生する。
+* もしここで、ブロックを回避するために`async void`を使用すると、デリゲートの完了を待てないので、ピクセルバッファへのアクセスは危険にさらされる。
+
+このような理由で、FlashCapでは、`HandlerStrategies`による、抽象化され、安全に取り扱う事が出来る、標準のフレームプロセッサ群を使用するようになっています。では、カスタムフレームプロセッサを実装する利点がどこにあるのでしょうか？
+
+それは、きわめて高度に最適化された、フレームと画像データの処理を実装できることです。例えば、ピクセルバッファは効率よく作られていますが、必ず使用しなければならないわけではありません。（`Capture()`メソッドの呼び出しは任意です。）引数によって、生の画像データへのポインタとサイズが与えられているため、画像データに直接アクセスすることは可能です。そこで、あなた独自の画像データ処理を実装すれば、最速の処理を実現する事が出来ます。
 
 ----
 

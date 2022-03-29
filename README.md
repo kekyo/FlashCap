@@ -386,7 +386,125 @@ By referring to these properties, the order of the frames can be determined even
 
 ## Master for frame processor (Advanced topic)
 
-TODO: rewrite to what is frame processor.
+Welcome to the underground dungeon, where FlashCap's frame processors are polished gems. There is no need to deal with frame processors unless you have a lot of experience with them. This explanation is only provided because frame processors exist, and most readers don't need to know about them.
+
+The callback handler invocation triggers described in the previous section are internally realized by this frame processor. In other words, it is an abstraction of how frames are handled and how they behave.
+
+The frame processor is implemented by inheriting a very simple base class:
+
+```csharp
+// (Will spare you the detailed definitions.)
+public abstract class FrameProcessor : IDisposable
+{
+  // Implement if necessary.
+  public virtual void Dispose()
+  {
+  }
+
+  // Get a pixel buffer.
+  protected PixelBuffer GetPixelBuffer()
+  { /* ... */ }
+
+  // Perform capture using the device.
+  protected void Capture(CaptureDevice captureDevice,
+    IntPtr pData, int size,
+    double timestampMicroseconds, long frameIndex,
+    PixelBuffer buffer)
+  { /* ... */ }
+
+  // Called when a frame is arrived.
+  public abstract void OnFrameArrived(
+    CaptureDevice captureDevice,
+    IntPtr pData, int size, double timestampMicroseconds, long frameIndex);
+}
+```
+
+At the very least, you need to implement the `OnFrameArrived()` method.
+This is literally called when a frame is arrived.
+As you can see from the signature, it is passed a raw pointer, the size of the image data, a timestamp, and a frame number.
+
+Note also that the return value is void.
+This method cannot be used for asynchronous processing.
+Any information passed as an argument is considered invalid when exiting this method.
+
+Here is a typical implementation of this method:
+
+```csharp
+public sealed class CoolFrameProcessor : IDisposable
+{
+  private readonly Action<PixelBuffer> action;
+
+  // Hold a delegate to run once captured.
+  public CoolFrameProcessor(Action<PixelBuffer> action) =>
+    this.action = action;
+
+  // Called when a frame is arrived.
+  public override void OnFrameArrived(
+    CaptureDevice captureDevice,
+    IntPtr pData, int size, double timestampMicroseconds, long frameIndex)
+  {
+    // Get a pixel buffer.
+    var buffer = base.GetPixelBuffer();
+
+    // Perform capture.
+    // Image data is stored in pixel buffer. (First copy occurs.)
+    base.Capture(
+      captureDevice,
+      pData, size,
+      timestampMicroseconds, frameIndex,
+      buffer);
+
+    // Invoke a delegate.
+    this.action(buffer);
+  }
+}
+```
+
+Recall that this method is called each time a frame is arrived.
+In other words, this example implementation creates a pixel buffer, captures it, and invoke the delegate every time a frame is arrived.
+
+Let's try to use it:
+
+```csharp
+var devices = new CaptureDevices();
+var descriptor0 = devices.EnumerateDevices().ElementAt(0);
+
+// Open by specifying our frame processor.
+using var device = await descriptor0.OpenWitFrameProcessorAsync(
+  descriptor0.Characteristics[0],
+  true,   // transcode
+  new CoolFrameProcessor(buffer =>
+  {
+    // Captured pixel buffer is passed.
+    var image = buffer.ReferImage();
+
+    // Perform decode.
+    var bitmap = Bitmap.FromStream(image.AsStream());
+
+    // ...
+  });
+
+device.Start();
+
+// ...
+```
+
+Your first frame processor is ready.
+And even if you don't actually run it, you're probably aware of its features and problems:
+
+* The delegate is invoked in the shortest possible time when the frame arrives. (It is the fastest to the point where it is invoked.)
+* `OnFrameArrived()` blocks until the delegate completes processing.
+* The delegate assumes synchronous processing. Therefore, the decoding process takes time, and blocking this thread can easily cause frame dropping.
+* If you use `async void` here to avoid blocking, access to the pixel buffer is at risk because it cannot wait for the delegate to complete.
+
+For this reason, FlashCap uses a standard set of frame processors that can be abstracted and safely handled by `HandlerStrategies` values.
+So where is the advantage of implementing your own custom frame processors?
+
+It is possible to implement highly optimized frame and image data processing.
+For example, pixel buffers are created efficiently, but we do not have to be used.
+(Calling the `Capture()` method is optional.)
+Since a pointer to the raw image data and its size are given by the arguments, it is possible to access the image data directly.
+So, you can implement your own image data processing to achieve the fastest possible processing.
 
 ----
 
