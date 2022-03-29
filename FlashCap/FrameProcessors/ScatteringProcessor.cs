@@ -39,7 +39,7 @@ namespace FlashCap.FrameProcessors
             }
             if (buffer == null)
             {
-                buffer = new PixelBuffer();
+                buffer = base.GetPixelBuffer(captureDevice);
             }
 
             this.Capture(

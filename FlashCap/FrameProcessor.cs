@@ -22,6 +22,9 @@ namespace FlashCap
         {
         }
 
+        protected PixelBuffer GetPixelBuffer(CaptureDevice captureDevice) =>
+            new PixelBuffer();    // TODO: zero-copy solution
+
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif

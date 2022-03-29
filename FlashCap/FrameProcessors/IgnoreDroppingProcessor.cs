@@ -16,16 +16,12 @@ namespace FlashCap.FrameProcessors
 {
     internal abstract class IgnoreDroppingProcessor : InternalFrameProcessor
     {
-        private readonly PixelBuffer buffer = new();
         private readonly WaitCallback pixelBufferArrivedEntry;
+        private volatile PixelBuffer? buffer;
         private volatile int isin;
 
         protected IgnoreDroppingProcessor() =>
             this.pixelBufferArrivedEntry = this.PixelBufferArrivedEntry;
-
-        public override void Dispose()
-        {
-        }
 
         public override sealed void OnFrameArrived(
             CaptureDevice captureDevice,
@@ -34,6 +30,13 @@ namespace FlashCap.FrameProcessors
         {
             if (Interlocked.Increment(ref isin) == 1)
             {
+                if (this.buffer == null)
+                {
+                    var buffer = base.GetPixelBuffer(captureDevice);
+                    Interlocked.CompareExchange(
+                        ref this.buffer, buffer, null);
+                }
+
                 this.Capture(
                     captureDevice,
                     pData, size,

@@ -22,6 +22,10 @@ namespace FlashCap
         private double timestampMicroseconds;
         private bool transcodeIfYUV;
 
+        internal PixelBuffer()
+        {
+        }
+
         internal unsafe void CopyIn(
             IntPtr pih, IntPtr pData, int size,
             double timestampMicroseconds, long frameIndex,

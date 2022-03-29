@@ -368,11 +368,13 @@ public abstract class FrameProcessor : IDisposable
   }
 
   // ピクセルバッファを取得する
-  protected PixelBuffer GetPixelBuffer()
+  protected PixelBuffer GetPixelBuffer(
+    CaptureDevice captureDevice)
   { /* ... */ }
 
   // デバイスを使用してキャプチャを実行する
-  protected void Capture(CaptureDevice captureDevice,
+  protected void Capture(
+    CaptureDevice captureDevice,
     IntPtr pData, int size,
     double timestampMicroseconds, long frameIndex,
     PixelBuffer buffer)
@@ -406,7 +408,7 @@ public sealed class CoolFrameProcessor : IDisposable
     IntPtr pData, int size, double timestampMicroseconds, long frameIndex)
   {
     // ピクセルバッファを取得する
-    var buffer = base.GetPixelBuffer();
+    var buffer = base.GetPixelBuffer(captureDevice);
 
     // キャプチャを実行する
     // ピクセルバッファに画像データが格納される (最初のコピーが発生)

@@ -402,11 +402,13 @@ public abstract class FrameProcessor : IDisposable
   }
 
   // Get a pixel buffer.
-  protected PixelBuffer GetPixelBuffer()
+  protected PixelBuffer GetPixelBuffer(
+      CaptureDevice captureDevice)
   { /* ... */ }
 
   // Perform capture using the device.
-  protected void Capture(CaptureDevice captureDevice,
+  protected void Capture(
+    CaptureDevice captureDevice,
     IntPtr pData, int size,
     double timestampMicroseconds, long frameIndex,
     PixelBuffer buffer)
@@ -444,7 +446,7 @@ public sealed class CoolFrameProcessor : IDisposable
     IntPtr pData, int size, double timestampMicroseconds, long frameIndex)
   {
     // Get a pixel buffer.
-    var buffer = base.GetPixelBuffer();
+    var buffer = base.GetPixelBuffer(captureDevice);
 
     // Perform capture.
     // Image data is stored in pixel buffer. (First copy occurs.)

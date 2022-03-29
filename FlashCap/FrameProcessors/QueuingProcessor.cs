@@ -58,16 +58,16 @@ namespace FlashCap.FrameProcessors
             double timestampMicroseconds, long frameIndex)
         {
             PixelBuffer? buffer = null;
-            lock (reserver)
+            lock (this.reserver)
             {
-                if (reserver.Count >= 1)
+                if (this.reserver.Count >= 1)
                 {
-                    buffer = reserver.Pop();
+                    buffer = this.reserver.Pop();
                 }
             }
             if (buffer == null)
             {
-                buffer = new PixelBuffer();
+                buffer = base.GetPixelBuffer(captureDevice);
             }
 
             this.Capture(
