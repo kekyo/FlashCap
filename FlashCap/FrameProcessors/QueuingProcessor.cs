@@ -54,7 +54,8 @@ namespace FlashCap.FrameProcessors
 
         public override sealed void OnFrameArrived(
             CaptureDevice captureDevice,
-            IntPtr pData, int size, double timestampMicroseconds)
+            IntPtr pData, int size,
+            double timestampMicroseconds, long frameIndex)
         {
             PixelBuffer? buffer = null;
             lock (reserver)
@@ -71,7 +72,8 @@ namespace FlashCap.FrameProcessors
 
             this.Capture(
                 captureDevice,
-                pData, size, timestampMicroseconds,
+                pData, size,
+                timestampMicroseconds, frameIndex,
                 buffer);
 
             lock (this.queue)

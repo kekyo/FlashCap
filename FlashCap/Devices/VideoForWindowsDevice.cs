@@ -21,6 +21,7 @@ namespace FlashCap.Devices
         private readonly bool transcodeIfYUV;
         private readonly FrameProcessor frameProcessor;
         private readonly TimestampCounter counter = new();
+        private long frameIndex;
 
         private IndependentSingleApartmentContext? workingContext = new();
         private IntPtr handle;
@@ -156,7 +157,8 @@ namespace FlashCap.Devices
                         this,
                         hdr.lpData, hdr.dwBytesUsed,
                         // HACK: `hdr.dwTimeCaptured` always zero on my environment...
-                        this.counter.ElapsedMicroseconds);
+                        this.counter.ElapsedMicroseconds,
+                        this.frameIndex++);
                 }
                 // DANGER: Stop leaking exception around outside of unmanaged area...
                 catch (Exception ex)
@@ -174,6 +176,7 @@ namespace FlashCap.Devices
                 {
                     this.workingContext!.Send(_ =>
                     {
+                        this.frameIndex = 0;
                         this.counter.Restart();
                         NativeMethods_VideoForWindows.capShowPreview(this.handle, true);
                     }, null);
@@ -201,8 +204,8 @@ namespace FlashCap.Devices
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
         protected override void OnCapture(
-            IntPtr pData, int size, double timestampMicroseconds,
+            IntPtr pData, int size, double timestampMicroseconds, long frameIndex,
             PixelBuffer buffer) =>
-            buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, this.transcodeIfYUV);
+            buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeIfYUV);
     }
 }

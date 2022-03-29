@@ -26,11 +26,13 @@ namespace FlashCap
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
         protected void Capture(CaptureDevice captureDevice,
-            IntPtr pData, int size, double timestampMicroseconds, PixelBuffer buffer) =>
-            captureDevice.InternalOnCapture(pData, size, timestampMicroseconds, buffer);
+            IntPtr pData, int size,
+            double timestampMicroseconds, long frameIndex,
+            PixelBuffer buffer) =>
+            captureDevice.InternalOnCapture(pData, size, timestampMicroseconds, frameIndex, buffer);
 
         public abstract void OnFrameArrived(
             CaptureDevice captureDevice,
-            IntPtr pData, int size, double timestampMicroseconds);
+            IntPtr pData, int size, double timestampMicroseconds, long frameIndex);
     }
 }

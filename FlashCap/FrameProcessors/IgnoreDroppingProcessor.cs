@@ -29,13 +29,15 @@ namespace FlashCap.FrameProcessors
 
         public override sealed void OnFrameArrived(
             CaptureDevice captureDevice,
-            IntPtr pData, int size, double timestampMicroseconds)
+            IntPtr pData, int size,
+            double timestampMicroseconds, long frameIndex)
         {
             if (Interlocked.Increment(ref isin) == 1)
             {
                 this.Capture(
                     captureDevice,
-                    pData, size, timestampMicroseconds,
+                    pData, size,
+                    timestampMicroseconds, frameIndex,
                     this.buffer);
 
                 ThreadPool.QueueUserWorkItem(

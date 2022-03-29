@@ -24,7 +24,8 @@ namespace FlashCap
 
         internal unsafe void CopyIn(
             IntPtr pih, IntPtr pData, int size,
-            double timestampMicroseconds, bool transcodeIfYUV)
+            double timestampMicroseconds, long frameIndex,
+            bool transcodeIfYUV)
         {
             this.timestampMicroseconds = timestampMicroseconds;
 
@@ -96,6 +97,8 @@ namespace FlashCap
 
         public TimeSpan Timestamp =>
             TimeSpan.FromMilliseconds(this.timestampMicroseconds / 1000.0);
+
+        public long FrameIndex { get; }
 
         private enum BufferStrategies
         {

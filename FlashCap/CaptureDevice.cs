@@ -36,13 +36,13 @@ namespace FlashCap
         public abstract void Stop();
 
         protected abstract void OnCapture(
-            IntPtr pData, int size, double timestampMicroseconds, PixelBuffer buffer);
+            IntPtr pData, int size, double timestampMicroseconds, long frameIndex, PixelBuffer buffer);
 
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
         internal void InternalOnCapture(
-            IntPtr pData, int size, double timestampMicroseconds, PixelBuffer buffer) =>
-            this.OnCapture(pData, size, timestampMicroseconds, buffer);
+            IntPtr pData, int size, double timestampMicroseconds, long frameIndex, PixelBuffer buffer) =>
+            this.OnCapture(pData, size, timestampMicroseconds, frameIndex, buffer);
     }
 }

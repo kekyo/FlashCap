@@ -24,6 +24,7 @@ namespace FlashCap.Devices
         {
             private DirectShowDevice parent;
             private FrameProcessor frameProcessor;
+            private long frameIndex;
 
             public SampleGrabberSink(
                 DirectShowDevice parent,
@@ -32,6 +33,9 @@ namespace FlashCap.Devices
                 this.parent = parent;
                 this.frameProcessor = frameProcessor;
             }
+
+            public void ResetFrameIndex() =>
+                this.frameIndex = 0;
 
             // whichMethodToCallback: 0
             [PreserveSig] public int SampleCB(
@@ -49,7 +53,8 @@ namespace FlashCap.Devices
                     {
                         this.frameProcessor.OnFrameArrived(
                             this.parent, pBuffer, bufferLen,
-                            (long)(sampleTime * 1_000_000));
+                            (long)(sampleTime * 1_000_000),
+                            this.frameIndex++);
                     }
                     // DANGER: Stop leaking exception around outside of unmanaged area...
                     catch (Exception ex)
@@ -248,6 +253,8 @@ namespace FlashCap.Devices
                 {
                     if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
                     {
+                        this.sampleGrabberSink!.ResetFrameIndex();
+
                         mediaControl.Run();
                         this.IsRunning = true;
                     }
@@ -282,8 +289,9 @@ namespace FlashCap.Devices
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
         protected override void OnCapture(
-            IntPtr pData, int size, double timestampMicroseconds,
+            IntPtr pData, int size,
+            double timestampMicroseconds, long frameIndex,
             PixelBuffer buffer) =>
-            buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, this.transcodeIfYUV);
+            buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeIfYUV);
     }
 }

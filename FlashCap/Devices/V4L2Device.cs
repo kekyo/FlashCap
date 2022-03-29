@@ -9,7 +9,6 @@
 
 using FlashCap.Internal;
 using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -24,6 +23,7 @@ namespace FlashCap.Devices
         private readonly bool transcodeIfYUV;
         private readonly FrameProcessor frameProcessor;
         private readonly TimestampCounter counter = new();
+        private long frameIndex;
         
         private int fd;
         private IntPtr pBih;
@@ -290,7 +290,8 @@ namespace FlashCap.Devices
                         this.pBuffers[buffer.index],
                         buffer.bytesused,
                         // buffer.timestamp is untrustworthy.
-                        this.counter.ElapsedMicroseconds);
+                        this.counter.ElapsedMicroseconds,
+                        this.frameIndex++);
                 
                     if (NativeMethods_V4L2.ioctl_qbuf(this.fd, buffer) < 0)
                     {
@@ -321,6 +322,7 @@ namespace FlashCap.Devices
             {
                 if (!this.IsRunning)
                 {
+                    this.frameIndex = 0;
                     this.counter.Restart();
 
                     if (NativeMethods_V4L2.ioctl_streamon(
@@ -360,8 +362,9 @@ namespace FlashCap.Devices
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
         protected override void OnCapture(
-            IntPtr pData, int size, double timestampMicroseconds,
+            IntPtr pData, int size,
+            double timestampMicroseconds, long frameIndex,
             PixelBuffer buffer) =>
-            buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, this.transcodeIfYUV);
+            buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeIfYUV);
     }
 }
