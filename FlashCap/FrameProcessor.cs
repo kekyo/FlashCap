@@ -22,15 +22,20 @@ namespace FlashCap
         {
         }
 
+        protected PixelBuffer GetPixelBuffer(CaptureDevice captureDevice) =>
+            new PixelBuffer();    // TODO: zero-copy solution
+
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
         protected void Capture(CaptureDevice captureDevice,
-            IntPtr pData, int size, double timestampMicroseconds, PixelBuffer buffer) =>
-            captureDevice.InternalOnCapture(pData, size, timestampMicroseconds, buffer);
+            IntPtr pData, int size,
+            long timestampMicroseconds, long frameIndex,
+            PixelBuffer buffer) =>
+            captureDevice.InternalOnCapture(pData, size, timestampMicroseconds, frameIndex, buffer);
 
         public abstract void OnFrameArrived(
             CaptureDevice captureDevice,
-            IntPtr pData, int size, double timestampMicroseconds);
+            IntPtr pData, int size, long timestampMicroseconds, long frameIndex);
     }
 }

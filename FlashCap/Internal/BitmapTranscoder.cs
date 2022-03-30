@@ -15,12 +15,15 @@ namespace FlashCap.Internal
 {
     internal static class BitmapTranscoder
     {
+        private static readonly int scatteringBase = Environment.ProcessorCount;
+
         // Preffered article: https://docs.microsoft.com/en-us/windows/win32/medfound/recommended-8-bit-yuv-formats-for-video-rendering#420-formats-16-bits-per-pixel
 
         private static unsafe void TranscodeFromUYVY(
             int width, int height, bool performFullRange,
-            byte* pFrom, byte* pTo, int scatter)
+            byte* pFrom, byte* pTo)
         {
+            var scatter = height / scatteringBase;
             Parallel.For(0, (height + scatter - 1) / scatter, ys =>
             {
                 var y = ys * scatter;
@@ -57,8 +60,9 @@ namespace FlashCap.Internal
 
         private static unsafe void TranscodeFromYUYV(
             int width, int height, bool performFullRange,
-            byte* pFrom, byte* pTo, int scatter)
+            byte* pFrom, byte* pTo)
         {
+            var scatter = height / scatteringBase;
             Parallel.For(0, (height + scatter - 1) / scatter, ys =>
             {
                 var y = ys * scatter;
@@ -123,11 +127,11 @@ namespace FlashCap.Internal
             switch (compression)
             {
                 case NativeMethods.Compression.UYVY:
-                    TranscodeFromUYVY(width, height, performFullRange, pFrom, pTo, 32);
+                    TranscodeFromUYVY(width, height, performFullRange, pFrom, pTo);
                     break;
                 case NativeMethods.Compression.YUYV:
                 case NativeMethods.Compression.YUY2:
-                    TranscodeFromYUYV(width, height, performFullRange, pFrom, pTo, 32);
+                    TranscodeFromYUYV(width, height, performFullRange, pFrom, pTo);
                     break;
                 default:
                     throw new ArgumentException();

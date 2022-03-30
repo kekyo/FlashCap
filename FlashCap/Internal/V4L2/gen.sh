@@ -1,2 +1,4 @@
-﻿gcc -o gen_request_code gen_request_code.c
+﻿#!/bin/bash
+
+gcc -o gen_request_code gen_request_code.c
 ./gen_request_code

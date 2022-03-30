@@ -14,6 +14,11 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 
+// NOTE: This sample application may crash when exit on .NET Framework configruation.
+//   Maybe related Avalonia's this issue (in 0.10.13).
+//   Avalonia app crashes on exit (.net framework only)
+//   https://github.com/AvaloniaUI/Avalonia/issues/7579
+
 namespace FlashCap.Avalonia.ViewModels
 {
     [ViewModel]

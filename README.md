@@ -135,6 +135,11 @@ Couldn't detect any devices on FlashCap:
 * Surface2 (Windows RT 8.1 JB'd)
   * Any devices are not found, may not be compatible with both VFW and DirectShow.
 
+Verifying now:
+
+* BlackMagic Design ATEM Mini Pro
+* Acer Aspire One ZA3 inside camera (x86, Linux)
+
 ----
 
 ## Fully sample code
@@ -274,7 +279,7 @@ Also, if you use SkiaSharp, you can pass `ArraySegment<byte>` directly using `SK
 
 The following is a list of methods for acquiring image data described up to this point:
 
-| method | speed | out of scope | image type |
+| Method | Speed | Out of scope | Image type |
 |:-----------------|:----------|:--------|:---------------------|
 | `CopyImage()` | Slow | Safe | `byte[]` |
 | `ExtractImage()` | Slow in some cases | Danger | `byte[]` |
@@ -308,7 +313,7 @@ using var device = await descriptor0.OpenAsync(
   });
 ```
 
-### About transcoder
+## About transcoder
 
 The "raw image data" obtained from a device may not be a JPEG or DIB bitmap, which we can easily handle.
 Typically, video format is called "MJPEG" (Motion JPEG) or "YUV" if it is not a continuous stream such as MPEG.
@@ -337,17 +342,174 @@ using var device = await descriptor0.OpenAsync(
 // ...
 ```
 
-----
+## Callback handler and invoke trigger
 
-## About callback handler and strategies
+The callback handlers described so far are invoked "when a frame is obtained," but this trigger can be selected from several patterns.
+This choice can be made with the `HandlerStrategies` enumeration value, which is specified with the overloaded argument of `OpenAsync`:
 
-TODO: rewrite to what is handler strategies.
+```csharp
+// Specifies the trigger for invoking the handler:
+using var device = await descriptor0.OpenAsync(
+  descriptor0.Characteristics[0],
+  true,
+  HandlerStrategies.Scattering,   // Specifying the invoking trigger
+  async buferScope =>
+  {
+      // ...
+  });
 
-----
+// ...
+```
+
+The following is a list of pattern types:
+
+| Enumeration value | Summary |
+|:----|:----|
+| `IgnoreDropping` | Default call trigger. Ignore subsequent frames unless the handler returns control. Suitable for general usage. |
+| `Queuing` | Subsequent frames are stored in a queue even if the handler does not return control. If computer performance is sufficient, frames are not lost. |
+| `Scattering` | Handlers are processed in parallel by multi-threaded workers. Although the order of corresponding frames is not guaranteed, processing can be accelerated if the CPU supports multiple cores. |
+
+The name `IgnoreDropping` seems ominous.
+However, this default invocation trigger is appropriate for many cases.
+For example, if you choose `Queuing` and the handler is slow, the queue will hold an endless amount of image data, and the process will eventually run out of memory and terminate.
+Processing beyond the capability of the computer's processor requires a compromise somewhere.
+`IgnoreDropping` can easily handle this situation by intentionally discarding frames that occur when processing is not complete.
+
+Similarly, `Scattering` is more difficult to master.
+The handler you write will be called and processed simultaneously in multi-threaded.
+Therefore, at the very least, your handler should be implemented in such a way that it is thread-safe.
+Also, multi-threaded invocation means that the buffers to be processed may not necessarily remain in order.
+For example, if the handler is a UI display handler, using `Scattering` will cause the video to momentarily go back in time or feel choppy.
+
+To deal with the frame order confusion with `Scattering`, the `PixelBuffer` class has a `Timestamp` property and a `FrameIndex` property.
+By referring to these properties, the order of the frames can be determined even if the order of the frames is not maintained.
 
 ## Master for frame processor (Advanced topic)
 
-TODO: rewrite to what is frame processor.
+Welcome to the underground dungeon, where FlashCap's frame processor is a polished gem.
+But you don't need to understand frame processors unless you have a lot of experience with them.
+This explanation is only provided because frame processors exist here, and most readers do not need to understand them.
+
+The callback handler invocation triggers described in the previous section are internally realized by switching frame processors.
+In other words, it is an abstraction of how frames are handled and their behavior.
+
+The frame processor is implemented by inheriting a very simple base class:
+
+```csharp
+// (Will spare you the detailed definitions.)
+public abstract class FrameProcessor : IDisposable
+{
+  // Implement if necessary.
+  public virtual void Dispose()
+  {
+  }
+
+  // Get a pixel buffer.
+  protected PixelBuffer GetPixelBuffer(
+      CaptureDevice captureDevice)
+  { /* ... */ }
+
+  // Perform capture using the device.
+  protected void Capture(
+    CaptureDevice captureDevice,
+    IntPtr pData, int size,
+    long timestampMicroseconds, long frameIndex,
+    PixelBuffer buffer)
+  { /* ... */ }
+
+  // Called when a frame is arrived.
+  public abstract void OnFrameArrived(
+    CaptureDevice captureDevice,
+    IntPtr pData, int size, long timestampMicroseconds, long frameIndex);
+}
+```
+
+At the very least, you need to implement the `OnFrameArrived()` method.
+This is literally called when a frame is arrived.
+As you can see from the signature, it is passed a raw pointer, the size of the image data, a timestamp, and a frame number.
+
+Note also that the return value is void.
+This method cannot be used for asynchronous processing.
+Any information passed as an argument is considered invalid when exiting this method.
+
+Here is a typical implementation of this method:
+
+```csharp
+public sealed class CoolFrameProcessor : FrameProcessor
+{
+  private readonly Action<PixelBuffer> action;
+
+  // Hold a delegate to run once captured.
+  public CoolFrameProcessor(Action<PixelBuffer> action) =>
+    this.action = action;
+
+  // Called when a frame is arrived.
+  public override void OnFrameArrived(
+    CaptureDevice captureDevice,
+    IntPtr pData, int size, long timestampMicroseconds, long frameIndex)
+  {
+    // Get a pixel buffer.
+    var buffer = base.GetPixelBuffer(captureDevice);
+
+    // Perform capture.
+    // Image data is stored in pixel buffer. (First copy occurs.)
+    base.Capture(
+      captureDevice,
+      pData, size,
+      timestampMicroseconds, frameIndex,
+      buffer);
+
+    // Invoke a delegate.
+    this.action(buffer);
+  }
+}
+```
+
+Recall that this method is called each time a frame is arrived.
+In other words, this example implementation creates a pixel buffer, captures it, and invoke the delegate every time a frame is arrived.
+
+Let's try to use it:
+
+```csharp
+var devices = new CaptureDevices();
+var descriptor0 = devices.EnumerateDevices().ElementAt(0);
+
+// Open by specifying our frame processor.
+using var device = await descriptor0.OpenWitFrameProcessorAsync(
+  descriptor0.Characteristics[0],
+  true,   // transcode
+  new CoolFrameProcessor(buffer =>   // Using our frame processor.
+  {
+    // Captured pixel buffer is passed.
+    var image = buffer.ReferImage();
+
+    // Perform decode.
+    var bitmap = Bitmap.FromStream(image.AsStream());
+
+    // ...
+  });
+
+device.Start();
+
+// ...
+```
+
+Your first frame processor is ready to go.
+And even if you don't actually run it, you're probably aware of its features and problems:
+
+* The delegate is invoked in the shortest possible time when the frame arrives. (It is the fastest to the point where it is invoked.)
+* `OnFrameArrived()` blocks until the delegate completes processing.
+* The delegate assumes synchronous processing. Therefore, the decoding process takes time, and blocking this thread can easily cause frame dropping.
+* If you use `async void` here to avoid blocking, access to the pixel buffer is at risk because it cannot wait for the delegate to complete.
+
+For this reason, FlashCap uses a standard set of frame processors that can be abstracted and safely handled by `HandlerStrategies` values.
+So where is the advantage of implementing your own custom frame processors?
+
+It is possible to implement highly optimized frame and image data processing.
+For example, pixel buffers are created efficiently, but we do not have to be used.
+(Calling the `Capture()` method is optional.)
+Since a pointer to the raw image data and its size are given by the arguments, it is possible to access the image data directly.
+So, you can implement your own image data processing to achieve the fastest possible processing.
 
 ----
 
@@ -368,6 +530,12 @@ Apache-v2.
 
 ## History
 
+* 0.12.0:
+  * Added overloading to Open method to specify transcoding flags.
+  * Implemented graceful shutdown for internal frame processors.
+  * Applied processor count on transcoding.
+  * Reduced timestamp calculation cost, achieving for lesser resource environments.
+  * Added frame index property.
 * 0.11.0:
   * Added `PixelBufferScope` to allow early release of pixel buffers.
   * Add `IsDiscrete` so that it can determine whether the video characteristics are defined by the device or not.

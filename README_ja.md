@@ -134,6 +134,11 @@ device.Stop();
 * Surface2 (Windows RT 8.1 JB'd)
   * デバイスが見つかりませんでした。VFWとDirectShowの両方に対応していない可能性があります。
 
+現在検証中:
+
+* Blackmagic Design ATEM Mini Pro
+* Acer Aspire One ZA3 inside camera (x86, Linux)
+
 ----
 
 ## 完全なサンプルコード
@@ -290,7 +295,7 @@ using var device = await descriptor0.OpenAsync(
   });
 ```
 
-### トランスコードについて
+## トランスコードについて
 
 デバイスから得られた「生の画像データ」は、私たちが扱いやすい、JPEGやDIBビットマップではない場合があります。一般的に、動画形式の画像データは、MPEGのような連続ストリームではない場合、"MJPEG" (Motion JPEG)や"YUV"と呼ばれる形式です。
 
@@ -298,7 +303,7 @@ using var device = await descriptor0.OpenAsync(
 
 そこで、FlashCapは、"YUV"形式の画像データの場合は、自動的に"RGB" DIB形式に変換します。この処理の事を「トランスコード」と呼んでいます。先ほど、`ReferImage()`は「基本的にコピーが発生しない」と説明しましたが、"YUV"形式の場合は、トランスコードが発生するため、一種のコピーが行われます。（FlashCapはトランスコードをマルチスレッドで処理しますが、それでも画像データが大きい場合は、性能に影響します。）
 
-もし、画像データが"YUV"であっても、そのままで問題ないのであれば、トランスコードを無効化することで、コピー処理を完全に1回のみにする事が出来ます:
+もし、画像データが"YUV"形式であっても、そのままで問題ないのであれば、トランスコードを無効化することで、コピー処理を完全に1回のみにする事が出来ます:
 
 ```csharp
 // トランスコードを無効にしてデバイスを開く:
@@ -313,17 +318,150 @@ using var device = await descriptor0.OpenAsync(
 // ...
 ```
 
-----
+## コールバックハンドラと呼び出し契機
 
-## コールバックハンドラと処理方法
+これまで説明してきたコールバックハンドラは、呼び出される契機が「フレームが得られた時」としていましたが、この契機をいくつかのパターンから選択する事が出来ます。この選択は、`HandlerStrategies`列挙値で指定可能で、`OpenAsync`のオーバーロード引数で指定します:
 
-TODO: rewrite to what is handler strategies.
+```csharp
+// ハンドラの呼び出し契機を指定する:
+using var device = await descriptor0.OpenAsync(
+  descriptor0.Characteristics[0],
+  true,
+  HandlerStrategies.Scattering,   // 呼び出し契機の指定
+  async buferScope =>
+  {
+      // ...
+  });
 
-----
+// ...
+```
+
+以下に、パターンの種類を示します:
+
+| 列挙値 | 概要 |
+|:----|:----|
+| `IgnoreDropping` | デフォルトの呼び出し契機。ハンドラが制御を返さない限り、後続のフレームを無視する。一般的な使用方法に最適。 |
+| `Queuing` | ハンドラが制御を返さない場合でも、後続のフレームはキューに蓄えられる。コンピューターの性能が十分であれば、フレームを失わない。 |
+| `Scattering` | ハンドラは、マルチスレッドワーカーによって、並列処理される。対応するフレームの順序が保障されないが、CPUがマルチコアに対応していれば、処理を高速化出来る。 |
+
+`IgnoreDropping`の名前が、不吉なもののように思えます。しかし、このデフォルトの呼び出し契機は、多くの場合にとって適切です。例えば、`Queuing`を選択した場合、ハンドラの処理が遅いと、キューに際限なく画像データが保持されてしまい、いつかプロセスがメモリ不足で強制終了する事になります。コンピューターのプロセッサの能力を超える処理は、どこかで妥協が必要です。`IgnoreDropping`は、処理が完了しない時に発生するフレームを、わざと捨てることによって、この状況に容易に対処できます。
+
+同様に、`Scattering`を使いこなすのは、より難しくなります。あなたが書いたハンドラは、マルチスレッドで同時に呼び出されて、処理されます。従って、少なくともハンドラはスレッドセーフとなるように実装する必要があります。また、マルチスレッドで呼び出されるという事は、処理するバッファは、必ずしも順序が維持されない可能性があるという事です。例えば、UIに表示するハンドラであった場合、`Scattering`を使うと、動画が一瞬過去に戻ったり、ぎこちなく感じるはずです。
+
+`Scattering`でフレームの順序が分からなくなる事に対処するため、`PixelBuffer`クラスには、`Timestamp`プロパティと`FrameIndex`プロパティがあります。これらのプロパティを参照すれば、フレームの順序は維持されなくても、順序の判定は行う事が出来ます。
 
 ## フレームプロセッサをマスターする (Advanced topic)
 
-TODO: rewrite to what is frame processor.
+地下ダンジョンへようこそ。FlashCapのフレームプロセッサは、磨けば光る宝石です。しかし、余程のことが無い限り、フレームプロセッサを理解する必要はありません。この解説は、フレームプロセッサが存在するから解説しているだけで、ほとんどの読者は把握不要です。
+
+前節で解説した、コールバックハンドラの呼び出し契機は、内部的にはフレームプロセッサを切り替える事によって実現されています。つまり、フレームをどのように取り扱うのかや、その振る舞いを抽象化したものです。
+
+フレームプロセッサは、非常に単純な基底クラスを継承して実装します:
+
+```csharp
+// (細かい定義は省きます)
+public abstract class FrameProcessor : IDisposable
+{
+  // 必要なら実装する
+  public virtual void Dispose()
+  {
+  }
+
+  // ピクセルバッファを取得する
+  protected PixelBuffer GetPixelBuffer(
+    CaptureDevice captureDevice)
+  { /* ... */ }
+
+  // デバイスを使用してキャプチャを実行する
+  protected void Capture(
+    CaptureDevice captureDevice,
+    IntPtr pData, int size,
+    long timestampMicroseconds, long frameIndex,
+    PixelBuffer buffer)
+  { /* ... */ }
+
+  // フレームが到達した際に呼び出される
+  public abstract void OnFrameArrived(
+    CaptureDevice captureDevice,
+    IntPtr pData, int size, long timestampMicroseconds, long frameIndex);
+}
+```
+
+少なくとも実装する必要があるのは、`OnFrameArrived()`メソッドです。これは、文字通りフレームが到達した時に呼び出されます。シグネチャを見れば分かる通り、生のポインタと画像データのサイズ、タイムスタンプ、そしてフレーム番号が渡されます。
+
+戻り値がvoidである事にも注意して下さい。このメソッドは非同期処理に出来ません。引数で渡される情報は、このメソッドを抜けるときには無効とみなされます。
+
+このメソッドの、典型的な実装例を示します:
+
+```csharp
+public sealed class CoolFrameProcessor : FrameProcessor
+{
+  private readonly Action<PixelBuffer> action;
+
+  // キャプチャしたら実行するデリゲートを保持する
+  public CoolFrameProcessor(Action<PixelBuffer> action) =>
+    this.action = action;
+
+  // フレームが到達した際に呼び出される
+  public override void OnFrameArrived(
+    CaptureDevice captureDevice,
+    IntPtr pData, int size, long timestampMicroseconds, long frameIndex)
+  {
+    // ピクセルバッファを取得する
+    var buffer = base.GetPixelBuffer(captureDevice);
+
+    // キャプチャを実行する
+    // ピクセルバッファに画像データが格納される (最初のコピーが発生)
+    base.Capture(
+      captureDevice,
+      pData, size,
+      timestampMicroseconds, frameIndex,
+      buffer);
+
+    // デリゲートを呼び出す
+    this.action(buffer);
+  }
+}
+```
+
+このメソッドが、フレーム到達時に毎回呼び出されることを思い出してください。つまり、この実装例は、フレーム到達毎にピクセルバッファを生成し、キャプチャし、そしてデリゲートを呼び出します。
+
+ではこれを使ってみます:
+
+```csharp
+var devices = new CaptureDevices();
+var descriptor0 = devices.EnumerateDevices().ElementAt(0);
+
+// フレームプロセッサを指定してオープンする
+using var device = await descriptor0.OpenWitFrameProcessorAsync(
+  descriptor0.Characteristics[0],
+  true,   // transcode
+  new CoolFrameProcessor(buffer =>   // カスタムのフレームプロセッサを使う
+  {
+    // キャプチャされたピクセルバッファが渡される
+    var image = buffer.ReferImage();
+
+    // デコードする
+    var bitmap = Bitmap.FromStream(image.AsStream());
+
+    // ...
+  });
+
+device.Start();
+
+// ...
+```
+
+あなたの最初のフレームプロセッサを動かす準備が出来ました。そして、実際に動かさなくても、特徴と問題に気が付いていると思います:
+
+* デリゲートは、フレーム到達時に最短で呼び出される。（呼び出されるところまでは最速である。）
+* デリゲートの処理が完了するまで、`OnFrameArrived()`がブロックされる。
+* デリゲートは、同期処理を想定している。そのため、デコード処理に時間がかかり、スレッドをブロックすると、容易にフレームドロップが発生する。
+* もしここで、ブロックを回避するために`async void`を使用すると、デリゲートの完了を待てないので、ピクセルバッファへのアクセスは危険にさらされる。
+
+このような理由で、FlashCapでは、`HandlerStrategies`による、抽象化され、安全に取り扱う事が出来る、標準のフレームプロセッサ群を使用するようになっています。では、カスタムフレームプロセッサを実装する利点がどこにあるのでしょうか？
+
+それは、きわめて高度に最適化された、フレームと画像データの処理を実装できることです。例えば、ピクセルバッファは効率よく作られていますが、必ず使用しなければならないわけではありません。（`Capture()`メソッドの呼び出しは任意です。）引数によって、生の画像データへのポインタとサイズが与えられているため、画像データに直接アクセスすることは可能です。そこで、あなた独自の画像データ処理を実装すれば、最速の処理を実現する事が出来ます。
 
 ----
 
@@ -344,6 +482,12 @@ Apache-v2.
 
 ## 履歴
 
+* 0.12.0:
+  * Openメソッドにトランスコードフラグを指定するオーバーロードを追加。
+  * 内部フレームプロセッサの安全なシャットダウンを実装しました。
+  * トランスコーディングにプロセッサカウントを適用。
+  * タイムスタンプの計算コストを削減し、リソースの少ない環境にも対応。
+  * `FrameIndex`プロパティを追加。
 * 0.11.0:
   * `PixelBufferScope` を追加し、ピクセルバッファを早期に解放することが出来るようにした。
   * `IsDiscrete` を追加し、デバイスによって定義された画像特性かどうかを判別出来るようにした。

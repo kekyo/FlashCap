@@ -21,31 +21,59 @@ namespace FlashCap.FrameProcessors
         private readonly Stack<PixelBuffer> reserver = new();
         private readonly WaitCallback pixelBufferArrivedEntry;
 
+        protected volatile int processing = 1;
+        protected volatile bool aborting;
+        protected ManualResetEventSlim final = new(false);
+
         protected ScatteringProcessor() =>
             this.pixelBufferArrivedEntry = this.PixelBufferArrivedEntry;
 
+        public override void Dispose()
+        {
+            if (this.final != null)
+            {
+                Debug.Assert(!this.aborting);
+
+                this.aborting = true;
+                if (Interlocked.Decrement(ref this.processing) >= 1)
+                {
+                    this.final.Wait();
+                }
+                this.final.Dispose();
+                this.final = null!;
+            }
+        }
+
         public override sealed void OnFrameArrived(
             CaptureDevice captureDevice,
-            IntPtr pData, int size, double timestampMicroseconds)
+            IntPtr pData, int size,
+            long timestampMicroseconds, long frameIndex)
         {
-            PixelBuffer? buffer = null;
-            lock (reserver)
+            if (this.aborting)
             {
-                if (reserver.Count >= 1)
+                return;
+            }
+
+            PixelBuffer? buffer = null;
+            lock (this.reserver)
+            {
+                if (this.reserver.Count >= 1)
                 {
-                    buffer = reserver.Pop();
+                    buffer = this.reserver.Pop();
                 }
             }
             if (buffer == null)
             {
-                buffer = new PixelBuffer();
+                buffer = base.GetPixelBuffer(captureDevice);
             }
 
             this.Capture(
                 captureDevice,
-                pData, size, timestampMicroseconds,
+                pData, size,
+                timestampMicroseconds, frameIndex,
                 buffer);
 
+            Interlocked.Increment(ref this.processing);
             ThreadPool.QueueUserWorkItem(
                 this.pixelBufferArrivedEntry, buffer);
         }
@@ -75,9 +103,25 @@ namespace FlashCap.FrameProcessors
 
         protected override void PixelBufferArrivedEntry(object? parameter)
         {
-            var buffer = (PixelBuffer)parameter!;
-            using var scope = new InternalPixelBufferScope(this, buffer);
-            this.pixelBufferArrived(scope);
+            try
+            {
+                if (this.aborting)
+                {
+                    return;
+                }
+
+                var buffer = (PixelBuffer)parameter!;
+                using var scope = new InternalPixelBufferScope(this, buffer);
+                this.pixelBufferArrived(scope);
+            }
+            finally
+            {
+                if (Interlocked.Decrement(ref base.processing) <= 0)
+                {
+                    Debug.Assert(base.final != null);
+                    base.final!.Set();
+                }
+            }
         }
     }
 
@@ -93,9 +137,14 @@ namespace FlashCap.FrameProcessors
 
         protected override async void PixelBufferArrivedEntry(object? parameter)
         {
-            var buffer = (PixelBuffer)parameter!;
             try
             {
+                if (this.aborting)
+                {
+                    return;
+                }
+
+                var buffer = (PixelBuffer)parameter!;
                 using var scope = new InternalPixelBufferScope(this, buffer);
                 await this.pixelBufferArrived(scope).
                     ConfigureAwait(false);
@@ -103,6 +152,14 @@ namespace FlashCap.FrameProcessors
             catch (Exception ex)
             {
                 Trace.WriteLine(ex);
+            }
+            finally
+            {
+                if (Interlocked.Decrement(ref base.processing) <= 0)
+                {
+                    Debug.Assert(base.final != null);
+                    base.final!.Set();
+                }
             }
         }
     }

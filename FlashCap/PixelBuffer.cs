@@ -19,12 +19,17 @@ namespace FlashCap
         private int imageContainerSize;
         private byte[]? transcodedImageContainer = null;
         private bool isValidTranscodedImage;
-        private double timestampMicroseconds;
+        private long timestampMicroseconds;
         private bool transcodeIfYUV;
+
+        internal PixelBuffer()
+        {
+        }
 
         internal unsafe void CopyIn(
             IntPtr pih, IntPtr pData, int size,
-            double timestampMicroseconds, bool transcodeIfYUV)
+            long timestampMicroseconds, long frameIndex,
+            bool transcodeIfYUV)
         {
             this.timestampMicroseconds = timestampMicroseconds;
 
@@ -96,6 +101,8 @@ namespace FlashCap
 
         public TimeSpan Timestamp =>
             TimeSpan.FromMilliseconds(this.timestampMicroseconds / 1000.0);
+
+        public long FrameIndex { get; }
 
         private enum BufferStrategies
         {
