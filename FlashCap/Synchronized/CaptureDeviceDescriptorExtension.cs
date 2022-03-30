@@ -33,6 +33,15 @@ namespace FlashCap.Synchronized
             this CaptureDeviceDescriptor descriptor,
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,
+            PixelBufferArrivedDelegate pixelBufferArrived) =>
+            descriptor.InternalOpenWithFrameProcessor(
+                characteristics, transcodeIfYUV,
+                new DelegatedIgnoreDroppingProcessor(pixelBufferArrived));
+
+        public static CaptureDevice Open(
+            this CaptureDeviceDescriptor descriptor,
+            VideoCharacteristics characteristics,
+            bool transcodeIfYUV,
             HandlerStrategies handlerStrategy,
             PixelBufferArrivedDelegate pixelBufferArrived) =>
             descriptor.InternalOpenWithFrameProcessor(
@@ -54,6 +63,15 @@ namespace FlashCap.Synchronized
             PixelBufferArrivedTaskDelegate pixelBufferArrived) =>
             descriptor.InternalOpenWithFrameProcessor(
                 characteristics, true,
+                new DelegatedIgnoreDroppingTaskProcessor(pixelBufferArrived));
+
+        public static CaptureDevice Open(
+            this CaptureDeviceDescriptor descriptor,
+            VideoCharacteristics characteristics,
+            bool transcodeIfYUV,
+            PixelBufferArrivedTaskDelegate pixelBufferArrived) =>
+            descriptor.InternalOpenWithFrameProcessor(
+                characteristics, transcodeIfYUV,
                 new DelegatedIgnoreDroppingTaskProcessor(pixelBufferArrived));
 
         public static CaptureDevice Open(

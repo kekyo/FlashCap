@@ -41,6 +41,15 @@ namespace FlashCap
             this CaptureDeviceDescriptor descriptor,
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,
+            PixelBufferArrivedDelegate pixelBufferArrived) =>
+            descriptor.OpenWithFrameProcessorAsync(
+                characteristics, transcodeIfYUV,
+                new DelegatedIgnoreDroppingProcessor(pixelBufferArrived));
+
+        public static Task<CaptureDevice> OpenAsync(
+            this CaptureDeviceDescriptor descriptor,
+            VideoCharacteristics characteristics,
+            bool transcodeIfYUV,
             HandlerStrategies handlerStrategy,
             PixelBufferArrivedDelegate pixelBufferArrived) =>
             descriptor.OpenWithFrameProcessorAsync(
@@ -61,6 +70,15 @@ namespace FlashCap
             PixelBufferArrivedTaskDelegate pixelBufferArrived) =>
             descriptor.OpenWithFrameProcessorAsync(
                 characteristics, true,
+                new DelegatedIgnoreDroppingTaskProcessor(pixelBufferArrived));
+
+        public static Task<CaptureDevice> OpenAsync(
+            this CaptureDeviceDescriptor descriptor,
+            VideoCharacteristics characteristics,
+            bool transcodeIfYUV,
+            PixelBufferArrivedTaskDelegate pixelBufferArrived) =>
+            descriptor.OpenWithFrameProcessorAsync(
+                characteristics, transcodeIfYUV,
                 new DelegatedIgnoreDroppingTaskProcessor(pixelBufferArrived));
 
         public static Task<CaptureDevice> OpenAsync(
