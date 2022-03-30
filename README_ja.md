@@ -352,9 +352,9 @@ using var device = await descriptor0.OpenAsync(
 
 ## フレームプロセッサをマスターする (Advanced topic)
 
-地下ダンジョンへようこそ。FlashCapのフレームプロセッサは、磨けば光る宝石です。余程のことが無い限り、フレームプロセッサを取り扱う必要はありません。この解説は、フレームプロセッサが存在するから解説しているだけで、ほとんどの読者は把握不要です。
+地下ダンジョンへようこそ。FlashCapのフレームプロセッサは、磨けば光る宝石です。しかし、余程のことが無い限り、フレームプロセッサを理解する必要はありません。この解説は、フレームプロセッサが存在するから解説しているだけで、ほとんどの読者は把握不要です。
 
-前節で解説した、コールバックハンドラの呼び出し契機は、内部的にはこのフレームプロセッサによって実現されています。つまり、フレームをどのように取り扱うのかや、その振る舞いを抽象化したものです。
+前節で解説した、コールバックハンドラの呼び出し契機は、内部的にはフレームプロセッサを切り替える事によって実現されています。つまり、フレームをどのように取り扱うのかや、その振る舞いを抽象化したものです。
 
 フレームプロセッサは、非常に単純な基底クラスを継承して実装します:
 
@@ -394,7 +394,7 @@ public abstract class FrameProcessor : IDisposable
 このメソッドの、典型的な実装例を示します:
 
 ```csharp
-public sealed class CoolFrameProcessor : IDisposable
+public sealed class CoolFrameProcessor : FrameProcessor
 {
   private readonly Action<PixelBuffer> action;
 

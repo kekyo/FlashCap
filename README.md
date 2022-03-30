@@ -386,9 +386,12 @@ By referring to these properties, the order of the frames can be determined even
 
 ## Master for frame processor (Advanced topic)
 
-Welcome to the underground dungeon, where FlashCap's frame processors are polished gems. There is no need to deal with frame processors unless you have a lot of experience with them. This explanation is only provided because frame processors exist, and most readers don't need to know about them.
+Welcome to the underground dungeon, where FlashCap's frame processor is a polished gem.
+But you don't need to understand frame processors unless you have a lot of experience with them.
+This explanation is only provided because frame processors exist here, and most readers do not need to understand them.
 
-The callback handler invocation triggers described in the previous section are internally realized by this frame processor. In other words, it is an abstraction of how frames are handled and how they behave.
+The callback handler invocation triggers described in the previous section are internally realized by switching frame processors.
+In other words, it is an abstraction of how frames are handled and their behavior.
 
 The frame processor is implemented by inheriting a very simple base class:
 
@@ -432,7 +435,7 @@ Any information passed as an argument is considered invalid when exiting this me
 Here is a typical implementation of this method:
 
 ```csharp
-public sealed class CoolFrameProcessor : IDisposable
+public sealed class CoolFrameProcessor : FrameProcessor
 {
   private readonly Action<PixelBuffer> action;
 
