@@ -363,7 +363,7 @@ namespace FlashCap.Devices
 #endif
         protected override void OnCapture(
             IntPtr pData, int size,
-            double timestampMicroseconds, long frameIndex,
+            long timestampMicroseconds, long frameIndex,
             PixelBuffer buffer) =>
             buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeIfYUV);
     }

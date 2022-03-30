@@ -19,7 +19,7 @@ namespace FlashCap
         private int imageContainerSize;
         private byte[]? transcodedImageContainer = null;
         private bool isValidTranscodedImage;
-        private double timestampMicroseconds;
+        private long timestampMicroseconds;
         private bool transcodeIfYUV;
 
         internal PixelBuffer()
@@ -28,7 +28,7 @@ namespace FlashCap
 
         internal unsafe void CopyIn(
             IntPtr pih, IntPtr pData, int size,
-            double timestampMicroseconds, long frameIndex,
+            long timestampMicroseconds, long frameIndex,
             bool transcodeIfYUV)
         {
             this.timestampMicroseconds = timestampMicroseconds;

@@ -204,7 +204,7 @@ namespace FlashCap.Devices
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
         protected override void OnCapture(
-            IntPtr pData, int size, double timestampMicroseconds, long frameIndex,
+            IntPtr pData, int size, long timestampMicroseconds, long frameIndex,
             PixelBuffer buffer) =>
             buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeIfYUV);
     }

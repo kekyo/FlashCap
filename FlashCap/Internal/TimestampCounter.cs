@@ -13,11 +13,9 @@ namespace FlashCap.Internal
 {
     internal sealed class TimestampCounter
     {
-        private static readonly double frequencyMicrosecond =
-            Stopwatch.Frequency / 1_000_000.0;
         private readonly Stopwatch stopwatch = new();
 
-        public double ElapsedMicroseconds
+        public long ElapsedMicroseconds
         {
             get
             {
@@ -27,7 +25,7 @@ namespace FlashCap.Internal
                 {
                     tick = this.stopwatch.ElapsedTicks;
                 }
-                return tick / frequencyMicrosecond;
+                return tick * 1_000_000 / Stopwatch.Frequency;
             }
         }
 

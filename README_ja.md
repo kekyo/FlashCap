@@ -376,14 +376,14 @@ public abstract class FrameProcessor : IDisposable
   protected void Capture(
     CaptureDevice captureDevice,
     IntPtr pData, int size,
-    double timestampMicroseconds, long frameIndex,
+    long timestampMicroseconds, long frameIndex,
     PixelBuffer buffer)
   { /* ... */ }
 
   // フレームが到達した際に呼び出される
   public abstract void OnFrameArrived(
     CaptureDevice captureDevice,
-    IntPtr pData, int size, double timestampMicroseconds, long frameIndex);
+    IntPtr pData, int size, long timestampMicroseconds, long frameIndex);
 }
 ```
 
@@ -405,7 +405,7 @@ public sealed class CoolFrameProcessor : FrameProcessor
   // フレームが到達した際に呼び出される
   public override void OnFrameArrived(
     CaptureDevice captureDevice,
-    IntPtr pData, int size, double timestampMicroseconds, long frameIndex)
+    IntPtr pData, int size, long timestampMicroseconds, long frameIndex)
   {
     // ピクセルバッファを取得する
     var buffer = base.GetPixelBuffer(captureDevice);
@@ -436,7 +436,7 @@ var descriptor0 = devices.EnumerateDevices().ElementAt(0);
 using var device = await descriptor0.OpenWitFrameProcessorAsync(
   descriptor0.Characteristics[0],
   true,   // transcode
-  new CoolFrameProcessor(buffer =>
+  new CoolFrameProcessor(buffer =>   // カスタムのフレームプロセッサを使う
   {
     // キャプチャされたピクセルバッファが渡される
     var image = buffer.ReferImage();
@@ -452,7 +452,7 @@ device.Start();
 // ...
 ```
 
-あなたの最初のフレームプロセッサが出来上がりました。そして、実際に動かさなくても、特徴と問題に気が付いていると思います:
+あなたの最初のフレームプロセッサを動かす準備が出来ました。そして、実際に動かさなくても、特徴と問題に気が付いていると思います:
 
 * デリゲートは、フレーム到達時に最短で呼び出される。（呼び出されるところまでは最速である。）
 * デリゲートの処理が完了するまで、`OnFrameArrived()`がブロックされる。

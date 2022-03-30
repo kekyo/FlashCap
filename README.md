@@ -413,14 +413,14 @@ public abstract class FrameProcessor : IDisposable
   protected void Capture(
     CaptureDevice captureDevice,
     IntPtr pData, int size,
-    double timestampMicroseconds, long frameIndex,
+    long timestampMicroseconds, long frameIndex,
     PixelBuffer buffer)
   { /* ... */ }
 
   // Called when a frame is arrived.
   public abstract void OnFrameArrived(
     CaptureDevice captureDevice,
-    IntPtr pData, int size, double timestampMicroseconds, long frameIndex);
+    IntPtr pData, int size, long timestampMicroseconds, long frameIndex);
 }
 ```
 
@@ -446,7 +446,7 @@ public sealed class CoolFrameProcessor : FrameProcessor
   // Called when a frame is arrived.
   public override void OnFrameArrived(
     CaptureDevice captureDevice,
-    IntPtr pData, int size, double timestampMicroseconds, long frameIndex)
+    IntPtr pData, int size, long timestampMicroseconds, long frameIndex)
   {
     // Get a pixel buffer.
     var buffer = base.GetPixelBuffer(captureDevice);
@@ -478,7 +478,7 @@ var descriptor0 = devices.EnumerateDevices().ElementAt(0);
 using var device = await descriptor0.OpenWitFrameProcessorAsync(
   descriptor0.Characteristics[0],
   true,   // transcode
-  new CoolFrameProcessor(buffer =>
+  new CoolFrameProcessor(buffer =>   // Using our frame processor.
   {
     // Captured pixel buffer is passed.
     var image = buffer.ReferImage();
@@ -494,7 +494,7 @@ device.Start();
 // ...
 ```
 
-Your first frame processor is ready.
+Your first frame processor is ready to go.
 And even if you don't actually run it, you're probably aware of its features and problems:
 
 * The delegate is invoked in the shortest possible time when the frame arrives. (It is the fastest to the point where it is invoked.)

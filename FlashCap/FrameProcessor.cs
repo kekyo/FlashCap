@@ -30,12 +30,12 @@ namespace FlashCap
 #endif
         protected void Capture(CaptureDevice captureDevice,
             IntPtr pData, int size,
-            double timestampMicroseconds, long frameIndex,
+            long timestampMicroseconds, long frameIndex,
             PixelBuffer buffer) =>
             captureDevice.InternalOnCapture(pData, size, timestampMicroseconds, frameIndex, buffer);
 
         public abstract void OnFrameArrived(
             CaptureDevice captureDevice,
-            IntPtr pData, int size, double timestampMicroseconds, long frameIndex);
+            IntPtr pData, int size, long timestampMicroseconds, long frameIndex);
     }
 }
