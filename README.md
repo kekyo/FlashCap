@@ -530,6 +530,12 @@ Apache-v2.
 
 ## History
 
+* 0.12.0:
+  * Added overloading to Open method to specify transcoding flags.
+  * Implemented graceful shutdown for internal frame processors.
+  * Applied processor count on transcoding.
+  * Reduced timestamp calculation cost, achieving for lesser resource environments.
+  * Added frame index property.
 * 0.11.0:
   * Added `PixelBufferScope` to allow early release of pixel buffers.
   * Add `IsDiscrete` so that it can determine whether the video characteristics are defined by the device or not.
