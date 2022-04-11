@@ -530,6 +530,8 @@ Apache-v2.
 
 ## History
 
+* 0.13.0:
+  * Avoid deadlocking when arrived event handlers stuck in disposing process on internal frame processors.
 * 0.12.0:
   * Added overloading to Open method to specify transcoding flags.
   * Implemented graceful shutdown for internal frame processors.
