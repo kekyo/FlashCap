@@ -389,6 +389,8 @@ namespace System.Threading
 
         public void Wait() =>
             this.mre.WaitOne();
+        public void Wait(TimeSpan timeout) =>
+            this.mre.WaitOne(timeout);
     }
 }
 #endif
