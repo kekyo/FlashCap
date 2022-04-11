@@ -37,7 +37,8 @@ namespace FlashCap.FrameProcessors
                 this.aborting = true;
                 if (Interlocked.Decrement(ref this.processing) >= 1)
                 {
-                    this.final.Wait();
+                    // HACK: Avoid deadlocking when arrived event handlers stuck in disposing process.
+                    this.final.Wait(TimeSpan.FromSeconds(2));
                 }
                 this.final.Dispose();
                 this.final = null!;
