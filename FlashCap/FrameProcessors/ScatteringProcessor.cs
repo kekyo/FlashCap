@@ -119,8 +119,7 @@ namespace FlashCap.FrameProcessors
             {
                 if (Interlocked.Decrement(ref base.processing) <= 0)
                 {
-                    Debug.Assert(base.final != null);
-                    base.final!.Set();
+                    base.final?.Set();
                 }
             }
         }
@@ -158,8 +157,7 @@ namespace FlashCap.FrameProcessors
             {
                 if (Interlocked.Decrement(ref base.processing) <= 0)
                 {
-                    Debug.Assert(base.final != null);
-                    base.final!.Set();
+                    base.final?.Set();
                 }
             }
         }
