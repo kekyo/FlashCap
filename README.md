@@ -117,6 +117,7 @@ Verified capture devices:
 * Elgato CamLink 4K (Windows/Linux)
 * Logitech WebCam C930e (Windows/Linux)
 * Unnamed cheap USB capture module (Windows/Linux)
+* eMeet HD Webcam C970L (Linux)
 
 Verified computers:
 
