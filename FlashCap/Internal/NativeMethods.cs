@@ -9,6 +9,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security;
@@ -184,14 +185,14 @@ namespace FlashCap.Internal
 
         public enum Compression
         {
-            RGB = 0,             // BI_RGB
-            JPEG = 4,            // BI_JPEG
-            PNG = 5,             // BI_PNG
-            RGB24 = 0x00000014,  // FOURCC / D3D
-            RGB32 = 0x00000016,  // FOURCC / D3D
-            ARGB32 = 0x00000015, // FOURCC / D3D
-            RGB565 = 0x00000017, // FOURCC / D3D
-            RGB555 = 0x00000018, // FOURCC / D3D
+            BI_RGB = 0,          // BI_RGB
+            BI_JPEG = 4,         // BI_JPEG
+            BI_PNG = 5,          // BI_PNG
+            D3D_RGB24 = 0x00000014,  // D3D
+            D3D_RGB32 = 0x00000016,  // D3D
+            D3D_ARGB32 = 0x00000015, // D3D
+            D3D_RGB565 = 0x00000017, // D3D
+            D3D_RGB555 = 0x00000018, // D3D
             ARGB = 0x42475241,   // FOURCC
             RGB2 = 0x32424752,   // FOURCC
             YUY2 = 0x32595559,   // FOURCC
@@ -203,7 +204,7 @@ namespace FlashCap.Internal
         private static int CalculateClrUsed(
             Compression compression, short biPlanes, short biBitCount)
         {
-            if (compression != Compression.RGB)
+            if (compression != Compression.BI_RGB)
             {
                 return 0;
             }
@@ -225,8 +226,8 @@ namespace FlashCap.Internal
             int biWidth, int biHeight, short biPlanes, short biBitCount) =>
             compression switch
             {
-                Compression.JPEG => 0,
-                Compression.PNG => 0,
+                Compression.BI_JPEG => 0,
+                Compression.BI_PNG => 0,
                 Compression.MJPG => 0,
                 _ => ((biWidth * GetClrBits(biPlanes, biBitCount) + 31) & ~31) / 8 * biHeight,
             };
@@ -449,6 +450,11 @@ namespace FlashCap.Internal
 
         public static string GetFourCCString(int fourcc)
         {
+            if (fourcc < 0x10000000)
+            {
+                return ((Compression)fourcc).ToString();
+            }
+
             var sb = new StringBuilder();
             sb.Append((char)(byte)fourcc);
             sb.Append((char)(byte)(fourcc >> 8));
@@ -478,17 +484,17 @@ namespace FlashCap.Internal
             
             if (compression switch
             {
-                Compression.RGB => GetRGBPixelFormat(clrBits),
+                Compression.BI_RGB => GetRGBPixelFormat(clrBits),
                 Compression.RGB2 => GetRGBPixelFormat(clrBits),
                 Compression.ARGB => PixelFormats.ARGB32,
-                Compression.RGB24 => PixelFormats.RGB24,
-                Compression.RGB32 => PixelFormats.RGB32,
-                Compression.ARGB32 => PixelFormats.ARGB32,
-                Compression.RGB565 => PixelFormats.RGB16,
-                Compression.RGB555 => PixelFormats.RGB15,
+                Compression.D3D_RGB24 => PixelFormats.RGB24,
+                Compression.D3D_RGB32 => PixelFormats.RGB32,
+                Compression.D3D_ARGB32 => PixelFormats.ARGB32,
+                Compression.D3D_RGB565 => PixelFormats.RGB16,
+                Compression.D3D_RGB555 => PixelFormats.RGB15,
                 Compression.MJPG => PixelFormats.JPEG,
-                Compression.JPEG => PixelFormats.JPEG,
-                Compression.PNG => PixelFormats.PNG,
+                Compression.BI_JPEG => PixelFormats.JPEG,
+                Compression.BI_PNG => PixelFormats.PNG,
                 Compression.UYVY => PixelFormats.UYVY,
                 Compression.YUYV => PixelFormats.YUYV,
                 Compression.YUY2 => PixelFormats.YUYV,
@@ -504,6 +510,7 @@ namespace FlashCap.Internal
             }
             else
             {
+                Trace.WriteLine($"FlashCap: Unknown format: Compression={compression}, [{width},{height}], {framesPerSecond}");
                 return null;
             }
         }
@@ -519,7 +526,6 @@ namespace FlashCap.Internal
                 pBih->GetClrBits(), framesPerSecond,
                 isDiscrete, rawPixelFormat);
         }
-        
 
         ////////////////////////////////////////////////////////////////////////
 
@@ -530,21 +536,21 @@ namespace FlashCap.Internal
             switch (format)
             {
                 case PixelFormats.RGB8:
-                    compression = Compression.RGB;
+                    compression = Compression.BI_RGB;
                     bitCount = 8;
                     return true;
                 case PixelFormats.RGB15:
-                    compression = Compression.RGB;
+                    compression = Compression.BI_RGB;
                     // BI_RGB & 16bit == RGB555 (Couldn't set RGB565 in DIB)
                     // https://docs.microsoft.com/en-us/windows/win32/api/wingdi/ns-wingdi-bitmapinfoheader
                     bitCount = 16;
                     return true;
                 case PixelFormats.RGB24:
-                    compression = Compression.RGB;
+                    compression = Compression.BI_RGB;
                     bitCount = 24;
                     return true;
                 case PixelFormats.RGB32:
-                    compression = Compression.RGB;
+                    compression = Compression.BI_RGB;
                     bitCount = 32;
                     return true;
                 case PixelFormats.ARGB32:
@@ -552,7 +558,7 @@ namespace FlashCap.Internal
                     bitCount = 32;
                     return true;
                 case PixelFormats.RGB16:
-                    compression = Compression.RGB565;
+                    compression = Compression.D3D_RGB565;
                     bitCount = 16;
                     return true;
                 case PixelFormats.JPEG:
@@ -560,7 +566,7 @@ namespace FlashCap.Internal
                     bitCount = 24;  // HACK: Specific not found. My web camera is needed.
                     return true;
                 case PixelFormats.PNG:
-                    compression = Compression.PNG;
+                    compression = Compression.BI_PNG;
                     bitCount = 24;  // ??
                     return true;
                 case PixelFormats.UYVY:

@@ -9,6 +9,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using FlashCap.Internal.V4L2;
 using FlashCap.Utilities;
@@ -45,15 +46,15 @@ namespace FlashCap.Internal
                         $"FlashCap: Architecture '{buf.machine}' is not supported.");
             }
 
-            pixelFormats.Add((uint)NativeMethods.Compression.RGB, PixelFormats.RGB24);
+            pixelFormats.Add((uint)NativeMethods.Compression.BI_RGB, PixelFormats.RGB24);
+            pixelFormats.Add((uint)NativeMethods.Compression.BI_JPEG, PixelFormats.JPEG);
+            pixelFormats.Add((uint)NativeMethods.Compression.BI_PNG, PixelFormats.PNG);
+            pixelFormats.Add((uint)NativeMethods.Compression.D3D_RGB24, PixelFormats.RGB24);
+            pixelFormats.Add((uint)NativeMethods.Compression.D3D_RGB32, PixelFormats.RGB32);
+            pixelFormats.Add((uint)NativeMethods.Compression.D3D_ARGB32, PixelFormats.ARGB32);
+            pixelFormats.Add((uint)NativeMethods.Compression.D3D_RGB565, PixelFormats.RGB16);
+            pixelFormats.Add((uint)NativeMethods.Compression.D3D_RGB555, PixelFormats.RGB15);
             pixelFormats.Add((uint)NativeMethods.Compression.RGB2, PixelFormats.RGB24);
-            pixelFormats.Add((uint)NativeMethods.Compression.JPEG, PixelFormats.JPEG);
-            pixelFormats.Add((uint)NativeMethods.Compression.PNG, PixelFormats.PNG);
-            pixelFormats.Add((uint)NativeMethods.Compression.RGB24, PixelFormats.RGB24);
-            pixelFormats.Add((uint)NativeMethods.Compression.RGB32, PixelFormats.RGB32);
-            pixelFormats.Add((uint)NativeMethods.Compression.ARGB32, PixelFormats.ARGB32);
-            pixelFormats.Add((uint)NativeMethods.Compression.RGB565, PixelFormats.RGB16);
-            pixelFormats.Add((uint)NativeMethods.Compression.RGB555, PixelFormats.RGB15);
 
             pixelFormats.Add(Interop.V4L2_PIX_FMT_RGB332, PixelFormats.RGB8);
             pixelFormats.Add(Interop.V4L2_PIX_FMT_RGB555, PixelFormats.RGB15);
@@ -226,6 +227,7 @@ namespace FlashCap.Internal
             }
             else
             {
+                Trace.WriteLine($"FlashCap: Unknown format: pix_fmt={NativeMethods.GetFourCCString((int)pix_fmt)}, [{width},{height}], {framesPerSecond}");
                 return null;
             }
         }
@@ -238,23 +240,23 @@ namespace FlashCap.Internal
                 case PixelFormats.RGB8:
                     return new[] { Interop.V4L2_PIX_FMT_RGB332 };
                 case PixelFormats.RGB15:
-                    return new[] { Interop.V4L2_PIX_FMT_RGB555, (uint)NativeMethods.Compression.RGB555 };
+                    return new[] { Interop.V4L2_PIX_FMT_RGB555, (uint)NativeMethods.Compression.D3D_RGB555 };
                 case PixelFormats.RGB16:
-                    return new[] { Interop.V4L2_PIX_FMT_RGB565, (uint)NativeMethods.Compression.RGB565 };
+                    return new[] { Interop.V4L2_PIX_FMT_RGB565, (uint)NativeMethods.Compression.D3D_RGB565 };
                 case PixelFormats.RGB24:
-                    return new[] { Interop.V4L2_PIX_FMT_RGB24, (uint)NativeMethods.Compression.RGB, (uint)NativeMethods.Compression.RGB2, (uint)NativeMethods.Compression.RGB24 };
+                    return new[] { Interop.V4L2_PIX_FMT_RGB24, (uint)NativeMethods.Compression.BI_RGB, (uint)NativeMethods.Compression.RGB2, (uint)NativeMethods.Compression.D3D_RGB24 };
                 case PixelFormats.RGB32:
-                    return new[] { Interop.V4L2_PIX_FMT_XRGB32, (uint)NativeMethods.Compression.RGB32 };
+                    return new[] { Interop.V4L2_PIX_FMT_XRGB32, (uint)NativeMethods.Compression.D3D_RGB32 };
                 case PixelFormats.ARGB32:
-                    return new[] { Interop.V4L2_PIX_FMT_ARGB32, Interop.V4L2_PIX_FMT_ARGB, (uint)NativeMethods.Compression.ARGB32 };
+                    return new[] { Interop.V4L2_PIX_FMT_ARGB32, Interop.V4L2_PIX_FMT_ARGB, (uint)NativeMethods.Compression.D3D_ARGB32 };
                 case PixelFormats.UYVY:
                     return new[] { Interop.V4L2_PIX_FMT_UYVY };
                 case PixelFormats.YUYV:
                     return new[] { Interop.V4L2_PIX_FMT_YUYV, Interop.V4L2_PIX_FMT_YUY2 };
                 case PixelFormats.JPEG:
-                    return new[] { Interop.V4L2_PIX_FMT_MJPEG, Interop.V4L2_PIX_FMT_JPEG, (uint)NativeMethods.Compression.JPEG };
+                    return new[] { Interop.V4L2_PIX_FMT_MJPEG, Interop.V4L2_PIX_FMT_JPEG, (uint)NativeMethods.Compression.BI_JPEG };
                 case PixelFormats.PNG:
-                    return new[] { (uint)NativeMethods.Compression.PNG };
+                    return new[] { (uint)NativeMethods.Compression.BI_PNG };
                 default:
                     return ArrayEx.Empty<uint>();
             }
