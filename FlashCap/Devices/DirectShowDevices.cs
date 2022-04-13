@@ -26,7 +26,7 @@ namespace FlashCap.Devices
                     pb.GetValue("DevicePath", default(string))?.Trim() is { } devicePath ?
                         (CaptureDeviceDescriptor)new DirectShowDeviceDescriptor(   // Requires casting on net20
                             devicePath, name,
-                            pb.GetValue("Description", default(string))?.Trim() ?? name,
+                            pb.GetValue("Description", default(string))?.Trim() ?? $"{name} (DirectShow)",
                             moniker.BindToObject(
                                 null, null, in NativeMethods_DirectShow.IID_IBaseFilter, out var cs) == 0 &&
                             cs is NativeMethods_DirectShow.IBaseFilter captureSource ?

@@ -182,7 +182,7 @@ namespace FlashCap.Devices
                             (caps.capabilities & Interop.V4L2_CAP_VIDEO_CAPTURE) == Interop.V4L2_CAP_VIDEO_CAPTURE)
                         {
                             return (CaptureDeviceDescriptor)new V4L2DeviceDescriptor(
-                                devicePath, ToString(caps.card), $"{caps.bus_info}: {caps.driver}",
+                                devicePath, ToString(caps.card), $"{ToString(caps.bus_info)}: {ToString(caps.driver)}",
                                 EnumerateFormatDesc(fd).
                                 SelectMany(fmtdesc =>
                                     EnumerateFrameSize(fd, fmtdesc.pixelformat).
