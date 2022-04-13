@@ -187,6 +187,11 @@ namespace FlashCap.Internal
             RGB = 0,             // BI_RGB
             JPEG = 4,            // BI_JPEG
             PNG = 5,             // BI_PNG
+            RGB24 = 0x00000014,  // FOURCC / D3D
+            RGB32 = 0x00000016,  // FOURCC / D3D
+            ARGB32 = 0x00000015, // FOURCC / D3D
+            RGB565 = 0x00000017, // FOURCC / D3D
+            RGB555 = 0x00000018, // FOURCC / D3D
             ARGB = 0x42475241,   // FOURCC
             RGB2 = 0x32424752,   // FOURCC
             YUY2 = 0x32595559,   // FOURCC
@@ -476,6 +481,11 @@ namespace FlashCap.Internal
                 Compression.RGB => GetRGBPixelFormat(clrBits),
                 Compression.RGB2 => GetRGBPixelFormat(clrBits),
                 Compression.ARGB => PixelFormats.ARGB32,
+                Compression.RGB24 => PixelFormats.RGB24,
+                Compression.RGB32 => PixelFormats.RGB32,
+                Compression.ARGB32 => PixelFormats.ARGB32,
+                Compression.RGB565 => PixelFormats.RGB16,
+                Compression.RGB555 => PixelFormats.RGB15,
                 Compression.MJPG => PixelFormats.JPEG,
                 Compression.JPEG => PixelFormats.JPEG,
                 Compression.PNG => PixelFormats.PNG,
@@ -540,6 +550,10 @@ namespace FlashCap.Internal
                 case PixelFormats.ARGB32:
                     compression = Compression.ARGB;
                     bitCount = 32;
+                    return true;
+                case PixelFormats.RGB16:
+                    compression = Compression.RGB565;
+                    bitCount = 16;
                     return true;
                 case PixelFormats.JPEG:
                     compression = Compression.MJPG;  // maybe

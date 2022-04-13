@@ -7,32 +7,35 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using System;
 using FlashCap.Internal;
 using FlashCap.Utilities;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
+
+using static FlashCap.Internal.NativeMethods_V4L2;
+using static FlashCap.Internal.V4L2.NativeMethods_V4L2_Interop;
 
 namespace FlashCap.Devices
 {
     public sealed class V4L2Devices : CaptureDevices
     {
-        private static IEnumerable<NativeMethods_V4L2.v4l2_fmtdesc> EnumerateFormatDesc(
+        private static IEnumerable<v4l2_fmtdesc> EnumerateFormatDesc(
             int fd) =>
             Enumerable.Range(0, 1000).
             CollectWhile(index =>
             {
-                var fmtdesc = new NativeMethods_V4L2.v4l2_fmtdesc
-                {
-                    index = index,
-                    type = NativeMethods_V4L2.v4l2_buf_type.VIDEO_CAPTURE,
-                };
-                return NativeMethods_V4L2.ioctl(fd, ref fmtdesc) == 0 &&
-                    Enum.IsDefined(typeof(NativeMethods_V4L2.v4l2_pix_fmt), fmtdesc.pixelformat) ?
-                    (NativeMethods_V4L2.v4l2_fmtdesc?)fmtdesc : null;
+                var fmtdesc = Interop.Create_v4l2_fmtdesc();
+                fmtdesc.index = (uint)index;
+                fmtdesc.type = (uint)v4l2_buf_type.VIDEO_CAPTURE;
+                
+                return
+                    ioctl(fd, Interop.VIDIOC_ENUM_FMT, fmtdesc) == 0 &&
+                    IsKnownPixelFormat(fmtdesc.pixelformat) ?
+                    (v4l2_fmtdesc?)fmtdesc : null;
             }).
-            Select(fmtdesc => fmtdesc!.Value).
             ToArray();   // Important: Iteration process must be continuous, avoid ioctl calls with other requests.
 
         private struct FrameSize
@@ -43,23 +46,22 @@ namespace FlashCap.Devices
         }
 
         private static IEnumerable<FrameSize> EnumerateFrameSize(
-            int fd, NativeMethods_V4L2.v4l2_pix_fmt pixelFormat) =>
+            int fd, uint pixelFormat) =>
             Enumerable.Range(0, 1000).
             CollectWhile(index =>
             {
-                var frmsizeenum = new NativeMethods_V4L2.v4l2_frmsizeenum
-                {
-                    index = index,
-                    pixel_format = pixelFormat,
-                };
-                return NativeMethods_V4L2.ioctl(fd, ref frmsizeenum) == 0 ?
-                    (NativeMethods_V4L2.v4l2_frmsizeenum?)frmsizeenum : null;
+                var frmsizeenum = Interop.Create_v4l2_frmsizeenum();
+                frmsizeenum.index = (uint)index;
+                frmsizeenum.pixel_format = pixelFormat;
+
+                return ioctl(fd, Interop.VIDIOC_ENUM_FRAMESIZES, frmsizeenum) == 0 ?
+                    (v4l2_frmsizeenum?)frmsizeenum : null;
             }).
             // Expand when both stepwise and continuous:
             SelectMany(frmsizeenum =>
             {
                 static IEnumerable<FrameSize> EnumerateStepWise(
-                    NativeMethods_V4L2.v4l2_frmsize_stepwise stepwise) =>
+                    v4l2_frmsize_stepwise stepwise) =>
                     NativeMethods.DefactoStandardResolutions.
                         Where(r =>
                             r.Width >= stepwise.min_width &&
@@ -73,7 +75,7 @@ namespace FlashCap.Devices
                             { Width = r.Width, Height = r.Height, IsDiscrete = false, });
 
                 static IEnumerable<FrameSize> EnumerateContinuous(
-                    NativeMethods_V4L2.v4l2_frmsize_stepwise stepwise) =>
+                    v4l2_frmsize_stepwise stepwise) =>
                     NativeMethods.DefactoStandardResolutions.
                         Where(r =>
                             r.Width >= stepwise.min_width &&
@@ -84,16 +86,15 @@ namespace FlashCap.Devices
                         Select(r => new FrameSize
                             { Width = r.Width, Height = r.Height, IsDiscrete = false, });
 
-                var fse = frmsizeenum!.Value;
-                return fse.type switch
+                return (v4l2_frmsizetypes)frmsizeenum.type switch
                 {
-                    NativeMethods_V4L2.v4l2_frmsizetypes.DISCRETE =>
+                    v4l2_frmsizetypes.DISCRETE =>
                         new[] { new FrameSize
-                            { Width = fse.discrete.width, Height = fse.discrete.height, IsDiscrete = true, }, },
-                    NativeMethods_V4L2.v4l2_frmsizetypes.STEPWISE =>
-                        EnumerateStepWise(fse.stepwise),
+                            { Width = (int)frmsizeenum.discrete.width, Height = (int)frmsizeenum.discrete.height, IsDiscrete = true, }, },
+                    v4l2_frmsizetypes.STEPWISE =>
+                        EnumerateStepWise(frmsizeenum.stepwise),
                     _ =>
-                        EnumerateContinuous(fse.stepwise),
+                        EnumerateContinuous(frmsizeenum.stepwise),
                 };
             }).
             ToArray();   // Important: Iteration process must be continuous, avoid ioctl calls with other requests.
@@ -105,30 +106,29 @@ namespace FlashCap.Devices
         }
 
         private static IEnumerable<FramesPerSecond> EnumerateFramesPerSecond(
-            int fd, NativeMethods_V4L2.v4l2_pix_fmt pixelFormat, int width, int height) =>
+            int fd, uint pixelFormat, int width, int height) =>
             Enumerable.Range(0, 1000).
             CollectWhile(index =>
             {
-                var frmivalenum = new NativeMethods_V4L2.v4l2_frmivalenum
-                {
-                    index = index,
-                    pixel_format = pixelFormat,
-                    width = width,
-                    height = height,
-                };
-                return NativeMethods_V4L2.ioctl(fd, ref frmivalenum) == 0 ?
-                    (NativeMethods_V4L2.v4l2_frmivalenum?)frmivalenum : null;
+                var frmivalenum = Interop.Create_v4l2_frmivalenum();
+                frmivalenum.index = (uint)index;
+                frmivalenum.pixel_format = pixelFormat;
+                frmivalenum.width = (uint)width;
+                frmivalenum.height = (uint)height;
+
+                return ioctl(fd, Interop.VIDIOC_ENUM_FRAMEINTERVALS, frmivalenum) == 0 ?
+                    (v4l2_frmivalenum?)frmivalenum : null;
             }).
             SelectMany(frmivalenum =>
             {
                 // v4l2_fract is "interval", so makes fps to do reciprocal.
                 // (numerator <--> denominator)
                 static IEnumerable<FramesPerSecond> EnumerateStepWise(
-                    NativeMethods_V4L2.v4l2_frmival_stepwise stepwise)
+                    v4l2_frmival_stepwise stepwise)
                 {
-                    var min = new Fraction(stepwise.min.denominator, stepwise.min.numerator);
-                    var max = new Fraction(stepwise.max.denominator, stepwise.max.numerator);
-                    var step = new Fraction(stepwise.step.denominator, stepwise.step.numerator);
+                    var min = new Fraction((int)stepwise.min.denominator, (int)stepwise.min.numerator);
+                    var max = new Fraction((int)stepwise.max.denominator, (int)stepwise.max.numerator);
+                    var step = new Fraction((int)stepwise.step.denominator, (int)stepwise.step.numerator);
                     return NativeMethods.DefactoStandardFramesPerSecond.
                         Where(fps =>
                             fps >= min && fps <= max &&
@@ -138,44 +138,51 @@ namespace FlashCap.Devices
                 }
 
                 static IEnumerable<FramesPerSecond> EnumerateContinuous(
-                    NativeMethods_V4L2.v4l2_frmival_stepwise stepwise)
+                    v4l2_frmival_stepwise stepwise)
                 {
-                    var min = new Fraction(stepwise.min.denominator, stepwise.min.numerator);
-                    var max = new Fraction(stepwise.max.denominator, stepwise.max.numerator);
+                    var min = new Fraction((int)stepwise.min.denominator, (int)stepwise.min.numerator);
+                    var max = new Fraction((int)stepwise.max.denominator, (int)stepwise.max.numerator);
                     return NativeMethods.DefactoStandardFramesPerSecond.
                         Where(fps => fps >= min && fps <= max).
                         OrderByDescending(fps => fps).
                         Select(fps => new FramesPerSecond { Value = fps, IsDiscrete = false, });
                 }
 
-                var fie = frmivalenum!.Value;
-                return fie.type switch
+                return (v4l2_frmivaltypes)frmivalenum.type switch
                 {
-                    NativeMethods_V4L2.v4l2_frmivaltypes.DISCRETE =>
+                    v4l2_frmivaltypes.DISCRETE =>
                         new [] { new FramesPerSecond
-                            { Value = new Fraction(fie.discrete.denominator, fie.discrete.numerator), IsDiscrete = true, }, },
-                    NativeMethods_V4L2.v4l2_frmivaltypes.STEPWISE =>
-                        EnumerateStepWise(fie.stepwise),
+                            { Value = new Fraction((int)frmivalenum.discrete.denominator, (int)frmivalenum.discrete.numerator), IsDiscrete = true, }, },
+                    v4l2_frmivaltypes.STEPWISE =>
+                        EnumerateStepWise(frmivalenum.stepwise),
                     _ =>
-                        EnumerateContinuous(fie.stepwise),
+                        EnumerateContinuous(frmivalenum.stepwise),
                 };
             }).
             ToArray();   // Important: Iteration process must be continuous, avoid ioctl calls with other requests.
+
+        private static string ToString(byte[] data)
+        {
+            var count = Array.IndexOf(data, (byte)0);
+            var s = Encoding.UTF8.GetString(data);
+            var str = Encoding.UTF8.GetString(data, 0, count);
+            return str;
+        }
 
         public override IEnumerable<CaptureDeviceDescriptor> EnumerateDescriptors() =>
             Directory.GetFiles("/dev", "video*").
             Collect(devicePath =>
             {
-                if (NativeMethods_V4L2.open(
-                    devicePath, NativeMethods_V4L2.OPENBITS.O_RDWR) is { } fd && fd >= 0)
+                if (open(devicePath, OPENBITS.O_RDWR) is { } fd && fd >= 0)
                 {
                     try
                     {
-                        if (NativeMethods_V4L2.ioctl(fd, out NativeMethods_V4L2.v4l2_capability caps) >= 0 &&
-                            (caps.capabilities & NativeMethods_V4L2.v4l2_caps.VIDEO_CAPTURE) == NativeMethods_V4L2.v4l2_caps.VIDEO_CAPTURE)
+                        var caps = Interop.Create_v4l2_capability();
+                        if (ioctl(fd, Interop.VIDIOC_QUERYCAP, caps) >= 0 &&
+                            (caps.capabilities & Interop.V4L2_CAP_VIDEO_CAPTURE) == Interop.V4L2_CAP_VIDEO_CAPTURE)
                         {
                             return (CaptureDeviceDescriptor)new V4L2DeviceDescriptor(
-                                devicePath, caps.card, $"{caps.bus_info}: {caps.driver}",
+                                devicePath, ToString(caps.card), $"{caps.bus_info}: {caps.driver}",
                                 EnumerateFormatDesc(fd).
                                 SelectMany(fmtdesc =>
                                     EnumerateFrameSize(fd, fmtdesc.pixelformat).
@@ -184,7 +191,7 @@ namespace FlashCap.Devices
                                         Collect(framesPerSecond =>
                                             NativeMethods_V4L2.CreateVideoCharacteristics(
                                                 fmtdesc.pixelformat, frmsize.Width, frmsize.Height,
-                                                framesPerSecond.Value, fmtdesc.description,
+                                                framesPerSecond.Value, ToString(fmtdesc.description),
                                                 frmsize.IsDiscrete && framesPerSecond.IsDiscrete)))).
                                 Distinct().
                                 OrderByDescending(vc => vc).
@@ -197,7 +204,7 @@ namespace FlashCap.Devices
                     }
                     finally
                     {
-                        NativeMethods_V4L2.close(fd);
+                        close(fd);
                     }
                 }
                 else
