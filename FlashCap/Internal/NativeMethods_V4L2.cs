@@ -47,6 +47,9 @@ namespace FlashCap.Internal
                 case "armv7l":
                     Interop = new NativeMethods_V4L2_Interop_armv7l();
                     break;
+                case "armv6l":
+                    Interop = new NativeMethods_V4L2_Interop_armv6l();
+                    break;
                 default:
                     throw new InvalidOperationException(
                         $"FlashCap: Architecture '{buf.machine}' is not supported.");
