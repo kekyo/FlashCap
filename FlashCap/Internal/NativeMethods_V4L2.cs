@@ -41,6 +41,9 @@ namespace FlashCap.Internal
                 case "x86_64":
                     Interop = new NativeMethods_V4L2_Interop_x86_64();
                     break;
+                case "aarch64":
+                    Interop = new NativeMethods_V4L2_Interop_aarch64();
+                    break;
                 default:
                     throw new InvalidOperationException(
                         $"FlashCap: Architecture '{buf.machine}' is not supported.");
@@ -57,7 +60,7 @@ namespace FlashCap.Internal
             pixelFormats.Add((uint)NativeMethods.Compression.RGB2, PixelFormats.RGB24);
 
             pixelFormats.Add(Interop.V4L2_PIX_FMT_RGB332, PixelFormats.RGB8);
-            pixelFormats.Add(Interop.V4L2_PIX_FMT_RGB555, PixelFormats.RGB15);
+            pixelFormats.Add(Interop.V4L2_PIX_FMT_RGB565X, PixelFormats.RGB15);
             pixelFormats.Add(Interop.V4L2_PIX_FMT_RGB565, PixelFormats.RGB16);
             pixelFormats.Add(Interop.V4L2_PIX_FMT_RGB24, PixelFormats.RGB24);
             pixelFormats.Add(Interop.V4L2_PIX_FMT_XRGB32, PixelFormats.RGB32);
@@ -240,7 +243,7 @@ namespace FlashCap.Internal
                 case PixelFormats.RGB8:
                     return new[] { Interop.V4L2_PIX_FMT_RGB332 };
                 case PixelFormats.RGB15:
-                    return new[] { Interop.V4L2_PIX_FMT_RGB555, (uint)NativeMethods.Compression.D3D_RGB555 };
+                    return new[] { Interop.V4L2_PIX_FMT_RGB565X, (uint)NativeMethods.Compression.D3D_RGB555 };
                 case PixelFormats.RGB16:
                     return new[] { Interop.V4L2_PIX_FMT_RGB565, (uint)NativeMethods.Compression.D3D_RGB565 };
                 case PixelFormats.RGB24:

@@ -55,10 +55,75 @@ namespace FlashCap
             { "long", new SymbolName("IntPtr", true) },
         };
 
-        private static readonly HashSet<string> symbolBlacklist =
+        private static readonly HashSet<string> symbolBlackList =
             new HashSet<string>()
         {
             "string", "base",
+        };
+
+        private static readonly HashSet<string> symbolExactIncludeList =
+            new HashSet<string>()
+        {
+            "V4L2_CAP_VIDEO_CAPTURE",
+            "V4L2_PIX_FMT_ABGR32",
+            "V4L2_PIX_FMT_ARGB32",
+            "V4L2_PIX_FMT_JPEG",
+            "V4L2_PIX_FMT_MJPEG",
+            "V4L2_PIX_FMT_RGB24",
+            "V4L2_PIX_FMT_RGB332",
+            "V4L2_PIX_FMT_RGB565X",
+            "V4L2_PIX_FMT_RGB565",
+            "V4L2_PIX_FMT_UYVY",
+            "V4L2_PIX_FMT_XRGB32",
+            "V4L2_PIX_FMT_YUYV",
+            "VIDIOC_DQBUF",
+            "VIDIOC_ENUM_FMT",
+            "VIDIOC_ENUM_FRAMEINTERVALS",
+            "VIDIOC_ENUM_FRAMESIZES",
+            "VIDIOC_QBUF",
+            "VIDIOC_QUERYBUF",
+            "VIDIOC_QUERYCAP",
+            "VIDIOC_REQBUFS",
+            "VIDIOC_S_FMT",
+            "VIDIOC_STREAMOFF",
+            "VIDIOC_STREAMON",
+            "v4l2_buf_type",
+            "v4l2_field",
+            "v4l2_frmivaltypes",
+            "v4l2_frmsizetypes",
+            "v4l2_memory",
+            "timespec",
+            "timeval",
+            "v4l2_fmtdesc",
+            "v4l2_buf_type",
+            "v4l2_frmsizeenum",
+            "v4l2_frmsize_stepwise",
+            "v4l2_frmsizetypes",
+            "v4l2_frmivalenum",
+            "v4l2_frmival_stepwise",
+            "v4l2_frmivaltypes",
+            "v4l2_field",
+            "v4l2_buf_type",
+            "v4l2_memory",
+            "v4l2_buf_type",
+            "v4l2_fract",
+            "v4l2_frmsize_discrete",
+            "v4l2_pix_format",
+            "v4l2_format",
+            "v4l2_requestbuffers",
+            "v4l2_capability",
+            "v4l2_pix_format_mplane",
+            "v4l2_window",
+            "v4l2_vbi_format",
+            "v4l2_sliced_vbi_format",
+            "v4l2_sdr_format",
+            "v4l2_meta_format",
+            "v4l2_plane_pix_format",
+            "v4l2_rect",
+            "v4l2_clip",
+            "v4l2_buffer",
+            "v4l2_timecode",
+            "v4l2_plane",
         };
 
         private static IEnumerable<KeyValuePair<string, string>> LoadSourceHeader(string headerPath)
@@ -141,19 +206,15 @@ namespace FlashCap
             var root = LoadClangAstJson(clangAstJsonFileName);
 
             var typedefDecls = root?.inner.
-                Where(e =>
-                    e.kind == "TypedefDecl").
+                Where(e => e.kind == "TypedefDecl").
                 ToArray() ?? new Inner[0];
 
             var enumDecls = root?.inner.
-                Where(e =>
-                    e.kind == "EnumDecl" &&
-                    (e.name?.StartsWith("v4l2_") ?? false)).
+                Where(e => e.kind == "EnumDecl").
                 ToArray() ?? new Inner[0];
 
             var recordDecls = root?.inner.
-                Where(e =>
-                    e.kind == "RecordDecl").
+                Where(e => e.kind == "RecordDecl").
                 ToArray() ?? new Inner[0];
 
             var innerUnionDecls = root?.inner.
@@ -381,7 +442,7 @@ namespace FlashCap
 
                 tw.WriteLine("        // Definitions");
                 foreach (var definition in root.Definitions.
-                    Where(d => d.Key != "__dummy__").
+                    Where(d => symbolExactIncludeList.Contains(d.Key)).
                     OrderBy(d => d.Key))
                 {
                     if (isBase)
@@ -399,7 +460,7 @@ namespace FlashCap
                 {
                     tw.WriteLine("        // Enums");
                     foreach (var enumDecl in root.Enums.
-                         Where(d => d.Key != "__dummy__").
+                         Where(d => symbolExactIncludeList.Contains(d.Key)).
                          OrderBy(d => d.Key))
                     {
                         tw.WriteLine("        public enum {0}", enumDecl.Key);
@@ -420,7 +481,7 @@ namespace FlashCap
 
                 tw.WriteLine("        // Structures");
                 foreach (var structureDecl in root.Structures.
-                    Where(s => s.Key != "__dummy__").
+                    Where(s => symbolExactIncludeList.Contains(s.Key)).
                     OrderBy(s => s.Key))
                 {
                     if (isBase)
@@ -451,7 +512,7 @@ namespace FlashCap
                         var comment = "";
                         var fieldType = FieldTypes.Other;
 
-                        if (symbolBlacklist.Contains(name))
+                        if (symbolBlackList.Contains(name))
                         {
                             name += "_";
                         }
