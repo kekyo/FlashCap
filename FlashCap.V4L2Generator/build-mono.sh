@@ -6,6 +6,8 @@ rm -rf bin/$Configuration/mono obj/$Configuration/mono
 mkdir -p bin/$Configuration/mono
 mkdir -p obj/$Configuration/mono
 
-mcs -debug -out:bin/$Configuration/mono/FlashCap.V4L2Dumper.exe Program.cs
+mcs -debug -r:external/Newtonsoft.Json.dll -out:bin/$Configuration/mono/FlashCap.V4L2Generator.exe ClangASTJsonSchema.cs StructureDumpedJsonSchema.cs Utilities.cs external/RelaxVersioner.cs Program.cs
 
-mono bin/$Configuration/mono/FlashCap.V4L2Dumper.exe
+cp external/Newtonsoft.Json.dll bin/$Configuration/mono/
+cp videodev2.h.* bin/$Configuration/mono/
+cp dumper.sh bin/$Configuration/mono/

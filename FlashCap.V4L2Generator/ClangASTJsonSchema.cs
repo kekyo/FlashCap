@@ -125,10 +125,10 @@ namespace FlashCap
             bool isImplicit,
             bool isReferenced,
             bool completeDefinition,
-            string? tagUsed,
-            string? name,
-            string? valueCategory,
-            string? value,
+            string tagUsed,
+            string name,
+            string valueCategory,
+            string value,
             List<Inner> inner
         )
         {
@@ -157,10 +157,10 @@ namespace FlashCap
         public bool isImplicit { get; }
         public bool isReferenced { get; }
         public bool completeDefinition { get; }
-        public string? tagUsed { get; }
-        public string? name { get; }
-        public string? value { get; }
-        public string? valueCategory { get; }
+        public string tagUsed { get; }
+        public string name { get; }
+        public string value { get; }
+        public string valueCategory { get; }
         public IReadOnlyList<Inner> inner { get; }
 
         public bool IsIn(Loc loc, Range range)

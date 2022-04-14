@@ -31,7 +31,8 @@ namespace FlashCap
             }
         }
 
-        private static readonly Dictionary<string, SymbolName> typeAliases = new()
+        private static readonly Dictionary<string, SymbolName> typeAliases =
+            new Dictionary<string, SymbolName>()
         {
             { "__u8", new SymbolName("byte") },
             { "__s8", new SymbolName("sbyte") },
@@ -54,7 +55,8 @@ namespace FlashCap
             { "long", new SymbolName("IntPtr", true) },
         };
 
-        private static readonly HashSet<string> symbolBlacklist = new()
+        private static readonly HashSet<string> symbolBlacklist =
+            new HashSet<string>()
         {
             "string", "base",
         };
@@ -96,7 +98,7 @@ namespace FlashCap
             }
         }
 
-        private static ClangASTJsonRoot? LoadClangAstJson(string jsonPath)
+        private static ClangASTJsonRoot LoadClangAstJson(string jsonPath)
         {
             using (var tr = File.OpenText(jsonPath))
             {
@@ -241,12 +243,14 @@ namespace FlashCap
 
                     tw.WriteLine("  printf(\"      \\\"members\\\": {\\n\");");
                         
-                    void dumpInner(string baseName, IEnumerable<Inner> inners)
+                    Action<string, IEnumerable<Inner>> dumpInner = null;
+                    dumpInner = (baseName, inners) =>
                     {
                         foreach (var inner in inners.Where(i => i.type != null))
                         {
-                            var typeName = inner.type.qualType!;
-                            if (typedefDecls.FirstOrDefault(td => td.name == typeName) is { } typedefDecl)
+                            var typeName = inner.type.qualType;
+                            var typedefDecl = typedefDecls.FirstOrDefault(td => td.name == typeName);
+                            if (typedefDecl != null)
                             {
                                 typeName = typedefDecl.type.qualType;
                             }
@@ -256,13 +260,15 @@ namespace FlashCap
                                 // Both implicitly union and named union are collect (maybe name == null)
                                 var bn = inner.name != null ? (inner.name + ".") : "";
 
-                                if (innerUnionDecls.FirstOrDefault(ud => ud.IsIn(inner.loc, inner.range)) is { } union)
+                                var union = innerUnionDecls.FirstOrDefault(ud => ud.IsIn(inner.loc, inner.range));
+                                if (union != null)
                                 {
                                     dumpInner(bn, union.inner.Where(i => i.kind == "FieldDecl"));
                                 }
                                 else
                                 {
-                                    tw!.WriteLine("  printf(\"        \\\"{0}\\\": {{ \\\"offset\\\": %d, \\\"type\\\": \\\"{2}\\\" }},\\n\", (int)offsetof(struct {1}, {0}));",
+                                    tw.WriteLine(
+                                        "  printf(\"        \\\"{0}\\\": {{ \\\"offset\\\": %d, \\\"type\\\": \\\"{2}\\\" }},\\n\", (int)offsetof(struct {1}, {0}));",
                                         baseName + inner.name, recordDecl.name, typeName.Replace("struct ", ""));
                                 }
                             }
@@ -271,23 +277,27 @@ namespace FlashCap
                                 // Both implicitly struct and named struct are collect (maybe name == null)
                                 var bn = inner.name != null ? (inner.name + ".") : "";
 
-                                if (innerStructDecls.FirstOrDefault(sd => sd.IsIn(inner.loc, inner.range)) is { } struct_)
+                                var struct_ = innerStructDecls.FirstOrDefault(sd => sd.IsIn(inner.loc, inner.range));
+                                if (struct_ != null)
                                 {
                                     dumpInner(bn, struct_.inner.Where(i => i.kind == "FieldDecl"));
                                 }
                                 else
                                 {
-                                    tw!.WriteLine("  printf(\"        \\\"{0}\\\": {{ \\\"offset\\\": %d, \\\"type\\\": \\\"{2}\\\" }},\\n\", (int)offsetof(struct {1}, {0}));",
+                                    tw.WriteLine(
+                                        "  printf(\"        \\\"{0}\\\": {{ \\\"offset\\\": %d, \\\"type\\\": \\\"{2}\\\" }},\\n\", (int)offsetof(struct {1}, {0}));",
                                         baseName + inner.name, recordDecl.name, typeName.Replace("struct ", ""));
                                 }
                             }
                             else
                             {
-                                tw!.WriteLine("  printf(\"        \\\"{0}\\\": {{ \\\"offset\\\": %d, \\\"type\\\": \\\"{2}\\\" }},\\n\", (int)offsetof(struct {1}, {0}));",
+                                tw.WriteLine(
+                                    "  printf(\"        \\\"{0}\\\": {{ \\\"offset\\\": %d, \\\"type\\\": \\\"{2}\\\" }},\\n\", (int)offsetof(struct {1}, {0}));",
                                     baseName + inner.name, recordDecl.name, typeName.Replace("struct ", ""));
                             }
                         }
-                    }
+                    };
+
 
                     dumpInner("", recordDecl.inner.Where(i => i.kind == "FieldDecl"));
 
@@ -311,13 +321,15 @@ namespace FlashCap
         
         ///////////////////////////////////////////////////////////////////////////////////////
 
-        private static StructureDumpedJsonRoot? LoadMembersJson(string jsonPath)
+        private static StructureDumpedJsonRoot LoadMembersJson(string jsonPath)
         {
-            using var tr = File.OpenText(jsonPath);
-            var jr = new JsonTextReader(tr);
-            var s = new JsonSerializer();
+            using (var tr = File.OpenText(jsonPath))
+            {
+                var jr = new JsonTextReader(tr);
+                var s = new JsonSerializer();
 
-            return s.Deserialize<StructureDumpedJsonRoot>(jr);
+                return s.Deserialize<StructureDumpedJsonRoot>(jr);
+            }
         }
 
         private enum FieldTypes
@@ -444,8 +456,8 @@ namespace FlashCap
                             name += "_";
                         }
 
-                        if (typeName.Split(' ') is { } typeElements &&
-                            typeElements.Length >= 2)
+                        var typeElements = typeName.Split(' ');
+                        if (typeElements.Length >= 2)
                         {
                             var lastTypeElement = typeElements.Last();
                             if (lastTypeElement.StartsWith("[") && lastTypeElement.EndsWith("]"))

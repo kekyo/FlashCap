@@ -3,8 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFrameworks>net45;net6.0</TargetFrameworks>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
+    <Nullable>disable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,6 +20,8 @@
     <None Update="videodev2.h.members.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <Compile Remove="external\*.cs" />
+    <None Include="external\*.cs" />
   </ItemGroup>
 
 </Project>
