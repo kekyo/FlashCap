@@ -1,6 +1,6 @@
-﻿// This is auto generated code by FlashCap.V4L2Generator [0.14.17]. Do not edit.
+// This is auto generated code by FlashCap.V4L2Generator [0.14.6]. Do not edit.
 // 
-// Mon, 11 Apr 2022 14:18:03 GMT
+// Thu, 14 Apr 2022 12:09:50 GMT
 
 using System;
 using System.Runtime.InteropServices;
@@ -18,7 +18,9 @@ namespace FlashCap.Internal.V4L2
         public virtual uint V4L2_BAND_MODULATION_FM => throw new NotImplementedException();
         public virtual uint V4L2_BAND_MODULATION_VSB => throw new NotImplementedException();
         public virtual uint V4L2_BUF_CAP_SUPPORTS_DMABUF => throw new NotImplementedException();
+        public virtual uint V4L2_BUF_CAP_SUPPORTS_M2M_HOLD_CAPTURE_BUF => throw new NotImplementedException();
         public virtual uint V4L2_BUF_CAP_SUPPORTS_MMAP => throw new NotImplementedException();
+        public virtual uint V4L2_BUF_CAP_SUPPORTS_MMAP_CACHE_HINTS => throw new NotImplementedException();
         public virtual uint V4L2_BUF_CAP_SUPPORTS_ORPHANED_BUFS => throw new NotImplementedException();
         public virtual uint V4L2_BUF_CAP_SUPPORTS_REQUESTS => throw new NotImplementedException();
         public virtual uint V4L2_BUF_CAP_SUPPORTS_USERPTR => throw new NotImplementedException();
@@ -28,6 +30,7 @@ namespace FlashCap.Internal.V4L2
         public virtual uint V4L2_BUF_FLAG_IN_REQUEST => throw new NotImplementedException();
         public virtual uint V4L2_BUF_FLAG_KEYFRAME => throw new NotImplementedException();
         public virtual uint V4L2_BUF_FLAG_LAST => throw new NotImplementedException();
+        public virtual uint V4L2_BUF_FLAG_M2M_HOLD_CAPTURE_BUF => throw new NotImplementedException();
         public virtual uint V4L2_BUF_FLAG_MAPPED => throw new NotImplementedException();
         public virtual uint V4L2_BUF_FLAG_NO_CACHE_CLEAN => throw new NotImplementedException();
         public virtual uint V4L2_BUF_FLAG_NO_CACHE_INVALIDATE => throw new NotImplementedException();
@@ -48,6 +51,7 @@ namespace FlashCap.Internal.V4L2
         public virtual uint V4L2_CAP_DEVICE_CAPS => throw new NotImplementedException();
         public virtual uint V4L2_CAP_EXT_PIX_FORMAT => throw new NotImplementedException();
         public virtual uint V4L2_CAP_HW_FREQ_SEEK => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_IO_MC => throw new NotImplementedException();
         public virtual uint V4L2_CAP_META_CAPTURE => throw new NotImplementedException();
         public virtual uint V4L2_CAP_META_OUTPUT => throw new NotImplementedException();
         public virtual uint V4L2_CAP_MODULATOR => throw new NotImplementedException();
@@ -102,6 +106,7 @@ namespace FlashCap.Internal.V4L2
         public virtual uint V4L2_CTRL_WHICH_CUR_VAL => throw new NotImplementedException();
         public virtual uint V4L2_CTRL_WHICH_DEF_VAL => throw new NotImplementedException();
         public virtual uint V4L2_CTRL_WHICH_REQUEST_VAL => throw new NotImplementedException();
+        public virtual uint V4L2_DEC_CMD_FLUSH => throw new NotImplementedException();
         public virtual uint V4L2_DEC_CMD_PAUSE => throw new NotImplementedException();
         public virtual uint V4L2_DEC_CMD_PAUSE_TO_BLACK => throw new NotImplementedException();
         public virtual uint V4L2_DEC_CMD_RESUME => throw new NotImplementedException();
@@ -178,8 +183,15 @@ namespace FlashCap.Internal.V4L2
         public virtual uint V4L2_FBUF_FLAG_SRC_CHROMAKEY => throw new NotImplementedException();
         public virtual uint V4L2_FMT_FLAG_COMPRESSED => throw new NotImplementedException();
         public virtual uint V4L2_FMT_FLAG_CONTINUOUS_BYTESTREAM => throw new NotImplementedException();
+        public virtual uint V4L2_FMT_FLAG_CSC_COLORSPACE => throw new NotImplementedException();
+        public virtual uint V4L2_FMT_FLAG_CSC_HSV_ENC => throw new NotImplementedException();
+        public virtual uint V4L2_FMT_FLAG_CSC_QUANTIZATION => throw new NotImplementedException();
+        public virtual uint V4L2_FMT_FLAG_CSC_XFER_FUNC => throw new NotImplementedException();
+        public virtual uint V4L2_FMT_FLAG_CSC_YCBCR_ENC => throw new NotImplementedException();
         public virtual uint V4L2_FMT_FLAG_DYN_RESOLUTION => throw new NotImplementedException();
         public virtual uint V4L2_FMT_FLAG_EMULATED => throw new NotImplementedException();
+        public virtual uint V4L2_FMT_FLAG_ENC_CAP_FRAME_INTERVAL => throw new NotImplementedException();
+        public virtual uint V4L2_FOURCC_CONV => throw new NotImplementedException();
         public virtual uint V4L2_IN_CAP_CUSTOM_TIMINGS => throw new NotImplementedException();
         public virtual uint V4L2_IN_CAP_DV_TIMINGS => throw new NotImplementedException();
         public virtual uint V4L2_IN_CAP_NATIVE_SIZE => throw new NotImplementedException();
@@ -207,8 +219,11 @@ namespace FlashCap.Internal.V4L2
         public virtual uint V4L2_JPEG_MARKER_DHT => throw new NotImplementedException();
         public virtual uint V4L2_JPEG_MARKER_DQT => throw new NotImplementedException();
         public virtual uint V4L2_JPEG_MARKER_DRI => throw new NotImplementedException();
+        public virtual uint V4L2_META_FMT_BCM2835_ISP_STATS => throw new NotImplementedException();
         public virtual uint V4L2_META_FMT_D4XX => throw new NotImplementedException();
+        public virtual uint V4L2_META_FMT_SENSOR_DATA => throw new NotImplementedException();
         public virtual uint V4L2_META_FMT_UVC => throw new NotImplementedException();
+        public virtual uint V4L2_META_FMT_VIVID => throw new NotImplementedException();
         public virtual uint V4L2_META_FMT_VSP1_HGO => throw new NotImplementedException();
         public virtual uint V4L2_META_FMT_VSP1_HGT => throw new NotImplementedException();
         public virtual uint V4L2_MODE_HIGHQUALITY => throw new NotImplementedException();
@@ -248,6 +263,7 @@ namespace FlashCap.Internal.V4L2
         public virtual uint V4L2_PIX_FMT_DV => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_ET61X251 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_FLAG_PREMUL_ALPHA => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_FLAG_SET_CSC => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_FWHT => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_FWHT_STATELESS => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_GREY => throw new NotImplementedException();
@@ -279,6 +295,8 @@ namespace FlashCap.Internal.V4L2
         public virtual uint V4L2_PIX_FMT_MR97310A => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_MT21C => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_NV12 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_NV12_10_COL128 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_NV12_COL128 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_NV12M => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_NV12MT => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_NV12MT_16X16 => throw new NotImplementedException();
@@ -319,6 +337,7 @@ namespace FlashCap.Internal.V4L2
         public virtual uint V4L2_PIX_FMT_SBGGR10P => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_SBGGR12 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_SBGGR12P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SBGGR14 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_SBGGR14P => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_SBGGR16 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_SBGGR8 => throw new NotImplementedException();
@@ -329,6 +348,7 @@ namespace FlashCap.Internal.V4L2
         public virtual uint V4L2_PIX_FMT_SGBRG10P => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_SGBRG12 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_SGBRG12P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGBRG14 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_SGBRG14P => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_SGBRG16 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_SGBRG8 => throw new NotImplementedException();
@@ -338,6 +358,7 @@ namespace FlashCap.Internal.V4L2
         public virtual uint V4L2_PIX_FMT_SGRBG10P => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_SGRBG12 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_SGRBG12P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGRBG14 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_SGRBG14P => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_SGRBG16 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_SGRBG8 => throw new NotImplementedException();
@@ -355,6 +376,7 @@ namespace FlashCap.Internal.V4L2
         public virtual uint V4L2_PIX_FMT_SRGGB10P => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_SRGGB12 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_SRGGB12P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SRGGB14 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_SRGGB14P => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_SRGGB16 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_SRGGB8 => throw new NotImplementedException();
@@ -385,6 +407,9 @@ namespace FlashCap.Internal.V4L2
         public virtual uint V4L2_PIX_FMT_Y10P => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_Y12 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_Y12I => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_Y12P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_Y14 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_Y14P => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_Y16 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_Y16_BE => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_Y4 => throw new NotImplementedException();
@@ -634,6 +659,7 @@ namespace FlashCap.Internal.V4L2
             FLASH = 7,
             CLOUDY = 8,
             SHADE = 9,
+            GREYWORLD = 10,
         }
 
         public enum v4l2_buf_type
@@ -729,6 +755,7 @@ namespace FlashCap.Internal.V4L2
             TYPE_U8 = 256,
             TYPE_U16 = 257,
             TYPE_U32 = 258,
+            TYPE_AREA = 262,
         }
 
         public enum v4l2_deemphasis
@@ -1065,6 +1092,7 @@ namespace FlashCap.Internal.V4L2
         {
             VBR = 0,
             CBR = 1,
+            CQ = 2,
         }
 
         public enum v4l2_mpeg_video_encoding
@@ -1072,6 +1100,13 @@ namespace FlashCap.Internal.V4L2
             MPEG_1 = 0,
             MPEG_2 = 1,
             MPEG_4_AVC = 2,
+        }
+
+        public enum v4l2_mpeg_video_frame_skip_mode
+        {
+            DISABLED = 0,
+            LEVEL_LIMIT = 1,
+            BUF_LIMIT = 2,
         }
 
         public enum v4l2_mpeg_video_h264_entropy_mode
@@ -1121,6 +1156,10 @@ namespace FlashCap.Internal.V4L2
             LEVEL_4_2 = 13,
             LEVEL_5_0 = 14,
             LEVEL_5_1 = 15,
+            LEVEL_5_2 = 16,
+            LEVEL_6_0 = 17,
+            LEVEL_6_1 = 18,
+            LEVEL_6_2 = 19,
         }
 
         public enum v4l2_mpeg_video_h264_loop_filter_mode
@@ -1149,6 +1188,7 @@ namespace FlashCap.Internal.V4L2
             SCALABLE_HIGH_INTRA = 14,
             STEREO_HIGH = 15,
             MULTIVIEW_HIGH = 16,
+            CONSTRAINED_HIGH = 17,
         }
 
         public enum v4l2_mpeg_video_h264_sei_fp_arrangement_type
@@ -1279,6 +1319,24 @@ namespace FlashCap.Internal.V4L2
             PROFILE_1 = 1,
             PROFILE_2 = 2,
             PROFILE_3 = 3,
+        }
+
+        public enum v4l2_mpeg_video_vp9_level
+        {
+            LEVEL_1_0 = 0,
+            LEVEL_1_1 = 1,
+            LEVEL_2_0 = 2,
+            LEVEL_2_1 = 3,
+            LEVEL_3_0 = 4,
+            LEVEL_3_1 = 5,
+            LEVEL_4_0 = 6,
+            LEVEL_4_1 = 7,
+            LEVEL_5_0 = 8,
+            LEVEL_5_1 = 9,
+            LEVEL_5_2 = 10,
+            LEVEL_6_0 = 11,
+            LEVEL_6_1 = 12,
+            LEVEL_6_2 = 13,
         }
 
         public enum v4l2_mpeg_video_vp9_profile
@@ -1462,6 +1520,23 @@ namespace FlashCap.Internal.V4L2
 
         }
         public virtual timezone Create_timezone() => throw new NotImplementedException();
+
+        public interface v4l2_area
+        {
+            uint width
+            {
+                get;
+                set;
+            }
+
+            uint height
+            {
+                get;
+                set;
+            }
+
+        }
+        public virtual v4l2_area Create_v4l2_area() => throw new NotImplementedException();
 
         public interface v4l2_audio
         {
@@ -2682,6 +2757,12 @@ namespace FlashCap.Internal.V4L2
                 set;
             }
 
+            IntPtr p_area
+            {
+                get;
+                set;
+            }
+
             IntPtr ptr
             {
                 get;
@@ -2765,6 +2846,12 @@ namespace FlashCap.Internal.V4L2
             }
 
             uint pixelformat
+            {
+                get;
+                set;
+            }
+
+            uint mbus_code
             {
                 get;
                 set;
