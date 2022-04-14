@@ -1,6 +1,6 @@
-// This is auto generated code by FlashCap.V4L2Generator [0.14.6]. Do not edit.
+// This is auto generated code by FlashCap.V4L2Generator [0.14.9]. Do not edit.
 // 
-// Thu, 14 Apr 2022 13:00:51 GMT
+// Thu, 14 Apr 2022 13:02:16 GMT
 
 using System;
 using System.Runtime.InteropServices;
@@ -324,12 +324,6 @@ namespace FlashCap.Internal.V4L2
             }
 
             uint pixelformat
-            {
-                get;
-                set;
-            }
-
-            uint mbus_code
             {
                 get;
                 set;
