@@ -117,6 +117,7 @@ Verified capture devices / cameras:
 * Elgato CamLink 4K (Windows/Linux)
 * Logitech WebCam C930e (Windows/Linux)
 * eMeet HD Webcam C970L (Windows/Linux)
+* Microsoft LifeCam Cinema HD720 (Windows/Linux)
 * Unnamed cheap USB capture module (Windows/Linux)
 
 Verified computers:
@@ -126,8 +127,8 @@ Verified computers:
 * Microsoft Surface Go Gen1 inside camera (x64, Windows)
 * Sony VAIO Z VJZ131A11N inside camera (x64, Windows)
 * clockworks DevTerm A06 (aarch64, Linux)
-* Raspberry Pi 400 (armhf/aarch64, Linux)
-* Seeed reTerminal (armhf, Linux)
+* Raspberry Pi 400 (armv7l/aarch64, Linux)
+* Seeed reTerminal (armv7l, Linux, mono is unstable)
 * Teclast X89 E7ED Tablet PC inside camera (x86, Windows)
 * NVIDIA Jetson TX2 evaluation board (aarch64, Linux)
 

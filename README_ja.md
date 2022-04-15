@@ -116,6 +116,7 @@ device.Stop();
 * Elgato CamLink 4K (Windows/Linux)
 * Logitech WebCam C930e (Windows/Linux)
 * eMeet HD Webcam C970L (Windows/Linux)
+* Microsoft LifeCam Cinema HD720 (Windows/Linux)
 * Unnamed cheap USB capture module (Windows/Linux)
 
 確認したコンピューター:
@@ -125,8 +126,8 @@ device.Stop();
 * Microsoft Surface Go Gen1 内蔵カメラ (x64, Windows)
 * VAIO Z VJZ131A11N 内蔵カメラ (x64, Windows)
 * clockworks DevTerm A06 (aarch64, Linux)
-* Raspberry Pi 400 (armhf/aarch64, Linux)
-* Seeed reTerminal (armhf, Linux)
+* Raspberry Pi 400 (armv7l/aarch64, Linux)
+* Seeed reTerminal (armv7l, Linux, mono is unstable)
 * Teclast X89 E7ED Tablet PC 内蔵カメラ (x86, Windows)
 * NVIDIA Jetson TX2 評価ボード (aarch64, Linux)
 
