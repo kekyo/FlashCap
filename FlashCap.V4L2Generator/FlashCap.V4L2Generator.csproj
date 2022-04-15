@@ -14,12 +14,6 @@
     <None Update="dumper.sh">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="videodev2.h.ast.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="videodev2.h.members.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
     <Compile Remove="external\*.cs" />
     <None Include="external\*.cs" />
   </ItemGroup>

@@ -44,21 +44,26 @@ namespace FlashCap
     
     public sealed class StructureDumpedJsonRoot
     {
-        public readonly string VersionLabel;
+        public readonly string Label;
         public readonly string Architecture;
+        public readonly int sizeof_size_t;
+        public readonly int sizeof_off_t;
         public readonly IReadOnlyDictionary<string, uint> Definitions;
         public readonly IReadOnlyDictionary<string, IReadOnlyDictionary<string, int>> Enums;
         public readonly IReadOnlyDictionary<string, StructureType> Structures;
 
         [JsonConstructor]
         public StructureDumpedJsonRoot(
-            string versionLabel, string architecture,
+            string label, string architecture,
+            int sizeof_size_t, int sizeof_off_t,
             Dictionary<string, uint> definitions,
             Dictionary<string, JToken> enums,
             Dictionary<string, StructureType> structures)
         {
-            this.VersionLabel = versionLabel;
+            this.Label = label;
             this.Architecture = architecture;
+            this.sizeof_size_t = sizeof_size_t;
+            this.sizeof_off_t = sizeof_off_t;
             this.Definitions = definitions;
             this.Enums = enums.ToDictionary(
                 kv => kv.Key,

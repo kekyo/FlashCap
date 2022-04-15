@@ -260,6 +260,8 @@ namespace FlashCap
                 tw.WriteLine();
                 tw.WriteLine("  printf(\"  \\\"label\\\": \\\"{0}\\\",\\n\");", versionLabel);
                 tw.WriteLine("  printf(\"  \\\"architecture\\\": \\\"{0}\\\",\\n\");", architecture);
+                tw.WriteLine("  printf(\"  \\\"sizeof_size_t\\\": %d,\\n\", (int)sizeof(size_t));");
+                tw.WriteLine("  printf(\"  \\\"sizeof_off_t\\\": %d,\\n\", (int)sizeof(off_t));");
                 tw.WriteLine();
 
                 // Generate definition information.
@@ -420,7 +422,7 @@ namespace FlashCap
             using (var tw = File.CreateText(outputSourceFileName))
             {
                 tw.WriteLine($"// This is auto generated code by FlashCap.V4L2Generator [{ThisAssembly.AssemblyVersion}]. Do not edit.");
-                tw.WriteLine($"// {root.VersionLabel}");
+                tw.WriteLine($"// {root.Label}");
                 tw.WriteLine($"// {DateTimeOffset.Now:R}");
                 tw.WriteLine();
 
@@ -439,6 +441,23 @@ namespace FlashCap
                     tw.WriteLine("    internal sealed class NativeMethods_V4L2_Interop_{0} : NativeMethods_V4L2_Interop", root.Architecture);
                 }
                 tw.WriteLine("    {");
+
+                tw.WriteLine("        // Common");
+                if (isBase)
+                {
+                    tw.WriteLine("        public abstract string Label { get; }");
+                    tw.WriteLine("        public abstract string Architecture { get; }");
+                    tw.WriteLine("        public abstract int sizeof_size_t { get; }");
+                    tw.WriteLine("        public abstract int sizeof_off_t { get; }");
+                }
+                else
+                {
+                    tw.WriteLine("        public override string Label => \"{0}\";", root.Label);
+                    tw.WriteLine("        public override string Architecture => \"{0}\";", root.Architecture);
+                    tw.WriteLine("        public override int sizeof_size_t => {0};", root.sizeof_size_t);
+                    tw.WriteLine("        public override int sizeof_off_t => {0};", root.sizeof_off_t);
+                }
+                tw.WriteLine();
 
                 tw.WriteLine("        // Definitions");
                 foreach (var definition in root.Definitions.

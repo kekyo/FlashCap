@@ -1,6 +1,6 @@
-// This is auto generated code by FlashCap.V4L2Generator [0.14.9]. Do not edit.
-// 
-// Thu, 14 Apr 2022 13:02:16 GMT
+// This is auto generated code by FlashCap.V4L2Generator [0.14.6]. Do not edit.
+// Linux version 5.13.0-39-generic (buildd@lcy02-amd64-080) (gcc (Ubuntu 9.4.0-1ubuntu1~20.04.1) 9.4.0, GNU ld (GNU Binutils for Ubuntu) 2.34) #44~20.04.1-Ubuntu SMP Thu Mar 24 16:43:35 UTC 2022
+// Fri, 15 Apr 2022 03:57:16 GMT
 
 using System;
 using System.Runtime.InteropServices;
@@ -9,6 +9,12 @@ namespace FlashCap.Internal.V4L2
 {
     internal abstract partial class NativeMethods_V4L2_Interop
     {
+        // Common
+        public abstract string Label { get; }
+        public abstract string Architecture { get; }
+        public abstract int sizeof_size_t { get; }
+        public abstract int sizeof_off_t { get; }
+
         // Definitions
         public virtual uint V4L2_CAP_VIDEO_CAPTURE => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_ABGR32 => throw new NotImplementedException();

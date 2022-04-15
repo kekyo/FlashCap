@@ -10,6 +10,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using FlashCap.Internal.V4L2;
 using FlashCap.Utilities;
@@ -164,13 +165,65 @@ namespace FlashCap.Internal
 
         public static readonly IntPtr MAP_FAILED = (IntPtr)(-1);
 
-        [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
-        public static extern IntPtr mmap(
-            IntPtr addr, IntPtr length, PROT prot, MAP flags, int fd, long offset);
+        [DllImport("libc", EntryPoint = "mmap", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
+        private static extern IntPtr mmap3232(
+            IntPtr addr, uint length, PROT prot, MAP flags, int fd, int offset);
+        [DllImport("libc", EntryPoint = "mmap", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
+        private static extern IntPtr mmap3264(
+            IntPtr addr, uint length, PROT prot, MAP flags, int fd, long offset);
+        [DllImport("libc", EntryPoint = "mmap", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
+        private static extern IntPtr mmap6432(
+            IntPtr addr, ulong length, PROT prot, MAP flags, int fd, int offset);
+        [DllImport("libc", EntryPoint = "mmap", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
+        private static extern IntPtr mmap6464(
+            IntPtr addr, ulong length, PROT prot, MAP flags, int fd, long offset);
 
-        [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
-        public static extern int munmap(
-            IntPtr addr, IntPtr length);
+        public static IntPtr mmap(
+            IntPtr addr, ulong length, PROT prot, MAP flags, int fd, long offset)
+        {
+            if (Interop.sizeof_size_t == 4)
+            {
+                if (Interop.sizeof_off_t == 4)
+                {
+                    return mmap3232(addr, (uint)length, prot, flags, fd, (int)offset);
+                }
+                else
+                {
+                    return mmap3264(addr, (uint)length, prot, flags, fd, offset);
+                }
+            }
+            else
+            {
+                if (Interop.sizeof_off_t == 4)
+                {
+                    return mmap6432(addr, length, prot, flags, fd, (int)offset);
+                }
+                else
+                {
+                    return mmap6464(addr, length, prot, flags, fd, offset);
+                }
+            }
+        }
+
+        [DllImport("libc", EntryPoint = "munmap", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
+        private static extern int munmap32(
+            IntPtr addr, uint length);
+        [DllImport("libc", EntryPoint = "munmap", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
+        private static extern int munmap64(
+            IntPtr addr, ulong length);
+
+        public static int munmap(
+            IntPtr addr, ulong length)
+        {
+            if (Interop.sizeof_size_t == 4)
+            {
+                return munmap32(addr, (uint)length);
+            }
+            else
+            {
+                return munmap64(addr, length);
+            }
+        }
 
         [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
         private static extern int ioctl(

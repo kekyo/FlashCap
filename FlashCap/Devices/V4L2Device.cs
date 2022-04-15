@@ -9,6 +9,7 @@
 
 using FlashCap.Internal;
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -119,8 +120,8 @@ namespace FlashCap.Devices
                         throw new ArgumentException(
                             $"FlashCap: Couldn't assign video buffer: Code={code}, DevicePath={this.devicePath}");
                     }
-
-                    if (mmap(IntPtr.Zero, (IntPtr)buffer.length, PROT.READ, MAP.SHARED,
+                    
+                    if (mmap(IntPtr.Zero, buffer.length, PROT.READ, MAP.SHARED,
                         fd, buffer.m_offset) is { } pBuffer &&
                         pBuffer == MAP_FAILED)
                     {
