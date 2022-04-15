@@ -1,6 +1,6 @@
-// This is auto generated code by FlashCap.V4L2Generator [0.14.12]. Do not edit.
-// 
-// Thu, 14 Apr 2022 14:53:37 GMT
+// This is auto generated code by FlashCap.V4L2Generator [0.14.6]. Do not edit.
+// Linux version 5.15.32-v7l+ (dom@buildbot) (arm-linux-gnueabihf-gcc-8 (Ubuntu/Linaro 8.4.0-3ubuntu1) 8.4.0, GNU ld (GNU Binutils for Ubuntu) 2.34) #1538 SMP Thu Mar 31 19:39:41 BST 2022
+// Fri, 15 Apr 2022 04:15:17 GMT
 
 using System;
 using System.Runtime.InteropServices;
@@ -9,6 +9,12 @@ namespace FlashCap.Internal.V4L2
 {
     internal sealed class NativeMethods_V4L2_Interop_armv7l : NativeMethods_V4L2_Interop
     {
+        // Common
+        public override string Label => "Linux version 5.15.32-v7l+ (dom@buildbot) (arm-linux-gnueabihf-gcc-8 (Ubuntu/Linaro 8.4.0-3ubuntu1) 8.4.0, GNU ld (GNU Binutils for Ubuntu) 2.34) #1538 SMP Thu Mar 31 19:39:41 BST 2022";
+        public override string Architecture => "armv7l";
+        public override int sizeof_size_t => 4;
+        public override int sizeof_off_t => 4;
+
         // Definitions
         public override uint V4L2_CAP_VIDEO_CAPTURE => 1U;
         public override uint V4L2_PIX_FMT_ABGR32 => 875713089U;
