@@ -550,7 +550,8 @@ namespace FlashCap
                                 typeName = string.Join(" ", typeElements.Take(typeElements.Length - 1));
                                 typePrefix = "fixed ";
 
-                                if (root.Structures.TryGetValue(typeName, out var structureType))
+                                StructureType structureType;
+                                if (root.Structures.TryGetValue(typeName, out structureType))
                                 {
                                     structureTypeName = typeName;
                                     structureSize = structureType.Size;
@@ -583,7 +584,8 @@ namespace FlashCap
                             }
                         }
 
-                        if (typeAliases.TryGetValue(typeName, out var symbolName))
+                        SymbolName symbolName;
+                        if (typeAliases.TryGetValue(typeName, out symbolName))
                         {
                             if (symbolName.WithComment)
                             {
@@ -668,7 +670,8 @@ namespace FlashCap
 
         public static void Main(string[] args)
         {
-            int.TryParse(args[0], out var mode);
+            int mode;
+            int.TryParse(args[0], out mode);
             switch (mode)
             {
                 case 1:
