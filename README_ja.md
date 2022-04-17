@@ -130,6 +130,7 @@ device.Stop();
 * Seeed reTerminal (armv7l, Linux, mono is unstable)
 * Teclast X89 E7ED Tablet PC 内蔵カメラ (x86, Windows)
 * NVIDIA Jetson TX2 評価ボード (aarch64, Linux)
+* Acer Aspire One ZA3 inside camera (i686, Linux)
 
 確認した、動作しない環境:
 
@@ -139,7 +140,7 @@ device.Stop();
 現在検証中:
 
 * Blackmagic Design ATEM Mini Pro
-* Acer Aspire One ZA3 inside camera (i686, Linux)
+* Imagination Creator Ci20 (mipsel, Linux)
 
 ----
 

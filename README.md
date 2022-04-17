@@ -131,6 +131,7 @@ Verified computers:
 * Seeed reTerminal (armv7l, Linux, mono is unstable)
 * Teclast X89 E7ED Tablet PC inside camera (x86, Windows)
 * NVIDIA Jetson TX2 evaluation board (aarch64, Linux)
+* Acer Aspire One ZA3 inside camera (i686, Linux)
 
 Couldn't detect any devices on FlashCap:
 
@@ -140,7 +141,7 @@ Couldn't detect any devices on FlashCap:
 Verifying now:
 
 * BlackMagic Design ATEM Mini Pro
-* Acer Aspire One ZA3 inside camera (i686, Linux)
+* Imagination Creator Ci20 (mipsel, Linux)
 
 ----
 
