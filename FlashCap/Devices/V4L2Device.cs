@@ -9,9 +9,13 @@
 
 using FlashCap.Internal;
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
+
+using static FlashCap.Internal.NativeMethods_V4L2;
+using static FlashCap.Internal.V4L2.NativeMethods_V4L2_Interop;
 
 namespace FlashCap.Devices
 {
@@ -49,7 +53,7 @@ namespace FlashCap.Devices
                     $"FlashCap: Couldn't set video format [1]: DevicePath={this.devicePath}");
             }
 
-            var pix_fmts = NativeMethods_V4L2.GetPixelFormats(
+            var pix_fmts = GetPixelFormats(
                 characteristics.PixelFormat);
             if (pix_fmts.Length == 0)
             {
@@ -57,8 +61,7 @@ namespace FlashCap.Devices
                     $"FlashCap: Couldn't set video format [2]: DevicePath={this.devicePath}");
             }
 
-            if (NativeMethods_V4L2.open(
-                this.devicePath, NativeMethods_V4L2.OPENBITS.O_RDWR) is { } fd && fd < 0)
+            if (open(this.devicePath, OPENBITS.O_RDWR) is { } fd && fd < 0)
             {
                 var code = Marshal.GetLastWin32Error();
                 throw new ArgumentException(
@@ -70,13 +73,17 @@ namespace FlashCap.Devices
                 var applied = false;
                 foreach (var pix_fmt in pix_fmts)
                 {
-                    var format = new NativeMethods_V4L2.v4l2_format();
-                    format.type.type = NativeMethods_V4L2.v4l2_buf_type.VIDEO_CAPTURE;
-                    format.fmt.pix.width = characteristics.Width;
-                    format.fmt.pix.height = characteristics.Height;
-                    format.fmt.pix.pixelformat = pix_fmt;
-                    format.fmt.pix.field = NativeMethods_V4L2.v4l2_field.ANY;
-                    if (NativeMethods_V4L2.ioctls(fd, in format) == 0)
+                    var fmt_pix = Interop.Create_v4l2_pix_format();
+                    fmt_pix.width = (uint)characteristics.Width;
+                    fmt_pix.height = (uint)characteristics.Height;
+                    fmt_pix.pixelformat = pix_fmt;
+                    fmt_pix.field = (uint)v4l2_field.ANY;
+                    
+                    var format = Interop.Create_v4l2_format();
+                    format.type = (uint)v4l2_buf_type.VIDEO_CAPTURE;
+                    format.fmt_pix = fmt_pix;
+                    
+                    if (ioctl(fd, Interop.VIDIOC_S_FMT, format) == 0)
                     {
                         applied = true;
                         break;
@@ -88,13 +95,12 @@ namespace FlashCap.Devices
                         $"FlashCap: Couldn't set video format [3]: DevicePath={this.devicePath}");
                 }
 
-                var requestbuffers = new NativeMethods_V4L2.v4l2_requestbuffers
-                {
-                    count = BufferCount,   // Flipping
-                    type = NativeMethods_V4L2.v4l2_buf_type.VIDEO_CAPTURE,
-                    memory = NativeMethods_V4L2.v4l2_memory.MMAP,
-                };
-                if (NativeMethods_V4L2.ioctl(fd, ref requestbuffers) < 0)
+                var requestbuffers = Interop.Create_v4l2_requestbuffers();
+                requestbuffers.count = BufferCount;   // Flipping
+                requestbuffers.type = (uint)v4l2_buf_type.VIDEO_CAPTURE;
+                requestbuffers.memory = (uint)v4l2_memory.MMAP;
+
+                if (ioctl(fd, Interop.VIDIOC_REQBUFS, requestbuffers) < 0)
                 {
                     var code = Marshal.GetLastWin32Error();
                     throw new ArgumentException(
@@ -103,27 +109,21 @@ namespace FlashCap.Devices
 
                 for (var index = 0; index < requestbuffers.count; index++)
                 {
-                    var buffer = new NativeMethods_V4L2.v4l2_buffer
-                    {
-                        type = NativeMethods_V4L2.v4l2_buf_type.VIDEO_CAPTURE,
-                        memory = NativeMethods_V4L2.v4l2_memory.MMAP,
-                        index = index,
-                    };
-                    if (NativeMethods_V4L2.ioctl_querybuf(fd, ref buffer) < 0)
+                    var buffer = Interop.Create_v4l2_buffer();
+                    buffer.type = (uint)v4l2_buf_type.VIDEO_CAPTURE;
+                    buffer.memory = (uint)v4l2_memory.MMAP;
+                    buffer.index = (uint)index;
+                    
+                    if (ioctl(fd, Interop.VIDIOC_QUERYBUF, buffer) < 0)
                     {
                         var code = Marshal.GetLastWin32Error();
                         throw new ArgumentException(
                             $"FlashCap: Couldn't assign video buffer: Code={code}, DevicePath={this.devicePath}");
                     }
-
-                    if (NativeMethods_V4L2.mmap(
-                        IntPtr.Zero,
-                        (IntPtr)buffer.length,
-                        NativeMethods_V4L2.PROT.READ,
-                        NativeMethods_V4L2.MAP.SHARED,
-                        fd,
-                        buffer.m.offset) is { } pBuffer &&
-                        pBuffer == NativeMethods_V4L2.MAP_FAILED)
+                    
+                    if (mmap(IntPtr.Zero, buffer.length, PROT.READ, MAP.SHARED,
+                        fd, buffer.m_offset) is { } pBuffer &&
+                        pBuffer == MAP_FAILED)
                     {
                         var code = Marshal.GetLastWin32Error();
                         throw new ArgumentException(
@@ -131,9 +131,9 @@ namespace FlashCap.Devices
                     }
 
                     pBuffers[index] = pBuffer;
-                    bufferLength[index] = buffer.length;
+                    bufferLength[index] = (int)buffer.length;
 
-                    if (NativeMethods_V4L2.ioctl_qbuf(fd, buffer) < 0)
+                    if (ioctl(fd, Interop.VIDIOC_QBUF, buffer) < 0)
                     {
                         var code = Marshal.GetLastWin32Error();
                         throw new ArgumentException(
@@ -142,7 +142,7 @@ namespace FlashCap.Devices
                 }
 
                 var abortfds = new int[2];
-                if (NativeMethods_V4L2.pipe(abortfds) < 0)
+                if (pipe(abortfds) < 0)
                 {
                     var code = Marshal.GetLastWin32Error();
                     throw new ArgumentException(
@@ -179,7 +179,7 @@ namespace FlashCap.Devices
             }
             catch
             {
-                NativeMethods_V4L2.close(fd);
+                close(fd);
                 throw;
             }
         }
@@ -194,17 +194,16 @@ namespace FlashCap.Devices
                     {
                         if (this.IsRunning)
                         {
-                            NativeMethods_V4L2.ioctl_streamoff(
-                                this.fd,
-                                NativeMethods_V4L2.v4l2_buf_type.VIDEO_CAPTURE);
+                            ioctl(
+                                this.fd, Interop.VIDIOC_STREAMOFF,
+                                (int)v4l2_buf_type.VIDEO_CAPTURE);
                         }
                     }
                     
-                    NativeMethods_V4L2.write(
-                        this.abortwfd, new byte[] { 0x01 }, 1);
+                    write(this.abortwfd, new byte[] { 0x01 }, 1);
                     
                     this.thread.Join();
-                    NativeMethods_V4L2.close(this.abortwfd);
+                    close(this.abortwfd);
                     this.abortwfd = -1;
                 }
             }
@@ -212,9 +211,8 @@ namespace FlashCap.Devices
             {
                 if (this.abortwfd != -1)
                 {
-                    NativeMethods_V4L2.write(
-                        this.abortwfd, new byte[] { 0x01 }, 1);
-                    NativeMethods_V4L2.close(this.abortwfd);
+                    write(this.abortwfd, new byte[] { 0x01 }, 1);
+                    close(this.abortwfd);
                     this.abortwfd = -1;
                 }
             }
@@ -225,35 +223,33 @@ namespace FlashCap.Devices
             static bool IsIgnore(int code) =>
                 code switch
                 {
-                    NativeMethods_V4L2.EINTR => true,
-                    NativeMethods_V4L2.EINVAL => true,
+                    EINTR => true,
+                    EINVAL => true,
                     _ => false,
                 };
             
             var fds = new[]
             {
-                new NativeMethods_V4L2.pollfd
+                new pollfd
                 {
                     fd = this.abortrfd,
-                    events = NativeMethods_V4L2.POLLBITS.POLLIN,
+                    events = POLLBITS.POLLIN,
                 },
-                new NativeMethods_V4L2.pollfd
+                new pollfd
                 {
                     fd = this.fd,
-                    events = NativeMethods_V4L2.POLLBITS.POLLIN,
+                    events = POLLBITS.POLLIN,
                 }
             };
-            var buffer = new NativeMethods_V4L2.v4l2_buffer
-            {
-                type = NativeMethods_V4L2.v4l2_buf_type.VIDEO_CAPTURE,
-                memory = NativeMethods_V4L2.v4l2_memory.MMAP,
-            };
+            var buffer = Interop.Create_v4l2_buffer();
+            buffer.type = (uint)v4l2_buf_type.VIDEO_CAPTURE;
+            buffer.memory = (uint)v4l2_memory.MMAP;
 
             try
             {
                 while (true)
                 {
-                    var result = NativeMethods_V4L2.poll(fds, fds.Length, -1);
+                    var result = poll(fds, fds.Length, -1);
                     if (result == 0)
                     {
                         break;
@@ -261,12 +257,12 @@ namespace FlashCap.Devices
                     if (result != 1)
                     {
                         var code = Marshal.GetLastWin32Error();
-                        if (code == NativeMethods_V4L2.EINTR)
+                        if (code == EINTR)
                         {
                             continue;
                         }
                         // Couldn't get with EINVAL, maybe discarding.
-                        if (code == NativeMethods_V4L2.EINVAL)
+                        if (code == EINVAL)
                         {
                             break;
                         }
@@ -274,7 +270,7 @@ namespace FlashCap.Devices
                             $"FlashCap: Couldn't get fd status: Code={code}, DevicePath={this.devicePath}");
                     }
 
-                    if (NativeMethods_V4L2.ioctl_dqbuf(this.fd, buffer) < 0)
+                    if (ioctl(this.fd, Interop.VIDIOC_DQBUF, buffer) < 0)
                     {
                         // Couldn't get, maybe discarding.
                         if (Marshal.GetLastWin32Error() is { } code && IsIgnore(code))
@@ -288,12 +284,12 @@ namespace FlashCap.Devices
                     this.frameProcessor.OnFrameArrived(
                         this,
                         this.pBuffers[buffer.index],
-                        buffer.bytesused,
+                        (int)buffer.bytesused,
                         // buffer.timestamp is untrustworthy.
                         this.counter.ElapsedMicroseconds,
                         this.frameIndex++);
                 
-                    if (NativeMethods_V4L2.ioctl_qbuf(this.fd, buffer) < 0)
+                    if (ioctl(this.fd, Interop.VIDIOC_QBUF, buffer) < 0)
                     {
                         // Couldn't get, maybe discarding.
                         if (Marshal.GetLastWin32Error() is { } code && IsIgnore(code))
@@ -307,8 +303,8 @@ namespace FlashCap.Devices
             }
             finally
             {
-                NativeMethods_V4L2.close(this.abortrfd);
-                NativeMethods_V4L2.close(this.fd);
+                close(this.abortrfd);
+                close(this.fd);
                 NativeMethods.FreeMemory(this.pBih);
                 this.abortrfd = -1;
                 this.fd = -1;
@@ -325,9 +321,9 @@ namespace FlashCap.Devices
                     this.frameIndex = 0;
                     this.counter.Restart();
 
-                    if (NativeMethods_V4L2.ioctl_streamon(
-                        this.fd,
-                        NativeMethods_V4L2.v4l2_buf_type.VIDEO_CAPTURE) < 0)
+                    if (ioctl(
+                        this.fd, Interop.VIDIOC_STREAMON,
+                        (int)v4l2_buf_type.VIDEO_CAPTURE) < 0)
                     {
                         var code = Marshal.GetLastWin32Error();
                         throw new ArgumentException(
@@ -345,9 +341,9 @@ namespace FlashCap.Devices
                 if (this.IsRunning)
                 {
                     this.IsRunning = false;
-                    if (NativeMethods_V4L2.ioctl_streamoff(
-                        this.fd,
-                        NativeMethods_V4L2.v4l2_buf_type.VIDEO_CAPTURE) < 0)
+                    if (ioctl(
+                        this.fd, Interop.VIDIOC_STREAMOFF,
+                        (int)v4l2_buf_type.VIDEO_CAPTURE) < 0)
                     {
                         var code = Marshal.GetLastWin32Error();
                         this.IsRunning = true;

@@ -7,6 +7,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using System.Collections;
 using FlashCap.Internal;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -48,6 +49,14 @@ namespace System.Linq
 {
     internal static partial class Enumerable
     {
+        public static IEnumerable<T> Cast<T>(this IEnumerable enumerable)
+        {
+            foreach (var value in enumerable)
+            {
+                yield return (T)value;
+            }
+        }
+        
         public static IEnumerable<int> Range(int begin, int count)
         {
             for (var index = 0; index < count; index++)

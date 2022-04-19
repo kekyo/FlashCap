@@ -111,10 +111,12 @@ device.Stop();
 
 サンプルコードを動作させて確認(0.11.0)。
 
-確認したキャプチャユニット:
+確認したキャプチャユニット/カメラ:
 
 * Elgato CamLink 4K (Windows/Linux)
 * Logitech WebCam C930e (Windows/Linux)
+* eMeet HD Webcam C970L (Windows/Linux)
+* Microsoft LifeCam Cinema HD720 (Windows/Linux)
 * Unnamed cheap USB capture module (Windows/Linux)
 
 確認したコンピューター:
@@ -123,21 +125,22 @@ device.Stop();
 * Generic PC Core i9-11900K (x64, Linux)
 * Microsoft Surface Go Gen1 内蔵カメラ (x64, Windows)
 * VAIO Z VJZ131A11N 内蔵カメラ (x64, Windows)
-* clockworks DevTerm A06 (arm64, Linux)
-* Raspberry Pi 400 (armhf/arm64, Linux)
-* Seeed reTerminal (armhf, Linux)
+* clockworks DevTerm A06 (aarch64, Linux)
+* Raspberry Pi 400 (armv7l/aarch64, Linux)
+* Seeed reTerminal (armv7l, Linux, mono is unstable)
 * Teclast X89 E7ED Tablet PC 内蔵カメラ (x86, Windows)
-* NVIDIA Jetson TX2 評価ボード (arm64, Linux)
+* NVIDIA Jetson TX2 評価ボード (aarch64, Linux)
+* Acer Aspire One ZA3 inside camera (i686, Linux)
 
 確認した、動作しない環境:
 
-* Surface2 (Windows RT 8.1 JB'd)
+* Surface2 (arm32, Windows RT 8.1 JB'd)
   * デバイスが見つかりませんでした。VFWとDirectShowの両方に対応していない可能性があります。
 
 現在検証中:
 
 * Blackmagic Design ATEM Mini Pro
-* Acer Aspire One ZA3 inside camera (x86, Linux)
+* Imagination Creator Ci20 (mipsel, Linux)
 
 ----
 
@@ -482,6 +485,8 @@ Apache-v2.
 
 ## 履歴
 
+* 0.15.0:
+  * V4L2関係のブリッジコードの書き換えを完了し、i686でのV4L2の動作を修正した。
 * 0.14.0:
   * 内部フレームプロセッサで、フレーム到達ハンドラがDispose処理中に暗黙のデッドロックを起こした場合の問題を回避するようにしました。
 * 0.12.0:

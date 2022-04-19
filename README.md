@@ -27,7 +27,7 @@ FlashCap - Independent camera capture library.
 Do you need to get camera capturing ability on .NET?
 Is you tired for camera capturing library solutions on .NET?
 
-This is a camera image capture library by specializing only capturing image data.
+This is a camera image capture library by specializing only capturing image data (a.k.a frame grabber).
 It has simple API, easy to use, simple architecture and without native libraries.
 It also does not depend on any non-official libraries.
 [See NuGet dependencies page.](https://www.nuget.org/packages/FlashCap)
@@ -112,10 +112,12 @@ Platforms on which camera devices can be used:
 
 Run the sample code to verify in 0.11.0.
 
-Verified capture devices:
+Verified capture devices / cameras:
 
 * Elgato CamLink 4K (Windows/Linux)
 * Logitech WebCam C930e (Windows/Linux)
+* eMeet HD Webcam C970L (Windows/Linux)
+* Microsoft LifeCam Cinema HD720 (Windows/Linux)
 * Unnamed cheap USB capture module (Windows/Linux)
 
 Verified computers:
@@ -124,21 +126,22 @@ Verified computers:
 * Generic PC Core i9-11900K (x64, Linux)
 * Microsoft Surface Go Gen1 inside camera (x64, Windows)
 * Sony VAIO Z VJZ131A11N inside camera (x64, Windows)
-* clockworks DevTerm A06 (arm64, Linux)
-* Raspberry Pi 400 (armhf/arm64, Linux)
-* Seeed reTerminal (armhf, Linux)
+* clockworks DevTerm A06 (aarch64, Linux)
+* Raspberry Pi 400 (armv7l/aarch64, Linux)
+* Seeed reTerminal (armv7l, Linux, mono is unstable)
 * Teclast X89 E7ED Tablet PC inside camera (x86, Windows)
-* NVIDIA Jetson TX2 evaluation board (arm64, Linux)
+* NVIDIA Jetson TX2 evaluation board (aarch64, Linux)
+* Acer Aspire One ZA3 inside camera (i686, Linux)
 
 Couldn't detect any devices on FlashCap:
 
-* Surface2 (Windows RT 8.1 JB'd)
+* Surface2 (arm32, Windows RT 8.1 JB'd)
   * Any devices are not found, may not be compatible with both VFW and DirectShow.
 
 Verifying now:
 
 * BlackMagic Design ATEM Mini Pro
-* Acer Aspire One ZA3 inside camera (x86, Linux)
+* Imagination Creator Ci20 (mipsel, Linux)
 
 ----
 
@@ -530,6 +533,8 @@ Apache-v2.
 
 ## History
 
+* 0.15.0:
+  * Completed rewriting V4L2 interop code, and fixed V4L2 on i686.
 * 0.14.0:
   * Avoid deadlocking when arrived event handlers stuck in disposing process on internal frame processors.
 * 0.12.0:

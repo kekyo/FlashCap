@@ -28,7 +28,7 @@
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/kekyo/FlashCap</PackageProjectUrl>
     <PackageIcon>FlashCap.100.png</PackageIcon>
-    <PackageTags>image;camera;capture;independent</PackageTags>
+    <PackageTags>image;camera;capture;independent;multi-platform;frame-grabber;direct-show;video-for-windows;v4l2;windows;linux</PackageTags>
     <AllowedOutputExtensionsInPackageBuildOutputFolder>.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
     <NoWarn>$(NoWarn);NU1605;NU1701</NoWarn>
   </PropertyGroup>

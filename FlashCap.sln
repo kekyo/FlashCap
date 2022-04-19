@@ -9,10 +9,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 	ProjectSection(SolutionItems) = preProject
 		.gitignore = .gitignore
 		build-nupkg.bat = build-nupkg.bat
+		build-nupkg.sh = build-nupkg.sh
 		Directory.Build.props = Directory.Build.props
 		README.md = README.md
 		README_ja.md = README_ja.md
-		build-nupkg.sh = build-nupkg.sh
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.WindowsForms", "samples\FlashCap.WindowsForms\FlashCap.WindowsForms.csproj", "{4B3E46F8-898A-482C-8893-1DFA2B3AB998}"
@@ -24,6 +24,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.Avalonia.UI", "samples\FlashCap.Avalonia\FlashCap.Avalonia.UI\FlashCap.Avalonia.UI.csproj", "{3A3CA26E-08B1-400E-A51E-44283E2E2B41}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.Avalonia", "samples\FlashCap.Avalonia\FlashCap.Avalonia\FlashCap.Avalonia.csproj", "{B8B4CFA8-4360-4503-A316-03EAD02AD96E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.V4L2Generator", "FlashCap.V4L2Generator\FlashCap.V4L2Generator.csproj", "{BCA1B20C-4829-4839-9CFD-88E6BB08DDE7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,6 +49,10 @@ Global
 		{B8B4CFA8-4360-4503-A316-03EAD02AD96E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B8B4CFA8-4360-4503-A316-03EAD02AD96E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B8B4CFA8-4360-4503-A316-03EAD02AD96E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BCA1B20C-4829-4839-9CFD-88E6BB08DDE7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BCA1B20C-4829-4839-9CFD-88E6BB08DDE7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BCA1B20C-4829-4839-9CFD-88E6BB08DDE7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BCA1B20C-4829-4839-9CFD-88E6BB08DDE7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
