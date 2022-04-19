@@ -157,6 +157,9 @@ namespace System.Threading
 
         public void Join() =>
             this.task?.Wait();
+
+        public void Join(TimeSpan timeout) =>
+            this.task?.Wait(timeout);
     }
 
     internal delegate void WaitCallback(object? parameter);

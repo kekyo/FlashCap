@@ -26,7 +26,7 @@ namespace FlashCap
             PixelBufferArrivedDelegate pixelBufferArrived) =>
             descriptor.OpenWithFrameProcessorAsync(
                 characteristics, true,
-                new DelegatedQueuingProcessor(pixelBufferArrived));
+                new DelegatedQueuingProcessor(pixelBufferArrived, 1));
 
         public static Task<CaptureDevice> OpenAsync(
             this CaptureDeviceDescriptor descriptor,
@@ -35,19 +35,20 @@ namespace FlashCap
             PixelBufferArrivedDelegate pixelBufferArrived) =>
             descriptor.OpenWithFrameProcessorAsync(
                 characteristics, transcodeIfYUV,
-                new DelegatedQueuingProcessor(pixelBufferArrived));
+                new DelegatedQueuingProcessor(pixelBufferArrived, 1));
 
         public static Task<CaptureDevice> OpenAsync(
             this CaptureDeviceDescriptor descriptor,
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,
             bool isScattering,
+            int maxQueuingFrames,
             PixelBufferArrivedDelegate pixelBufferArrived) =>
             descriptor.OpenWithFrameProcessorAsync(
                 characteristics, transcodeIfYUV,
                 isScattering ?
-                    new DelegatedScatteringProcessor(pixelBufferArrived) :
-                    new DelegatedQueuingProcessor(pixelBufferArrived));
+                    new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames) :
+                    new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames));
 
         public static Task<CaptureDevice> OpenAsync(
             this CaptureDeviceDescriptor descriptor,
@@ -55,7 +56,7 @@ namespace FlashCap
             PixelBufferArrivedTaskDelegate pixelBufferArrived) =>
             descriptor.OpenWithFrameProcessorAsync(
                 characteristics, true,
-                new DelegatedQueuingTaskProcessor(pixelBufferArrived));
+                new DelegatedQueuingTaskProcessor(pixelBufferArrived, 1));
 
         public static Task<CaptureDevice> OpenAsync(
             this CaptureDeviceDescriptor descriptor,
@@ -64,18 +65,19 @@ namespace FlashCap
             PixelBufferArrivedTaskDelegate pixelBufferArrived) =>
             descriptor.OpenWithFrameProcessorAsync(
                 characteristics, transcodeIfYUV,
-                new DelegatedQueuingTaskProcessor(pixelBufferArrived));
+                new DelegatedQueuingTaskProcessor(pixelBufferArrived, 1));
 
         public static Task<CaptureDevice> OpenAsync(
             this CaptureDeviceDescriptor descriptor,
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,
             bool isScattering,
+            int maxQueuingFrames,
             PixelBufferArrivedTaskDelegate pixelBufferArrived) =>
             descriptor.OpenWithFrameProcessorAsync(
                 characteristics, transcodeIfYUV,
                 isScattering ?
-                    new DelegatedScatteringTaskProcessor(pixelBufferArrived) :
-                    new DelegatedQueuingTaskProcessor(pixelBufferArrived));
+                    new DelegatedScatteringTaskProcessor(pixelBufferArrived, maxQueuingFrames) :
+                    new DelegatedQueuingTaskProcessor(pixelBufferArrived, maxQueuingFrames));
     }
 }

@@ -7,7 +7,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-using FlashCap.Synchronized;
 using FlashCap.Utilities;
 using System;
 using System.Drawing;
@@ -26,7 +25,7 @@ namespace FlashCap.WindowsForms
             this.InitializeComponent();
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private async void Form1_Load(object sender, EventArgs e)
         {
             ////////////////////////////////////////////////
             // Initialize and start capture device
@@ -58,9 +57,11 @@ namespace FlashCap.WindowsForms
                 this.characteristicsLabel.Text = characteristics.ToString();
 
                 // Open capture device:
-                // (Non asynchronous version, using FlashCap.Synchronized)
-                this.captureDevice = descriptor0.Open(
+                this.captureDevice = await descriptor0.OpenAsync(
                     characteristics,
+                    true,
+                    false,
+                    10,
                     this.OnPixelBufferArrived);
 
                 // Start capturing.
