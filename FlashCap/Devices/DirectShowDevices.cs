@@ -24,7 +24,7 @@ namespace FlashCap.Devices
                     pb.GetValue("FriendlyName", default(string))?.Trim() is { } n &&
                     (string.IsNullOrEmpty(n) ? "Unknown" : n!) is { } name &&
                     pb.GetValue("DevicePath", default(string))?.Trim() is { } devicePath ?
-                        (CaptureDeviceDescriptor)new DirectShowDeviceDescriptor(   // Requires casting on net20
+                        (CaptureDeviceDescriptor)new DirectShowDeviceDescriptor(
                             devicePath, name,
                             pb.GetValue("Description", default(string))?.Trim() ?? $"{name} (DirectShow)",
                             moniker.BindToObject(

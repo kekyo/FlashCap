@@ -23,7 +23,6 @@ namespace FlashCap
     public delegate void PixelBufferArrivedDelegate(
         PixelBufferScope bufferScope);
 
-#if NET35_OR_GREATER || NETSTANDARD || NETCOREAPP
     public delegate Task PixelBufferArrivedTaskDelegate(
         PixelBufferScope bufferScope);
 
@@ -99,5 +98,4 @@ namespace FlashCap
                         new DelegatedIgnoreDroppingTaskProcessor(pixelBufferArrived),
                 });
     }
-#endif
 }

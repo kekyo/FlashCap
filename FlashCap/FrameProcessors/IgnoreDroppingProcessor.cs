@@ -115,7 +115,6 @@ namespace FlashCap.FrameProcessors
         }
     }
 
-#if NET35_OR_GREATER || NETSTANDARD || NETCOREAPP
     internal sealed class DelegatedIgnoreDroppingTaskProcessor :
         IgnoreDroppingProcessor
     {
@@ -147,5 +146,4 @@ namespace FlashCap.FrameProcessors
             }
         }
     }
-#endif
 }

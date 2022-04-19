@@ -27,20 +27,11 @@ namespace FlashCap.Devices
         public override DeviceTypes DeviceType =>
             DeviceTypes.VideoForWindows;
 
-        protected override unsafe CaptureDevice OnOpenWithFrameProcessor(
-            VideoCharacteristics characteristics,
-            bool transcodeIfYUV,
-            FrameProcessor frameProcessor) =>
-            new VideoForWindowsDevice(
-                this.deviceIndex, characteristics, transcodeIfYUV, frameProcessor);
-
-#if NET35_OR_GREATER || NETSTANDARD || NETCOREAPP
         public override Task<CaptureDevice> OpenWithFrameProcessorAsync(
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,
             FrameProcessor frameProcessor) =>
-            TaskEx.FromResult(this.OnOpenWithFrameProcessor(          // TODO:
-                characteristics, transcodeIfYUV, frameProcessor));
-#endif
+            TaskEx.FromResult((CaptureDevice)new VideoForWindowsDevice(
+                this.deviceIndex, characteristics, transcodeIfYUV, frameProcessor));
     }
 }

@@ -125,7 +125,6 @@ namespace FlashCap.FrameProcessors
         }
     }
 
-#if NET35_OR_GREATER || NETSTANDARD || NETCOREAPP
     internal sealed class DelegatedScatteringTaskProcessor :
         ScatteringProcessor
     {
@@ -162,5 +161,4 @@ namespace FlashCap.FrameProcessors
             }
         }
     }
-#endif
 }

@@ -27,20 +27,11 @@ namespace FlashCap.Devices
         public override DeviceTypes DeviceType =>
             DeviceTypes.DirectShow;
 
-        protected override CaptureDevice OnOpenWithFrameProcessor(
-            VideoCharacteristics characteristics,
-            bool transcodeIfYUV,
-            FrameProcessor frameProcessor) =>
-            new DirectShowDevice(
-                this.devicePath, characteristics, transcodeIfYUV, frameProcessor);
-
-#if NET35_OR_GREATER || NETSTANDARD || NETCOREAPP
         public override Task<CaptureDevice> OpenWithFrameProcessorAsync(
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,
             FrameProcessor frameProcessor) =>
-            TaskEx.FromResult(this.OnOpenWithFrameProcessor(          // TODO:
-                characteristics, transcodeIfYUV, frameProcessor));
-#endif
+            TaskEx.FromResult((CaptureDevice)new DirectShowDevice(
+                this.devicePath, characteristics, transcodeIfYUV, frameProcessor));  // TODO:
     }
 }

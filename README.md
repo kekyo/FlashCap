@@ -100,7 +100,7 @@ device.Stop();
 * .NET 6, 5 (`net6.0`, `net5.0`)
 * .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (`netcoreapp3.1` and etc)
 * .NET Standard 2.1, 2.0, 1.3 (`netstandard2.1` and etc)
-* .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5, 2.0 (`net48` and etc)
+* .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5 (`net48` and etc)
 
 Platforms on which camera devices can be used:
 
@@ -535,6 +535,7 @@ Apache-v2.
 
 * 0.15.0:
   * Completed rewriting V4L2 interop code, and fixed V4L2 on i686.
+  * Remove supporting net20, because made completely asynchronous operation.
 * 0.14.0:
   * Avoid deadlocking when arrived event handlers stuck in disposing process on internal frame processors.
 * 0.12.0:

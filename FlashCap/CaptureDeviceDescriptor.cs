@@ -35,24 +35,10 @@ namespace FlashCap
         public string Description { get; }
         public VideoCharacteristics[] Characteristics { get; }
 
-        protected abstract CaptureDevice OnOpenWithFrameProcessor(
-            VideoCharacteristics characteristics,
-            bool transcodeIfYUV,
-            FrameProcessor frameProcessor);
-
-        internal CaptureDevice InternalOpenWithFrameProcessor(
-            VideoCharacteristics characteristics,
-            bool transcodeIfYUV,
-            FrameProcessor frameProcessor) =>
-            this.OnOpenWithFrameProcessor(
-                characteristics, transcodeIfYUV, frameProcessor);
-
-#if NET35_OR_GREATER || NETSTANDARD || NETCOREAPP
         public abstract Task<CaptureDevice> OpenWithFrameProcessorAsync(
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,
             FrameProcessor frameProcessor);
-#endif
 
         public override string ToString() =>
             $"{this.Name}: {this.Description}, Characteristics={this.Characteristics.Length}";
