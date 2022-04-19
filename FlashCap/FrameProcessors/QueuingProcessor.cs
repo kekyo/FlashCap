@@ -18,14 +18,17 @@ namespace FlashCap.FrameProcessors
     internal abstract class QueuingProcessor :
         InternalFrameProcessor
     {
+        private readonly int maxQueuingFrames;
         private readonly Stack<PixelBuffer> reserver = new();
         private readonly Queue<PixelBuffer> queue = new();
         private ManualResetEventSlim arrived = new(false);
         private ManualResetEventSlim abort = new(false);
+        private volatile bool aborting;
         private Thread thread;
 
-        protected QueuingProcessor()
+        protected QueuingProcessor(int maxQueuingFrames)
         {
+            this.maxQueuingFrames = maxQueuingFrames;
             this.thread = new Thread(this.ThreadEntry);
             this.thread.IsBackground = true;
             this.thread.Start();
@@ -35,20 +38,28 @@ namespace FlashCap.FrameProcessors
         {
             if (this.thread != null)
             {
+                this.aborting = true;
                 this.abort.Set();
 
                 // Force exhaust.
                 lock (this.queue)
                 {
-                    this.queue.Clear();
+                    while (this.queue.Count >= 1)
+                    {
+                        var buffer = this.queue.Dequeue();
+                        this.ReleaseNow(buffer);
+                    }
+                    this.arrived.Reset();
                 }
+
+                // HACK: Avoid deadlocking when arrived event handlers stuck in disposing process.
+                this.thread.Join(TimeSpan.FromSeconds(2));
+                this.thread = null!;
+
                 lock (this.reserver)
                 {
                     this.reserver.Clear();
                 }
-
-                // Doesn't join the thread, because may cause deadlock.
-                this.thread = null!;
             }
         }
 
@@ -57,6 +68,19 @@ namespace FlashCap.FrameProcessors
             IntPtr pData, int size,
             long timestampMicroseconds, long frameIndex)
         {
+            if (this.aborting)
+            {
+                return;
+            }
+
+            lock (this.queue)
+            {
+                if (this.queue.Count >= this.maxQueuingFrames)
+                {
+                    return;
+                }
+            }
+
             PixelBuffer? buffer = null;
             lock (this.reserver)
             {
@@ -145,7 +169,8 @@ namespace FlashCap.FrameProcessors
         private readonly PixelBufferArrivedDelegate pixelBufferArrived;
 
         public DelegatedQueuingProcessor(
-            PixelBufferArrivedDelegate pixelBufferArrived) =>
+            PixelBufferArrivedDelegate pixelBufferArrived, int maxQueuingFrames) :
+            base(maxQueuingFrames) =>
             this.pixelBufferArrived = pixelBufferArrived;
 
         protected override void ThreadEntry()
@@ -172,14 +197,14 @@ namespace FlashCap.FrameProcessors
         }
     }
 
-#if NET35_OR_GREATER || NETSTANDARD || NETCOREAPP
     internal sealed class DelegatedQueuingTaskProcessor :
         QueuingProcessor
     {
         private readonly PixelBufferArrivedTaskDelegate pixelBufferArrived;
 
         public DelegatedQueuingTaskProcessor(
-            PixelBufferArrivedTaskDelegate pixelBufferArrived) =>
+            PixelBufferArrivedTaskDelegate pixelBufferArrived, int maxQueuingFrames) :
+            base(maxQueuingFrames) =>
             this.pixelBufferArrived = pixelBufferArrived;
 
         protected override async void ThreadEntry()
@@ -206,5 +231,4 @@ namespace FlashCap.FrameProcessors
             }
         }
     }
-#endif
 }

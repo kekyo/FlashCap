@@ -18,6 +18,7 @@ namespace FlashCap.FrameProcessors
     internal abstract class ScatteringProcessor :
         InternalFrameProcessor
     {
+        private readonly int maxQueuingFrames;
         private readonly Stack<PixelBuffer> reserver = new();
         private readonly WaitCallback pixelBufferArrivedEntry;
 
@@ -25,8 +26,11 @@ namespace FlashCap.FrameProcessors
         protected volatile bool aborting;
         protected ManualResetEventSlim final = new(false);
 
-        protected ScatteringProcessor() =>
+        protected ScatteringProcessor(int maxQueuingFrames)
+        {
+            this.maxQueuingFrames = maxQueuingFrames;
             this.pixelBufferArrivedEntry = this.PixelBufferArrivedEntry;
+        }
 
         public override void Dispose()
         {
@@ -40,8 +44,14 @@ namespace FlashCap.FrameProcessors
                     // HACK: Avoid deadlocking when arrived event handlers stuck in disposing process.
                     this.final.Wait(TimeSpan.FromSeconds(2));
                 }
+
                 this.final.Dispose();
                 this.final = null!;
+
+                lock (this.reserver)
+                {
+                    this.reserver.Clear();
+                }
             }
         }
 
@@ -55,28 +65,34 @@ namespace FlashCap.FrameProcessors
                 return;
             }
 
-            PixelBuffer? buffer = null;
-            lock (this.reserver)
+            if (Interlocked.Increment(ref this.processing) <= this.maxQueuingFrames)
             {
-                if (this.reserver.Count >= 1)
+                PixelBuffer? buffer = null;
+                lock (this.reserver)
                 {
-                    buffer = this.reserver.Pop();
+                    if (this.reserver.Count >= 1)
+                    {
+                        buffer = this.reserver.Pop();
+                    }
                 }
+                if (buffer == null)
+                {
+                    buffer = base.GetPixelBuffer(captureDevice);
+                }
+
+                this.Capture(
+                    captureDevice,
+                    pData, size,
+                    timestampMicroseconds, frameIndex,
+                    buffer);
+
+                ThreadPool.QueueUserWorkItem(
+                    this.pixelBufferArrivedEntry, buffer);
             }
-            if (buffer == null)
+            else
             {
-                buffer = base.GetPixelBuffer(captureDevice);
+                Interlocked.Decrement(ref this.processing);
             }
-
-            this.Capture(
-                captureDevice,
-                pData, size,
-                timestampMicroseconds, frameIndex,
-                buffer);
-
-            Interlocked.Increment(ref this.processing);
-            ThreadPool.QueueUserWorkItem(
-                this.pixelBufferArrivedEntry, buffer);
         }
 
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
@@ -99,21 +115,32 @@ namespace FlashCap.FrameProcessors
         private readonly PixelBufferArrivedDelegate pixelBufferArrived;
 
         public DelegatedScatteringProcessor(
-            PixelBufferArrivedDelegate pixelBufferArrived) =>
+            PixelBufferArrivedDelegate pixelBufferArrived, int maxQueuingFrames) :
+            base(maxQueuingFrames) =>
             this.pixelBufferArrived = pixelBufferArrived;
 
         protected override void PixelBufferArrivedEntry(object? parameter)
         {
+            var buffer = (PixelBuffer)parameter!;
+
+            if (this.aborting)
+            {
+                base.ReleaseNow(buffer);
+                if (Interlocked.Decrement(ref base.processing) <= 0)
+                {
+                    base.final?.Set();
+                }
+                return;
+            }
+
             try
             {
-                if (this.aborting)
-                {
-                    return;
-                }
-
-                var buffer = (PixelBuffer)parameter!;
                 using var scope = new InternalPixelBufferScope(this, buffer);
                 this.pixelBufferArrived(scope);
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine(ex);
             }
             finally
             {
@@ -125,26 +152,32 @@ namespace FlashCap.FrameProcessors
         }
     }
 
-#if NET35_OR_GREATER || NETSTANDARD || NETCOREAPP
     internal sealed class DelegatedScatteringTaskProcessor :
         ScatteringProcessor
     {
         private readonly PixelBufferArrivedTaskDelegate pixelBufferArrived;
 
         public DelegatedScatteringTaskProcessor(
-            PixelBufferArrivedTaskDelegate pixelBufferArrived) =>
+            PixelBufferArrivedTaskDelegate pixelBufferArrived, int maxQueuingFrames) :
+            base(maxQueuingFrames) =>
             this.pixelBufferArrived = pixelBufferArrived;
 
         protected override async void PixelBufferArrivedEntry(object? parameter)
         {
+            var buffer = (PixelBuffer)parameter!;
+
+            if (this.aborting)
+            {
+                base.ReleaseNow(buffer);
+                if (Interlocked.Decrement(ref base.processing) <= 0)
+                {
+                    base.final?.Set();
+                }
+                return;
+            }
+
             try
             {
-                if (this.aborting)
-                {
-                    return;
-                }
-
-                var buffer = (PixelBuffer)parameter!;
                 using var scope = new InternalPixelBufferScope(this, buffer);
                 await this.pixelBufferArrived(scope).
                     ConfigureAwait(false);
@@ -162,5 +195,4 @@ namespace FlashCap.FrameProcessors
             }
         }
     }
-#endif
 }

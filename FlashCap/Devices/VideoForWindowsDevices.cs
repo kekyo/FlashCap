@@ -29,7 +29,7 @@ namespace FlashCap.Devices
                     var n = name.ToString().Trim();
                     var d = description.ToString().Trim();
 
-                    return (CaptureDeviceDescriptor)new VideoForWindowsDeviceDescriptor(   // Requires casting on net20
+                    return (CaptureDeviceDescriptor)new VideoForWindowsDeviceDescriptor(
                         index,
                         string.IsNullOrEmpty(n) ? "Default" : n,
                         string.IsNullOrEmpty(d) ? "VideoForWindows default" : d,

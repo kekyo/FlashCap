@@ -8,22 +8,13 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using FlashCap.FrameProcessors;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace FlashCap
 {
-    public enum HandlerStrategies
-    {
-        IgnoreDropping,
-        Queuing,
-        Scattering,
-    }
-
     public delegate void PixelBufferArrivedDelegate(
         PixelBufferScope bufferScope);
 
-#if NET35_OR_GREATER || NETSTANDARD || NETCOREAPP
     public delegate Task PixelBufferArrivedTaskDelegate(
         PixelBufferScope bufferScope);
 
@@ -35,7 +26,7 @@ namespace FlashCap
             PixelBufferArrivedDelegate pixelBufferArrived) =>
             descriptor.OpenWithFrameProcessorAsync(
                 characteristics, true,
-                new DelegatedIgnoreDroppingProcessor(pixelBufferArrived));
+                new DelegatedQueuingProcessor(pixelBufferArrived, 1));
 
         public static Task<CaptureDevice> OpenAsync(
             this CaptureDeviceDescriptor descriptor,
@@ -44,25 +35,20 @@ namespace FlashCap
             PixelBufferArrivedDelegate pixelBufferArrived) =>
             descriptor.OpenWithFrameProcessorAsync(
                 characteristics, transcodeIfYUV,
-                new DelegatedIgnoreDroppingProcessor(pixelBufferArrived));
+                new DelegatedQueuingProcessor(pixelBufferArrived, 1));
 
         public static Task<CaptureDevice> OpenAsync(
             this CaptureDeviceDescriptor descriptor,
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,
-            HandlerStrategies handlerStrategy,
+            bool isScattering,
+            int maxQueuingFrames,
             PixelBufferArrivedDelegate pixelBufferArrived) =>
             descriptor.OpenWithFrameProcessorAsync(
                 characteristics, transcodeIfYUV,
-                handlerStrategy switch
-                {
-                    HandlerStrategies.Queuing =>
-                        new DelegatedQueuingProcessor(pixelBufferArrived),
-                    HandlerStrategies.Scattering =>
-                        new DelegatedScatteringProcessor(pixelBufferArrived),
-                    _ =>
-                        new DelegatedIgnoreDroppingProcessor(pixelBufferArrived),
-                });
+                isScattering ?
+                    new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames) :
+                    new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames));
 
         public static Task<CaptureDevice> OpenAsync(
             this CaptureDeviceDescriptor descriptor,
@@ -70,7 +56,7 @@ namespace FlashCap
             PixelBufferArrivedTaskDelegate pixelBufferArrived) =>
             descriptor.OpenWithFrameProcessorAsync(
                 characteristics, true,
-                new DelegatedIgnoreDroppingTaskProcessor(pixelBufferArrived));
+                new DelegatedQueuingTaskProcessor(pixelBufferArrived, 1));
 
         public static Task<CaptureDevice> OpenAsync(
             this CaptureDeviceDescriptor descriptor,
@@ -79,25 +65,19 @@ namespace FlashCap
             PixelBufferArrivedTaskDelegate pixelBufferArrived) =>
             descriptor.OpenWithFrameProcessorAsync(
                 characteristics, transcodeIfYUV,
-                new DelegatedIgnoreDroppingTaskProcessor(pixelBufferArrived));
+                new DelegatedQueuingTaskProcessor(pixelBufferArrived, 1));
 
         public static Task<CaptureDevice> OpenAsync(
             this CaptureDeviceDescriptor descriptor,
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,
-            HandlerStrategies handlerStrategy,
+            bool isScattering,
+            int maxQueuingFrames,
             PixelBufferArrivedTaskDelegate pixelBufferArrived) =>
             descriptor.OpenWithFrameProcessorAsync(
                 characteristics, transcodeIfYUV,
-                handlerStrategy switch
-                {
-                    HandlerStrategies.Queuing =>
-                        new DelegatedQueuingTaskProcessor(pixelBufferArrived),
-                    HandlerStrategies.Scattering =>
-                        new DelegatedScatteringTaskProcessor(pixelBufferArrived),
-                    _ =>
-                        new DelegatedIgnoreDroppingTaskProcessor(pixelBufferArrived),
-                });
+                isScattering ?
+                    new DelegatedScatteringTaskProcessor(pixelBufferArrived, maxQueuingFrames) :
+                    new DelegatedQueuingTaskProcessor(pixelBufferArrived, maxQueuingFrames));
     }
-#endif
 }
