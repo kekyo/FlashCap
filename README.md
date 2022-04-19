@@ -347,15 +347,18 @@ using var device = await descriptor0.OpenAsync(
 
 ## Callback handler and invoke trigger
 
-The callback handlers described so far are invoked "when a frame is obtained," but this trigger can be selected from several patterns.
-This choice can be made with the `HandlerStrategies` enumeration value, which is specified with the overloaded argument of `OpenAsync`:
+The callback handlers described so far assume that the trigger to be called is "when a frame is obtained,"
+but this trigger can be selected from several patterns.
+This choice can be made with the `isScattering` and `maxQueuingFrames` arguments,
+or with the overloaded argument of `OpenAsync`:
 
 ```csharp
 // Specifies the trigger for invoking the handler:
 using var device = await descriptor0.OpenAsync(
   descriptor0.Characteristics[0],
   true,
-  HandlerStrategies.Scattering,   // Specifying the invoking trigger
+  true,   // Specifying the invoking trigger (true: Scattering)
+  10,     // Maximum number of queuing frames
   async buferScope =>
   {
       // ...
@@ -366,32 +369,31 @@ using var device = await descriptor0.OpenAsync(
 
 The following is a list of pattern types:
 
-| Enumeration value | Summary |
-|:----|:----|
-| `IgnoreDropping` | Default call trigger. Ignore subsequent frames unless the handler returns control. Suitable for general usage. |
-| `Queuing` | Subsequent frames are stored in a queue even if the handler does not return control. If computer performance is sufficient, frames are not lost. |
-| `Scattering` | Handlers are processed in parallel by multi-threaded workers. Although the order of corresponding frames is not guaranteed, processing can be accelerated if the CPU supports multiple cores. |
+| `isScattering` | `maxQueuingFrames` | Summary |
+|:----|:----|:----|
+| false | 1 | When argument is omitted (default). Discard all subsequent frames unless the handler returns control. Suitable for general usage. |
+| false | n | Subsequent frames are stored in the queue even if the handler does not return control. If computer performance is sufficient, up to the maximum number of frames will not be lost. |
+| true | n | Handlers are processed in parallel by a multithreaded worker. Although the order of corresponding frames is not guaranteed, processing can be accelerated if the CPU supports multiple cores. |
 
-The name `IgnoreDropping` seems ominous.
-However, this default invocation trigger is appropriate for many cases.
-For example, if you choose `Queuing` and the handler is slow, the queue will hold an endless amount of image data, and the process will eventually run out of memory and terminate.
-Processing beyond the capability of the computer's processor requires a compromise somewhere.
-`IgnoreDropping` can easily handle this situation by intentionally discarding frames that occur when processing is not complete.
+The default call trigger is appropriate for many cases.
+For example, if an image is previewed in the UI and an excessive value is specified for the number of frames to stay,
+if the handler is slow, the queue will hold old image data and the current pose and preview will diverge rapidly.
+Also, at some point the process will be forced to terminate due to lack of memory.
 
-Similarly, `Scattering` is more difficult to master.
-The handler you write will be called and processed simultaneously in multi-threaded.
-Therefore, at the very least, your handler should be implemented in such a way that it is thread-safe.
-Also, multi-threaded invocation means that the buffers to be processed may not necessarily remain in order.
-For example, if the handler is a UI display handler, using `Scattering` will cause the video to momentarily go back in time or feel choppy.
+Similarly, `isScattering == true` is more difficult to master.
+Your handler will be called and processed in a multi-threaded environment at the same time.
+Therefore, at the very least, your handler should be implemented to be thread-safe.
+Also, being called in a multi-threaded fashion means that the buffers to be processed may not necessarily maintain their order.
+For example, when displaying a preview in the UI, the video should momentarily go back in time or feel choppy.
 
-To deal with the frame order confusion with `Scattering`, the `PixelBuffer` class has a `Timestamp` property and a `FrameIndex` property.
-By referring to these properties, the order of the frames can be determined even if the order of the frames is not maintained.
+To deal with the fact that `isScattering == true` can cause the order of frames to be lost, the `PixelBuffer` class defines the `Timestamp` and `FrameIndex` properties. By referring to these properties, you can determine the frame order.
 
 ## Master for frame processor (Advanced topic)
 
 Welcome to the underground dungeon, where FlashCap's frame processor is a polished gem.
 But you don't need to understand frame processors unless you have a lot of experience with them.
-This explanation is only provided because frame processors exist here, and most readers do not need to understand them.
+This explanation should be used as a reference when dealing with unavoidable frame processors.
+Also helpful would be [the default implementation of the frame processor](https://github.com/kekyo/FlashCap/tree/main/FlashCap/FrameProcessors) that FlashCap includes.
 
 The callback handler invocation triggers described in the previous section are internally realized by switching frame processors.
 In other words, it is an abstraction of how frames are handled and their behavior.
@@ -431,9 +433,9 @@ At the very least, you need to implement the `OnFrameArrived()` method.
 This is literally called when a frame is arrived.
 As you can see from the signature, it is passed a raw pointer, the size of the image data, a timestamp, and a frame number.
 
-Note also that the return value is void.
-This method cannot be used for asynchronous processing.
-Any information passed as an argument is considered invalid when exiting this method.
+Note also that the return value is `void`.
+This method cannot be asynchronous.
+Even if you qualify it with `async void`, the information passed as arguments cannot be maintained.
 
 Here is a typical implementation of this method:
 
@@ -536,6 +538,7 @@ Apache-v2.
 * 0.15.0:
   * Completed rewriting V4L2 interop code, and fixed V4L2 on i686.
   * Remove supporting net20, because made completely asynchronous operation.
+  * `OpenAsync` has been changed to allow `maxQueuingFrames` to be specified.
 * 0.14.0:
   * Avoid deadlocking when arrived event handlers stuck in disposing process on internal frame processors.
 * 0.12.0:
