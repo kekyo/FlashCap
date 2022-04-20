@@ -115,6 +115,7 @@ Run the sample code to verify in 0.11.0.
 Verified capture devices / cameras:
 
 * Elgato CamLink 4K (Windows/Linux)
+* BlackMagic Design ATEM Mini Pro (Windows/Linux)
 * Logitech WebCam C930e (Windows/Linux)
 * eMeet HD Webcam C970L (Windows/Linux)
 * Microsoft LifeCam Cinema HD720 (Windows/Linux)
@@ -138,10 +139,6 @@ Couldn't detect any devices on FlashCap:
 
 * Surface2 (arm32, Windows RT 8.1 JB'd)
   * Any devices are not found, may not be compatible with both VFW and DirectShow.
-
-Verifying now:
-
-* BlackMagic Design ATEM Mini Pro
 
 ----
 

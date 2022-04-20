@@ -115,6 +115,7 @@ device.Stop();
 確認したキャプチャユニット/カメラ:
 
 * Elgato CamLink 4K (Windows/Linux)
+* BlackMagic Design ATEM Mini Pro (Windows/Linux)
 * Logitech WebCam C930e (Windows/Linux)
 * eMeet HD Webcam C970L (Windows/Linux)
 * Microsoft LifeCam Cinema HD720 (Windows/Linux)
@@ -138,10 +139,6 @@ device.Stop();
 
 * Surface2 (arm32, Windows RT 8.1 JB'd)
   * デバイスが見つかりませんでした。VFWとDirectShowの両方に対応していない可能性があります。
-
-現在検証中:
-
-* Blackmagic Design ATEM Mini Pro
 
 ----
 
