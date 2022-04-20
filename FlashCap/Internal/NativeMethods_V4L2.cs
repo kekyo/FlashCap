@@ -40,6 +40,7 @@ namespace FlashCap.Internal
             switch (buf.machine)
             {
                 case "x86_64":
+                case "amd64":
                     Interop = new NativeMethods_V4L2_Interop_x86_64();
                     break;
                 case "i686":
@@ -51,9 +52,15 @@ namespace FlashCap.Internal
                 case "aarch64":
                     Interop = new NativeMethods_V4L2_Interop_aarch64();
                     break;
+                case "armv9l":
+                case "armv8l":
                 case "armv7l":
                 case "armv6l":
                     Interop = new NativeMethods_V4L2_Interop_armv7l();
+                    break;
+                case "mips":
+                case "mipsel":
+                    Interop = new NativeMethods_V4L2_Interop_mips();
                     break;
                 default:
                     throw new InvalidOperationException(
