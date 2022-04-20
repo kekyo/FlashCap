@@ -104,9 +104,9 @@ device.Stop();
 
 Platforms on which camera devices can be used:
 
-* Windows (DirectShow devices)
-* Windows (Video for Windows devices)
-* Linux (V4L2 devices)
+* Windows (DirectShow devices, tested on x64/x86)
+* Windows (Video for Windows devices, tested on x64/x86)
+* Linux (V4L2 devices, supported on x86_64/i686/aarch64/armv7l/mips)
 
 ## Tested devices
 
