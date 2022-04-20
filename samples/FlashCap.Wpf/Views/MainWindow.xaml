@@ -1,0 +1,29 @@
+﻿<Window
+    x:Class="FlashCap.Wpf.Views.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:epoxy="https://github.com/kekyo/Epoxy"
+    xmlns:viewmodels="clr-namespace:FlashCap.Wpf.ViewModels"
+    xmlns:siv="https://github.com/kekyo/SkiaImageView.Wpf"
+    mc:Ignorable="d"
+    Title="FlashCap.Wpf" Height="450" Width="800"
+    Background="Black">
+
+    <Window.DataContext>
+        <viewmodels:MainWindowViewModel />
+    </Window.DataContext>
+
+    <epoxy:EventBinder.Events>
+        <epoxy:Event EventName="Loaded" Command="{Binding Loaded}" />
+    </epoxy:EventBinder.Events>
+
+    <Grid>
+        <siv:SKImageView Source="{Binding Image}" />
+        <StackPanel Orientation="Vertical">
+            <TextBlock Foreground="Yellow" Text="{Binding Device}" />
+            <TextBlock Foreground="Yellow" Text="{Binding Characteristics}" />
+        </StackPanel>
+    </Grid>
+</Window>
