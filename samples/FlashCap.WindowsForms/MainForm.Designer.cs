@@ -47,8 +47,9 @@
             this.deviceLabel.Dock = System.Windows.Forms.DockStyle.Top;
             this.deviceLabel.ForeColor = System.Drawing.Color.Yellow;
             this.deviceLabel.Location = new System.Drawing.Point(0, 0);
+            this.deviceLabel.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.deviceLabel.Name = "deviceLabel";
-            this.deviceLabel.Size = new System.Drawing.Size(113, 21);
+            this.deviceLabel.Size = new System.Drawing.Size(65, 12);
             this.deviceLabel.TabIndex = 0;
             this.deviceLabel.Text = "deviceLabel";
             // 
@@ -58,27 +59,27 @@
             this.characteristicsLabel.BackColor = System.Drawing.Color.Transparent;
             this.characteristicsLabel.Dock = System.Windows.Forms.DockStyle.Top;
             this.characteristicsLabel.ForeColor = System.Drawing.Color.Yellow;
-            this.characteristicsLabel.Location = new System.Drawing.Point(0, 21);
+            this.characteristicsLabel.Location = new System.Drawing.Point(0, 12);
+            this.characteristicsLabel.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.characteristicsLabel.Name = "characteristicsLabel";
-            this.characteristicsLabel.Size = new System.Drawing.Size(187, 21);
+            this.characteristicsLabel.Size = new System.Drawing.Size(108, 12);
             this.characteristicsLabel.TabIndex = 1;
             this.characteristicsLabel.Text = "characteristicsLabel";
             // 
             // MainForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(11F, 21F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.Black;
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
-            this.ClientSize = new System.Drawing.Size(1467, 788);
+            this.ClientSize = new System.Drawing.Size(800, 450);
             this.Controls.Add(this.characteristicsLabel);
             this.Controls.Add(this.deviceLabel);
             this.DoubleBuffered = true;
-            this.Margin = new System.Windows.Forms.Padding(6, 5, 6, 5);
             this.Name = "MainForm";
             this.Text = "FlashCap.WindowsForms";
-            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
-            this.Load += new System.EventHandler(this.Form1_Load);
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.MainForm_FormClosed);
+            this.Load += new System.EventHandler(this.MainForm_Load);
             this.ResumeLayout(false);
             this.PerformLayout();
 
