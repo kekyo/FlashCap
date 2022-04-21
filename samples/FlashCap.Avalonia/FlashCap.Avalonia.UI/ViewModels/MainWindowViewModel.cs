@@ -100,10 +100,11 @@ namespace FlashCap.Avalonia.ViewModels
             bufferScope.ReleaseNow();
 
             // Switch to UI thread:
-            await UIThread.Bind();
-
-            // Update a bitmap.
-            this.Image = bitmap;
+            if (await UIThread.TryBind())
+            {
+                // Update a bitmap.
+                this.Image = bitmap;
+            }
         }
     }
 }

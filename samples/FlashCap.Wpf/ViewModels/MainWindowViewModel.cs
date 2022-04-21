@@ -94,20 +94,11 @@ namespace FlashCap.Wpf.ViewModels
             // `bitmap` is copied, so we can release pixel buffer now.
             bufferScope.ReleaseNow();
 
-            try
+            // Switch to UI thread:
+            if (await UIThread.TryBind())
             {
-                // Switch to UI thread:
-                await UIThread.Bind();
-
                 // Update a bitmap.
                 this.Image = bitmap;
-            }
-            catch (InvalidOperationException)
-            {
-                // NOTE: WPF sometimes will raise InvalidOperationException in shutdown sequence.
-                // Because it is race condition between this thread context and UI thread context.
-                // We can safely ignore when terminating user interface.
-                // (Or you can avoid it with graceful shutdown technics.)
             }
         }
     }

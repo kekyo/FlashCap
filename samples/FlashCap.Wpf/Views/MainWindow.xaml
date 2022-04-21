@@ -20,7 +20,7 @@
     </epoxy:EventBinder.Events>
 
     <Grid>
-        <siv:SKImageView Source="{Binding Image}" />
+        <siv:SKImageView RenderMode="Asynchronously" Source="{Binding Image}" />
         <StackPanel Orientation="Vertical">
             <TextBlock Foreground="Yellow" Text="{Binding Device}" />
             <TextBlock Foreground="Yellow" Text="{Binding Characteristics}" />
