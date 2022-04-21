@@ -104,9 +104,9 @@ device.Stop();
 
 Platforms on which camera devices can be used:
 
-* Windows (DirectShow devices)
-* Windows (Video for Windows devices)
-* Linux (V4L2 devices)
+* Windows (DirectShow devices, tested on x64/x86)
+* Windows (Video for Windows devices, tested on x64/x86)
+* Linux (V4L2 devices, supported on x86_64/i686/aarch64/armv7l/mips)
 
 ## Tested devices
 
@@ -115,6 +115,7 @@ Run the sample code to verify in 0.11.0.
 Verified capture devices / cameras:
 
 * Elgato CamLink 4K (Windows/Linux)
+* BlackMagic Design ATEM Mini Pro (Windows/Linux)
 * Logitech WebCam C930e (Windows/Linux)
 * eMeet HD Webcam C970L (Windows/Linux)
 * Microsoft LifeCam Cinema HD720 (Windows/Linux)
@@ -132,16 +133,12 @@ Verified computers:
 * Teclast X89 E7ED Tablet PC inside camera (x86, Windows)
 * NVIDIA Jetson TX2 evaluation board (aarch64, Linux)
 * Acer Aspire One ZA3 inside camera (i686, Linux)
+* Imagination Creator Ci20 (mipsel, Linux)
 
 Couldn't detect any devices on FlashCap:
 
 * Surface2 (arm32, Windows RT 8.1 JB'd)
   * Any devices are not found, may not be compatible with both VFW and DirectShow.
-
-Verifying now:
-
-* BlackMagic Design ATEM Mini Pro
-* Imagination Creator Ci20 (mipsel, Linux)
 
 ----
 
@@ -151,10 +148,7 @@ Fully sample code is here:
 
 * [Windows Forms application](samples/FlashCap.WindowsForms/)
 * [Avalonia](samples/FlashCap.Avalonia/)
-
-TODO:
-
-* [WPF application](samples/FlashCap.WPF/)
+* [WPF application](samples/FlashCap.Wpf/)
 
 This is an Avalonia sample application on both Windows and Linux.
 It is performed realtime usermode capturing, decoding bitmap (from MJPEG) and render to window.
@@ -535,6 +529,12 @@ Apache-v2.
 
 ## History
 
+* 1.0.0:
+  * Reached 1.0.0 🎉
+  * Supported miplel on V4L2.
+  * All planned environments were tested.
+  * Added WPF sample project.
+  * Implemented graceful shutdown in sample projects.
 * 0.15.0:
   * Completed rewriting V4L2 interop code, and fixed V4L2 on i686.
   * Remove supporting net20, because made completely asynchronous operation.

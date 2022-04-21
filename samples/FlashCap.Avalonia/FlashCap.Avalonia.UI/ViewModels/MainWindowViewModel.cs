@@ -14,7 +14,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-// NOTE: This sample application may crash when exit on .NET Framework configruation.
+// NOTE: This sample application may crash when exit on .NET Framework (net48) configruation.
 //   Maybe related Avalonia's this issue (in 0.10.13).
 //   Avalonia app crashes on exit (.net framework only)
 //   https://github.com/AvaloniaUI/Avalonia/issues/7579
@@ -36,7 +36,7 @@ namespace FlashCap.Avalonia.ViewModels
         public MainWindowViewModel()
         {
             // Window shown:
-            this.Opened = Command.Factory.Create<EventArgs>(async _ =>
+            this.Opened = CommandFactory.Create(async () =>
             {
                 ////////////////////////////////////////////////
                 // Initialize and start capture device
@@ -93,20 +93,18 @@ namespace FlashCap.Avalonia.ViewModels
             // Or, refer image data binary directly.
             ArraySegment<byte> image = bufferScope.Buffer.ReferImage();
 #endif
-            // Convert to Stream (using FlashCap.Utilities)
-            using var stream = image.AsStream();
-
             // Decode image data to a bitmap:
-            var bitmap = new Bitmap(stream);
+            var bitmap = new Bitmap(image.AsStream());
 
             // `bitmap` is copied, so we can release pixel buffer now.
             bufferScope.ReleaseNow();
 
             // Switch to UI thread:
-            await UIThread.Bind();
-
-            // Update a bitmap.
-            this.Image = bitmap;
+            if (await UIThread.TryBind())
+            {
+                // Update a bitmap.
+                this.Image = bitmap;
+            }
         }
     }
 }

@@ -27,7 +27,7 @@ FlashCap - シンプルで依存性のない、カメラキャプチャライブ
 .NETでカメラキャプチャ機能を実装する必要がありますか？
 .NETでのカメラキャプチャライブラリに困っていますか？
 
-このライブラリは、カメラのキャプチャ機能のみに特化したカメラ画像取り込みライブラリです。
+このライブラリは、カメラのキャプチャ機能のみに特化したカメラ画像取り込みライブラリです（フレームグラバーと呼ばれることもあります）。
 シンプルなAPIで使いやすく、簡素なアーキテクチャで、ネイティブライブラリを含んでいません。
 また、公式以外の他のライブラリに依存することもありません。
 [NuGetの依存ページを参照して下さい](https://www.nuget.org/packages/FlashCap)
@@ -92,7 +92,8 @@ device.Stop();
 
 ----
 
-## 動作環境
+## 動作環境* Imagination Creator Ci20 (mipsel, Linux)
+
 
 対応する.NETプラットフォームは以下の通りです（ほぼ全てです！）:
 
@@ -103,9 +104,9 @@ device.Stop();
 
 カメラデバイスが使用できるプラットフォーム:
 
-* Windows (DirectShowデバイス)
-* Windows (Video for Windowsデバイス)
-* Linux (V4L2デバイス)
+* Windows (DirectShowデバイス, x64/x86)
+* Windows (Video for Windowsデバイス, x64/x86)
+* Linux (V4L2デバイス, x86_64/i686/aarch64/armv7l/mips)
 
 ## テスト済みデバイス
 
@@ -114,6 +115,7 @@ device.Stop();
 確認したキャプチャユニット/カメラ:
 
 * Elgato CamLink 4K (Windows/Linux)
+* BlackMagic Design ATEM Mini Pro (Windows/Linux)
 * Logitech WebCam C930e (Windows/Linux)
 * eMeet HD Webcam C970L (Windows/Linux)
 * Microsoft LifeCam Cinema HD720 (Windows/Linux)
@@ -131,16 +133,12 @@ device.Stop();
 * Teclast X89 E7ED Tablet PC 内蔵カメラ (x86, Windows)
 * NVIDIA Jetson TX2 評価ボード (aarch64, Linux)
 * Acer Aspire One ZA3 inside camera (i686, Linux)
+* Imagination Creator Ci20 (mipsel, Linux)
 
 確認した、動作しない環境:
 
 * Surface2 (arm32, Windows RT 8.1 JB'd)
   * デバイスが見つかりませんでした。VFWとDirectShowの両方に対応していない可能性があります。
-
-現在検証中:
-
-* Blackmagic Design ATEM Mini Pro
-* Imagination Creator Ci20 (mipsel, Linux)
 
 ----
 
@@ -150,10 +148,7 @@ device.Stop();
 
 * [Windowsフォームアプリケーション](samples/FlashCap.WindowsForms/)
 * [Avaloniaアプリケーション](samples/FlashCap.Avalonia/)
-
-TODO:
-
-* [WPFアプリケーション](samples/FlashCap.WPF/)
+* [WPFアプリケーション](samples/FlashCap.Wpf)
 
 Avaloniaのサンプルコードは、単一のコードで、WindowsとLinuxの両方で動作します。ユーザーモードプロセスでリアルタイムにキャプチャを行い、（MJPEGから）ビットマップをデコードし、ウィンドウにレンダリングします。AvaloniaはSkiaを使ったレンダラーを使用しています。かなり高速です。
 
@@ -486,6 +481,12 @@ Apache-v2.
 
 ## 履歴
 
+* 1.0.0:
+  * Reached 1.0.0 🎉
+  * V4L2のmiplel環境をサポート。
+  * 予定していた全ての環境でテストを行いました。
+  * WPFのサンプルプロジェクトを追加しました。
+  * サンプルプロジェクトでgraceful shutdownを反映させました。
 * 0.15.0:
   * V4L2関係のブリッジコードの書き換えを完了し、i686でのV4L2の動作を修正した。
   * 完全非同期動作にしたため、net20のサポートを廃止。

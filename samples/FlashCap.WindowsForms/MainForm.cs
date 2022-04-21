@@ -11,22 +11,25 @@ using FlashCap.Utilities;
 using System;
 using System.Drawing;
 using System.Linq;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace FlashCap.WindowsForms
 {
     public partial class MainForm : Form
     {
+        private SynchronizationContext synchContext;
+
         // Constructed capture device.
         private CaptureDevice captureDevice;
 
-        public MainForm()
-        {
+        public MainForm() =>
             this.InitializeComponent();
-        }
 
-        private async void Form1_Load(object sender, EventArgs e)
+        private async void MainForm_Load(object sender, EventArgs e)
         {
+            this.synchContext = SynchronizationContext.Current;
+
             ////////////////////////////////////////////////
             // Initialize and start capture device
 
@@ -59,9 +62,6 @@ namespace FlashCap.WindowsForms
                 // Open capture device:
                 this.captureDevice = await descriptor0.OpenAsync(
                     characteristics,
-                    true,
-                    false,
-                    10,
                     this.OnPixelBufferArrived);
 
                 // Start capturing.
@@ -91,35 +91,28 @@ namespace FlashCap.WindowsForms
                 // `bitmap` is copied, so we can release pixel buffer now.
                 bufferScope.ReleaseNow();
 
-                try
+                // Switch to UI thread.
+                // HACK: Here is using `SynchronizationContext.Post()` instead of `Control.Invoke()`.
+                // Because in sensitive states when the form is closing,
+                // `Control.Invoke()` can fail with exception.
+                this.synchContext.Post(_ =>
                 {
-                    // Switch to UI thread:
-                    this.Invoke(new Action(() =>
+                    // HACK: on .NET Core, will be leaked (or delayed GC?)
+                    //   So we could release manually before updates.
+                    var oldImage = this.BackgroundImage;
+                    if (oldImage != null)
                     {
-                        // HACK: on .NET Core, will be leaked (or delayed GC?)
-                        //   So we could release manually before updates.
-                        var oldImage = this.BackgroundImage;
-                        if (oldImage != null)
-                        {
-                            this.BackgroundImage = null;
-                            oldImage.Dispose();
-                        }
+                        this.BackgroundImage = null;
+                        oldImage.Dispose();
+                    }
 
-                        // Update a bitmap.
-                        this.BackgroundImage = bitmap;
-                    }));
-                }
-                catch (ObjectDisposedException)
-                {
-                    // NOTE: WinForms sometimes will raise ObjectDisposedException in shutdown sequence.
-                    // Because it is race condition between this thread context and UI thread context.
-                    // We can safely ignore when terminating user interface.
-                    // (Or you can avoid it with graceful shutdown technics.)
-                }
+                    // Update a bitmap.
+                    this.BackgroundImage = bitmap;
+                }, null);
             }
         }
 
-        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
         {
             // Discard capture device.
             this.captureDevice?.Dispose();
