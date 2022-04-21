@@ -529,6 +529,12 @@ Apache-v2.
 
 ## History
 
+* 1.0.0:
+  * Reached 1.0.0 🎉
+  * Supported miplel on V4L2.
+  * All planned environments were tested.
+  * Added WPF sample project.
+  * Implemented graceful shutdown in sample projects.
 * 0.15.0:
   * Completed rewriting V4L2 interop code, and fixed V4L2 on i686.
   * Remove supporting net20, because made completely asynchronous operation.
