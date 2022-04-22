@@ -16,10 +16,9 @@ using System.Threading;
 namespace FlashCap.FrameProcessors
 {
     internal abstract class QueuingProcessor :
-        InternalFrameProcessor
+        FrameProcessor
     {
         private readonly int maxQueuingFrames;
-        private readonly Stack<PixelBuffer> reserver = new();
         private readonly Queue<PixelBuffer> queue = new();
         private ManualResetEventSlim arrived = new(false);
         private ManualResetEventSlim abort = new(false);
@@ -34,9 +33,9 @@ namespace FlashCap.FrameProcessors
             this.thread.Start();
         }
 
-        public override void Dispose()
+        protected override void Dispose(bool disposing)
         {
-            if (this.thread != null)
+            if (disposing && this.thread != null)
             {
                 this.aborting = true;
                 this.abort.Set();
@@ -44,22 +43,13 @@ namespace FlashCap.FrameProcessors
                 // Force exhaust.
                 lock (this.queue)
                 {
-                    while (this.queue.Count >= 1)
-                    {
-                        var buffer = this.queue.Dequeue();
-                        this.ReleaseNow(buffer);
-                    }
+                    this.queue.Clear();
                     this.arrived.Reset();
                 }
 
                 // HACK: Avoid deadlocking when arrived event handlers stuck in disposing process.
                 this.thread.Join(TimeSpan.FromSeconds(2));
                 this.thread = null!;
-
-                lock (this.reserver)
-                {
-                    this.reserver.Clear();
-                }
             }
         }
 
@@ -81,18 +71,7 @@ namespace FlashCap.FrameProcessors
                 }
             }
 
-            PixelBuffer? buffer = null;
-            lock (this.reserver)
-            {
-                if (this.reserver.Count >= 1)
-                {
-                    buffer = this.reserver.Pop();
-                }
-            }
-            if (buffer == null)
-            {
-                buffer = base.GetPixelBuffer(captureDevice);
-            }
+            var buffer = base.GetPixelBuffer();
 
             this.Capture(
                 captureDevice,
@@ -146,17 +125,6 @@ namespace FlashCap.FrameProcessors
                         this.arrived.Reset();
                     }
                 }
-            }
-        }
-
-#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-        public override void ReleaseNow(PixelBuffer buffer)
-        {
-            lock (this.reserver)
-            {
-                this.reserver.Push(buffer);
             }
         }
 

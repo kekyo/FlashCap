@@ -12,25 +12,16 @@ using System.Runtime.CompilerServices;
 
 namespace FlashCap.FrameProcessors
 {
-    internal abstract class InternalFrameProcessor : FrameProcessor
-    {
-        protected InternalFrameProcessor()
-        {
-        }
-
-        public abstract void ReleaseNow(PixelBuffer buffer);
-    }
-
     internal sealed class InternalPixelBufferScope :
         PixelBufferScope, IDisposable
     {
-        private InternalFrameProcessor? parent;
+        private FrameProcessor? parent;
 
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
         public InternalPixelBufferScope(
-            InternalFrameProcessor parent,
+            FrameProcessor parent,
             PixelBuffer buffer) :
             base(buffer) =>
             this.parent = parent;
@@ -44,8 +35,8 @@ namespace FlashCap.FrameProcessors
             {
                 if (this.parent is { } parent)
                 {
-                    parent.ReleaseNow(this.Buffer);
                     base.ReleaseNow();
+                    this.parent.ReleasePixelBuffer(this.Buffer);
                     this.parent = null;
                 }
             }

@@ -16,10 +16,9 @@ using System.Threading;
 namespace FlashCap.FrameProcessors
 {
     internal abstract class ScatteringProcessor :
-        InternalFrameProcessor
+        FrameProcessor
     {
         private readonly int maxQueuingFrames;
-        private readonly Stack<PixelBuffer> reserver = new();
         private readonly WaitCallback pixelBufferArrivedEntry;
 
         protected volatile int processing = 1;
@@ -32,9 +31,9 @@ namespace FlashCap.FrameProcessors
             this.pixelBufferArrivedEntry = this.PixelBufferArrivedEntry;
         }
 
-        public override void Dispose()
+        protected override void Dispose(bool disposing)
         {
-            if (this.final != null)
+            if (disposing && this.final != null)
             {
                 Debug.Assert(!this.aborting);
 
@@ -47,11 +46,6 @@ namespace FlashCap.FrameProcessors
 
                 this.final.Dispose();
                 this.final = null!;
-
-                lock (this.reserver)
-                {
-                    this.reserver.Clear();
-                }
             }
         }
 
@@ -67,18 +61,7 @@ namespace FlashCap.FrameProcessors
 
             if (Interlocked.Increment(ref this.processing) <= this.maxQueuingFrames)
             {
-                PixelBuffer? buffer = null;
-                lock (this.reserver)
-                {
-                    if (this.reserver.Count >= 1)
-                    {
-                        buffer = this.reserver.Pop();
-                    }
-                }
-                if (buffer == null)
-                {
-                    buffer = base.GetPixelBuffer(captureDevice);
-                }
+                var buffer = base.GetPixelBuffer();
 
                 this.Capture(
                     captureDevice,
@@ -92,17 +75,6 @@ namespace FlashCap.FrameProcessors
             else
             {
                 Interlocked.Decrement(ref this.processing);
-            }
-        }
-
-#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-        public override void ReleaseNow(PixelBuffer buffer)
-        {
-            lock (this.reserver)
-            {
-                this.reserver.Push(buffer);
             }
         }
 
@@ -125,7 +97,6 @@ namespace FlashCap.FrameProcessors
 
             if (this.aborting)
             {
-                base.ReleaseNow(buffer);
                 if (Interlocked.Decrement(ref base.processing) <= 0)
                 {
                     base.final?.Set();
@@ -168,7 +139,6 @@ namespace FlashCap.FrameProcessors
 
             if (this.aborting)
             {
-                base.ReleaseNow(buffer);
                 if (Interlocked.Decrement(ref base.processing) <= 0)
                 {
                     base.final?.Set();
