@@ -535,6 +535,9 @@ Apache-v2.
 
 ## History
 
+* 1.1.0:
+  * Moved implementation of pixel buffer pooling into base FrameProcessor class.
+  * Fixed IDisposable is not implemented on CaptureDevice.
 * 1.0.0:
   * Reached 1.0.0 🎉
   * Supported miplel on V4L2.

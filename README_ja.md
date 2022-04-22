@@ -487,6 +487,9 @@ Apache-v2.
 
 ## 履歴
 
+* 1.1.0:
+  * ピクセルバッファプーリングの実装をFrameProcessorの基底クラスに移動しました。
+  * CaptureDeviceでIDisposableが実装されていないのを修正。
 * 1.0.0:
   * Reached 1.0.0 🎉
   * V4L2のmiplel環境をサポート。
