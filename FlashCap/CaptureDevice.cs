@@ -12,7 +12,7 @@ using System.Runtime.CompilerServices;
 
 namespace FlashCap
 {
-    public abstract class CaptureDevice
+    public abstract class CaptureDevice : IDisposable
     {
         protected CaptureDevice()
         {

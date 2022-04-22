@@ -367,8 +367,11 @@ public abstract class FrameProcessor : IDisposable
   }
 
   // ピクセルバッファを取得する
-  protected PixelBuffer GetPixelBuffer(
-    CaptureDevice captureDevice)
+  protected PixelBuffer GetPixelBuffer()
+  { /* ... */ }
+
+  // ピクセルバッファを返却する
+  public void ReleasePixelBuffer(PixelBuffer buffer)
   { /* ... */ }
 
   // デバイスを使用してキャプチャを実行する
@@ -407,7 +410,7 @@ public sealed class CoolFrameProcessor : FrameProcessor
     IntPtr pData, int size, long timestampMicroseconds, long frameIndex)
   {
     // ピクセルバッファを取得する
-    var buffer = base.GetPixelBuffer(captureDevice);
+    var buffer = base.GetPixelBuffer();
 
     // キャプチャを実行する
     // ピクセルバッファに画像データが格納される (最初のコピーが発生)
@@ -419,6 +422,9 @@ public sealed class CoolFrameProcessor : FrameProcessor
 
     // デリゲートを呼び出す
     this.action(buffer);
+
+    // ピクセルバッファを返却する（任意。割り当てられたバッファを再利用します）
+    base.ReleasePixelBuffer(buffer);
   }
 }
 ```
@@ -458,7 +464,7 @@ device.Start();
 * デリゲートは、同期処理を想定している。そのため、デコード処理に時間がかかり、スレッドをブロックすると、容易にフレームドロップが発生する。
 * もしここで、ブロックを回避するために`async void`を使用すると、デリゲートの完了を待てないので、ピクセルバッファへのアクセスは危険にさらされる。
 
-このような理由で、FlashCapでは、`HandlerStrategies`による、抽象化され、安全に取り扱う事が出来る、標準のフレームプロセッサ群を使用するようになっています。では、カスタムフレームプロセッサを実装する利点がどこにあるのでしょうか？
+このような理由で、FlashCapでは、ある程度安全に操作できる、標準のフレームプロセッサ群を使用するようになっています。では、カスタムフレームプロセッサを実装する利点がどこにあるのでしょうか？
 
 それは、きわめて高度に最適化された、フレームと画像データの処理を実装できることです。例えば、ピクセルバッファは効率よく作られていますが、必ず使用しなければならないわけではありません。（`Capture()`メソッドの呼び出しは任意です。）引数によって、生の画像データへのポインタとサイズが与えられているため、画像データに直接アクセスすることは可能です。そこで、あなた独自の画像データ処理を実装すれば、最速の処理を実現する事が出来ます。
 
@@ -481,6 +487,9 @@ Apache-v2.
 
 ## 履歴
 
+* 1.1.0:
+  * ピクセルバッファプーリングの実装をFrameProcessorの基底クラスに移動しました。
+  * CaptureDeviceでIDisposableが実装されていないのを修正。
 * 1.0.0:
   * Reached 1.0.0 🎉
   * V4L2のmiplel環境をサポート。

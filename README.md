@@ -404,8 +404,11 @@ public abstract class FrameProcessor : IDisposable
   }
 
   // Get a pixel buffer.
-  protected PixelBuffer GetPixelBuffer(
-      CaptureDevice captureDevice)
+  protected PixelBuffer GetPixelBuffer()
+  { /* ... */ }
+
+  // Return the pixel buffer.
+  public void ReleasePixelBuffer(PixelBuffer buffer)
   { /* ... */ }
 
   // Perform capture using the device.
@@ -448,7 +451,7 @@ public sealed class CoolFrameProcessor : FrameProcessor
     IntPtr pData, int size, long timestampMicroseconds, long frameIndex)
   {
     // Get a pixel buffer.
-    var buffer = base.GetPixelBuffer(captureDevice);
+    var buffer = base.GetPixelBuffer();
 
     // Perform capture.
     // Image data is stored in pixel buffer. (First copy occurs.)
@@ -460,6 +463,9 @@ public sealed class CoolFrameProcessor : FrameProcessor
 
     // Invoke a delegate.
     this.action(buffer);
+
+    // Return the pixel buffer (optional, will reuse allocated buffer)
+    base.ReleasePixelBuffer(buffer);
   }
 }
 ```
@@ -501,8 +507,8 @@ And even if you don't actually run it, you're probably aware of its features and
 * The delegate assumes synchronous processing. Therefore, the decoding process takes time, and blocking this thread can easily cause frame dropping.
 * If you use `async void` here to avoid blocking, access to the pixel buffer is at risk because it cannot wait for the delegate to complete.
 
-For this reason, FlashCap uses a standard set of frame processors that can be abstracted and safely handled by `HandlerStrategies` values.
-So where is the advantage of implementing your own custom frame processors?
+For this reason, FlashCap uses a standard set of frame processors that can be operated with some degree of safety.
+So where is the advantage of implementing custom frame processors?
 
 It is possible to implement highly optimized frame and image data processing.
 For example, pixel buffers are created efficiently, but we do not have to be used.
@@ -529,6 +535,9 @@ Apache-v2.
 
 ## History
 
+* 1.1.0:
+  * Moved implementation of pixel buffer pooling into base FrameProcessor class.
+  * Fixed IDisposable is not implemented on CaptureDevice.
 * 1.0.0:
   * Reached 1.0.0 🎉
   * Supported miplel on V4L2.
