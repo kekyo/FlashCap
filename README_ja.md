@@ -90,6 +90,8 @@ device.Start();
 device.Stop();
 ```
 
+解説記事はこちら（英語）: ["Easy to implement video image capture with FlashCap" (dev.to)](https://dev.to/kozy_kekyo/easy-to-implement-video-image-capture-with-flashcap-o5a)
+
 ----
 
 ## 動作環境* Imagination Creator Ci20 (mipsel, Linux)

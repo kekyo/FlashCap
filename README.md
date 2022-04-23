@@ -91,6 +91,8 @@ device.Start();
 device.Stop();
 ```
 
+Published introduction article: ["Easy to implement video image capture with FlashCap" (dev.to)](https://dev.to/kozy_kekyo/easy-to-implement-video-image-capture-with-flashcap-o5a)
+
 ----
 
 ## Target environments
