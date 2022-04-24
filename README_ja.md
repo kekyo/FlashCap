@@ -94,7 +94,7 @@ device.Stop();
 
 ----
 
-## 動作環境* Imagination Creator Ci20 (mipsel, Linux)
+## 動作環境
 
 
 対応する.NETプラットフォームは以下の通りです（ほぼ全てです！）:
