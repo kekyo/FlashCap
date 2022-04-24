@@ -72,7 +72,7 @@ using var device = await descriptor0.OpenAsync(
     {
         // Captured into a pixel buffer from an argument.
 
-        // Get image data (Maybe DIB/Jpeg/PNG):
+        // Get image data (Maybe DIB/JPEG/PNG):
         byte[] image = bufferScope.Buffer.ExtractImage();
 
         // Anything use of it...
@@ -304,7 +304,8 @@ using var device = await descriptor0.OpenAsync(
     using var fs = File.Create(
       descriptor0.Characteristics[0].PixelFormat switch
       {
-        PixelFormats.Jpeg => "output.jpg",
+        PixelFormats.JPEG => "output.jpg",
+        PixelFormats.PNG => "output.png",
         _ => "output.bmp",
       });
     await fs.WriteAsync(image.Array, image.Offset, image.Count);

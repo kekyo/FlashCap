@@ -71,7 +71,7 @@ using var device = await descriptor0.OpenAsync(
     {
         // 引数に渡されるピクセルバッファにキャプチャされている:
 
-        // イメージデータを取得 (恐らくDIB/Jpeg/PNGフォーマットのバイナリ):
+        // イメージデータを取得 (恐らくDIB/JPEG/PNGフォーマットのバイナリ):
         byte[] image = bufferScope.Buffer.ExtractImage();
 
         // 後はお好きに...
@@ -287,7 +287,7 @@ using var device = await descriptor0.OpenAsync(
       descriptor0.Characteristics[0].PixelFormat switch
       {
         PixelFormats.JPEG => "output.jpg",
-        PixelFormats.PNG => "output.jpg",
+        PixelFormats.PNG => "output.png",
         _ => "output.bmp",
       });
     await fs.WriteAsync(image.Array, image.Offset, image.Count);
