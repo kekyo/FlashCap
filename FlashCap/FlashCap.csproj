@@ -11,6 +11,7 @@
   </ItemGroup>
         
   <ItemGroup Condition="'$(TargetFramework)' == 'net35'">
+    <PackageReference Include="Rx-Main" Version="1.0.11226" />
     <PackageReference Include="AsyncBridge" Version="0.3.1" />
   </ItemGroup>
 

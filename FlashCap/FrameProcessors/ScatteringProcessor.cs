@@ -8,9 +8,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace FlashCap.FrameProcessors
@@ -84,12 +82,18 @@ namespace FlashCap.FrameProcessors
     internal sealed class DelegatedScatteringProcessor :
         ScatteringProcessor
     {
-        private readonly PixelBufferArrivedDelegate pixelBufferArrived;
+        private PixelBufferArrivedDelegate pixelBufferArrived;
 
         public DelegatedScatteringProcessor(
             PixelBufferArrivedDelegate pixelBufferArrived, int maxQueuingFrames) :
             base(maxQueuingFrames) =>
             this.pixelBufferArrived = pixelBufferArrived;
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            this.pixelBufferArrived = null!;
+        }
 
         protected override void PixelBufferArrivedEntry(object? parameter)
         {
@@ -106,7 +110,7 @@ namespace FlashCap.FrameProcessors
 
             try
             {
-                using var scope = new InternalPixelBufferScope(this, buffer);
+                using var scope = new AutoPixelBufferScope(this, buffer);
                 this.pixelBufferArrived(scope);
             }
             catch (Exception ex)
@@ -126,12 +130,18 @@ namespace FlashCap.FrameProcessors
     internal sealed class DelegatedScatteringTaskProcessor :
         ScatteringProcessor
     {
-        private readonly PixelBufferArrivedTaskDelegate pixelBufferArrived;
+        private PixelBufferArrivedTaskDelegate pixelBufferArrived;
 
         public DelegatedScatteringTaskProcessor(
             PixelBufferArrivedTaskDelegate pixelBufferArrived, int maxQueuingFrames) :
             base(maxQueuingFrames) =>
             this.pixelBufferArrived = pixelBufferArrived;
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            this.pixelBufferArrived = null!;
+        }
 
         protected override async void PixelBufferArrivedEntry(object? parameter)
         {
@@ -148,7 +158,7 @@ namespace FlashCap.FrameProcessors
 
             try
             {
-                using var scope = new InternalPixelBufferScope(this, buffer);
+                using var scope = new AutoPixelBufferScope(this, buffer);
                 await this.pixelBufferArrived(scope).
                     ConfigureAwait(false);
             }

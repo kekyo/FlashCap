@@ -37,6 +37,7 @@ namespace FlashCap
                     this.reserver.Clear();
                 }
             }
+            GC.SuppressFinalize(this);
         }
 
         protected virtual void Dispose(bool disposing)
@@ -86,5 +87,42 @@ namespace FlashCap
         public abstract void OnFrameArrived(
             CaptureDevice captureDevice,
             IntPtr pData, int size, long timestampMicroseconds, long frameIndex);
+
+        protected sealed class AutoPixelBufferScope :
+            PixelBufferScope, IDisposable
+        {
+            private FrameProcessor? parent;
+
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+            public AutoPixelBufferScope(
+                FrameProcessor parent,
+                PixelBuffer buffer) :
+                base(buffer) =>
+                this.parent = parent;
+
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+            public void Dispose()
+            {
+                lock (this)
+                {
+                    if (this.parent is { } parent)
+                    {
+                        base.ReleaseNow();
+                        this.parent.ReleasePixelBuffer(this.Buffer);
+                        this.parent = null;
+                    }
+                }
+            }
+
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+            public override void ReleaseNow() =>
+                this.Dispose();
+        }
     }
 }
