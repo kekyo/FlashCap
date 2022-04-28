@@ -85,34 +85,49 @@ namespace FlashCap
 
         //////////////////////////////////////////////////////////////////////////////////
 
-        public static Task<CaptureDevice> OpenAsync(
+        public static async Task<ObservableCaptureDevice> AsObservableAsync(
             this CaptureDeviceDescriptor descriptor,
-            VideoCharacteristics characteristics,
-            IObserver<PixelBufferScope> observer) =>
-            descriptor.OpenWithFrameProcessorAsync(
+            VideoCharacteristics characteristics)
+        {
+            var observerProxy = new ObservableCaptureDevice.ObserverProxy();
+            var captureDevice = await descriptor.OpenWithFrameProcessorAsync(
                 characteristics, true,
-                new DelegatedQueuingObservableProcessor(observer, 1));
+                new DelegatedQueuingProcessor(observerProxy.OnPixelBufferArrived, 1)).
+                ConfigureAwait(false);
 
-        public static Task<CaptureDevice> OpenAsync(
+            return new ObservableCaptureDevice(captureDevice, observerProxy);
+        }
+
+        public static async Task<ObservableCaptureDevice> AsObservableAsync(
             this CaptureDeviceDescriptor descriptor,
             VideoCharacteristics characteristics,
-            bool transcodeIfYUV,
-            IObserver<PixelBufferScope> observer) =>
-            descriptor.OpenWithFrameProcessorAsync(
+            bool transcodeIfYUV)
+        {
+            var observerProxy = new ObservableCaptureDevice.ObserverProxy();
+            var captureDevice = await descriptor.OpenWithFrameProcessorAsync(
                 characteristics, transcodeIfYUV,
-                new DelegatedQueuingObservableProcessor(observer, 1));
+                new DelegatedQueuingProcessor(observerProxy.OnPixelBufferArrived, 1)).
+                ConfigureAwait(false);
 
-        public static Task<CaptureDevice> OpenAsync(
+            return new ObservableCaptureDevice(captureDevice, observerProxy);
+        }
+
+        public static async Task<ObservableCaptureDevice> AsObservableAsync(
             this CaptureDeviceDescriptor descriptor,
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,
             bool isScattering,
-            int maxQueuingFrames,
-            IObserver<PixelBufferScope> observer) =>
-            descriptor.OpenWithFrameProcessorAsync(
+            int maxQueuingFrames)
+        {
+            var observerProxy = new ObservableCaptureDevice.ObserverProxy();
+            var captureDevice = await descriptor.OpenWithFrameProcessorAsync(
                 characteristics, transcodeIfYUV,
                 isScattering ?
-                    new DelegatedScatteringObservableProcessor(observer, maxQueuingFrames) :
-                    new DelegatedQueuingObservableProcessor(observer, maxQueuingFrames));
+                    new DelegatedScatteringProcessor(observerProxy.OnPixelBufferArrived, maxQueuingFrames) :
+                    new DelegatedQueuingProcessor(observerProxy.OnPixelBufferArrived, maxQueuingFrames)).
+                ConfigureAwait(false);
+
+            return new ObservableCaptureDevice(captureDevice, observerProxy);
+        }
     }
 }

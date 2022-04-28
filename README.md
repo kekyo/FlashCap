@@ -91,6 +91,32 @@ device.Start();
 device.Stop();
 ```
 
+You can also use the Reactive Extension:
+
+```csharp
+// Open a device with a video characteristics:
+var device = await descriptor0.AsObservableAsync(
+    descriptor0.Characteristics[0]);
+
+// Subscribe the device.
+device.Subscribe(bufferScope =>
+{
+    // Captured into a pixel buffer from an argument.
+
+    // Get image data (Maybe DIB/JPEG/PNG):
+    byte[] image = bufferScope.Buffer.ExtractImage();
+
+    // Anything use of it...
+    var ms = new MemoryStream(image);
+    var bitmap = Bitmap.FromStream(ms);
+
+    // ...
+});
+
+// Start processing:
+device.Start();
+```
+
 Published introduction article: ["Easy to implement video image capture with FlashCap" (dev.to)](https://dev.to/kozy_kekyo/easy-to-implement-video-image-capture-with-flashcap-o5a)
 
 ----
@@ -385,6 +411,34 @@ For example, when displaying a preview in the UI, the video should momentarily g
 
 To deal with the fact that `isScattering == true` can cause the order of frames to be lost, the `PixelBuffer` class defines the `Timestamp` and `FrameIndex` properties. By referring to these properties, you can determine the frame order.
 
+## Reactive extension issue
+
+By the way, have you noticed that there are overloads for
+both `PixelBufferArrivedDelegate` and `PixelBufferArrivedTaskDelegate` in the handler argument of `OpenAsync()`?
+This is because they correspond to the synchronous and asynchronous versions of the handler implementation,
+respectively, and both correctly recognize the completion of handler processing.
+
+However, in the case of `AsObservableAsync()`,
+the handler implementation corresponds to the Reactive Extension's `OnNext()` method,
+which only exists in the synchronous version.
+In other words, if you use the Reactive Extension,
+you cannot use asynchronous processing for the observer implementation.
+You can mark with `async void` for `async void OnNext(...)`,
+but be very careful that the pixel buffer expires just before the first `await`.
+The compiler cannot detect this problem.
+
+The safest course of action would be to extract (copy) the image data from the pixel buffer as quickly as possible.
+This is easily accomplished using the projection operator:
+
+```csharp
+device.
+    // Immediately projection
+    Select(bufferScope =>
+        Bitmap.FromStream(bufferScope.Buffer.ReferImage().AsStream())).
+    // Do whatever you want after that...
+    // ...
+```
+
 ## Master for frame processor (Advanced topic)
 
 Welcome to the underground dungeon, where FlashCap's frame processor is a polished gem.
@@ -538,6 +592,8 @@ Apache-v2.
 
 ## History
 
+* 1.2.0:
+  * Supported Reactive Extension on `AsObservableAsync()`.
 * 1.1.0:
   * Moved implementation of pixel buffer pooling into base FrameProcessor class.
   * Fixed IDisposable is not implemented on CaptureDevice.

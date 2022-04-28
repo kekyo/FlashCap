@@ -212,46 +212,4 @@ namespace FlashCap.FrameProcessors
             }
         }
     }
-
-    internal sealed class DelegatedQueuingObservableProcessor :
-        QueuingProcessor
-    {
-        private IObserver<PixelBufferScope> observer;
-
-        public DelegatedQueuingObservableProcessor(
-            IObserver<PixelBufferScope> observer, int maxQueuingFrames) :
-            base(maxQueuingFrames) =>
-            this.observer = observer;
-
-        protected override void ThreadEntry()
-        {
-            try
-            {
-                while (true)
-                {
-                    if (this.Dequeue() is { } buffer)
-                    {
-                        try
-                        {
-                            using var scope = new AutoPixelBufferScope(this, buffer);
-                            this.observer.OnNext(scope);
-                        }
-                        catch (Exception ex)
-                        {
-                            Trace.WriteLine(ex);
-                        }
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-            }
-            finally
-            {
-                this.observer.OnCompleted();
-                this.observer = null!;
-            }
-        }
-    }
 }

@@ -90,6 +90,32 @@ device.Start();
 device.Stop();
 ```
 
+Reactive Extensionを使う事も出来ます:
+
+```csharp
+// 映像特性を指定して、デバイスを開きます:
+using var device = await descriptor0.AsObservableAsync(
+    descriptor0.Characteristics[0]);
+
+// デバイスをサブスクライブします
+device.Subscribe(bufferScope =>
+{
+    // 引数に渡されるピクセルバッファにキャプチャされている:
+
+    // イメージデータを取得 (恐らくDIB/JPEG/PNGフォーマットのバイナリ):
+    byte[] image = bufferScope.Buffer.ExtractImage();
+
+    // 後はお好きに...
+    var ms = new MemoryStream(image);
+    var bitmap = Bitmap.FromStream(ms);
+
+    // ...
+});
+
+// 処理を開始:
+device.Start();
+```
+
 解説記事はこちら（英語）: ["Easy to implement video image capture with FlashCap" (dev.to)](https://dev.to/kozy_kekyo/easy-to-implement-video-image-capture-with-flashcap-o5a)
 
 ----
@@ -351,6 +377,23 @@ using var device = await descriptor0.OpenAsync(
 
 `isScattering == true` でフレームの順序が分からなくなる事に対処するため、`PixelBuffer`クラスには、`Timestamp`プロパティと`FrameIndex`プロパティが定義されています。これらのプロパティを参照すれば、フレーム順序の判定を行う事が出来ます。
 
+## Reactive extensionの問題
+
+ところで、`OpenAsync()`のハンドラ引数に、`PixelBufferArrivedDelegate`と`PixelBufferArrivedTaskDelegate`の両方のオーバーロードが存在する事に気が付いていますか？ これは、同期バージョンと非同期バージョンのハンドラ実装にそれぞれ対応していて、どちらでも正しくハンドラ処理の完了を認識するためです。
+
+しかし、`AsObservableAsync()`の場合、ハンドラ実装に該当するのは、Reactive Extensionの`OnNext()`メソッドであり、これは同期バージョンしか存在しません。つまり、Reactive Extensionを使う場合は、オブザーバーの実装に非同期処理は使えません。`async void OnNext(...)`とマークする事で実装は可能ですが、ピクセルバッファの有効期限が、最初の`await`の直前までであることに十分注意して下さい。コンパイラはこの問題を検出できません。
+
+最も安全な方法として、出来るだけ早く、ピクセルバッファから画像データを取り出す（コピーしてしまう）事でしょう。これは、射影演算子を使って簡単に実現できます:
+
+```csharp
+device.
+    // すぐに射影する
+    Select(bufferScope =>
+        Bitmap.FromStream(bufferScope.Buffer.ReferImage().AsStream())).
+    // 後はお好きに...
+    // ...
+```
+
 ## フレームプロセッサをマスターする (Advanced topic)
 
 地下ダンジョンへようこそ。FlashCapのフレームプロセッサは、磨けば光る宝石です。しかし、余程のことが無い限り、フレームプロセッサを理解する必要はありません。この解説は、やむを得ずフレームプロセッサを扱う場合の参考にして下さい。また、FlashCapが[デフォルトで内蔵するフレームプロセッサの実装](https://github.com/kekyo/FlashCap/tree/main/FlashCap/FrameProcessors)も参考になるでしょう。
@@ -489,6 +532,8 @@ Apache-v2.
 
 ## 履歴
 
+* 1.2.0:
+  * `AsObservableAsync()`で、Reactive Extensionに対応しました。
 * 1.1.0:
   * ピクセルバッファプーリングの実装をFrameProcessorの基底クラスに移動しました。
   * CaptureDeviceでIDisposableが実装されていないのを修正。
