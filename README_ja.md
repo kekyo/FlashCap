@@ -93,12 +93,14 @@ device.Stop();
 Reactive Extensionを使う事も出来ます:
 
 ```csharp
-// 映像特性を指定して、デバイスを開きます:
-using var device = await descriptor0.AsObservableAsync(
+// 映像特性を指定して、Observableを取得します:
+var descriptor0 = devices.EnumerateDescriptors().ElementAt(0);
+
+using var deviceObservable = await descriptor0.AsObservableAsync(
     descriptor0.Characteristics[0]);
 
 // デバイスをサブスクライブします
-device.Subscribe(bufferScope =>
+deviceObservable.Subscribe(bufferScope =>
 {
     // 引数に渡されるピクセルバッファにキャプチャされている:
 
@@ -113,7 +115,7 @@ device.Subscribe(bufferScope =>
 });
 
 // 処理を開始:
-device.Start();
+deviceObservable.Start();
 ```
 
 解説記事はこちら（英語）: ["Easy to implement video image capture with FlashCap" (dev.to)](https://dev.to/kozy_kekyo/easy-to-implement-video-image-capture-with-flashcap-o5a)
@@ -386,7 +388,7 @@ using var device = await descriptor0.OpenAsync(
 最も安全な方法として、出来るだけ早く、ピクセルバッファから画像データを取り出す（コピーしてしまう）事でしょう。これは、射影演算子を使って簡単に実現できます:
 
 ```csharp
-device.
+deviceObservable.
     // すぐに射影する
     Select(bufferScope =>
         Bitmap.FromStream(bufferScope.Buffer.ReferImage().AsStream())).

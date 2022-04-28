@@ -94,12 +94,14 @@ device.Stop();
 You can also use the Reactive Extension:
 
 ```csharp
-// Open a device with a video characteristics:
-var device = await descriptor0.AsObservableAsync(
+// Get a observable with a video characteristics:
+var descriptor0 = devices.EnumerateDescriptors().ElementAt(0);
+
+using var deviceObservable = await descriptor0.AsObservableAsync(
     descriptor0.Characteristics[0]);
 
 // Subscribe the device.
-device.Subscribe(bufferScope =>
+deviceObservable.Subscribe(bufferScope =>
 {
     // Captured into a pixel buffer from an argument.
 
@@ -114,7 +116,7 @@ device.Subscribe(bufferScope =>
 });
 
 // Start processing:
-device.Start();
+deviceObservable.Start();
 ```
 
 Published introduction article: ["Easy to implement video image capture with FlashCap" (dev.to)](https://dev.to/kozy_kekyo/easy-to-implement-video-image-capture-with-flashcap-o5a)
@@ -431,7 +433,7 @@ The safest course of action would be to extract (copy) the image data from the p
 This is easily accomplished using the projection operator:
 
 ```csharp
-device.
+deviceObservable.
     // Immediately projection
     Select(bufferScope =>
         Bitmap.FromStream(bufferScope.Buffer.ReferImage().AsStream())).
