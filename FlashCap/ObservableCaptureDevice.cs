@@ -9,19 +9,33 @@
 
 using System;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace FlashCap
 {
-    public sealed class ObservableCaptureDevice : IObservable<PixelBufferScope>
+    public sealed class ObservableCaptureDevice :
+        IObservable<PixelBufferScope>, IDisposable
     {
-        private readonly CaptureDevice captureDevice;
-        private readonly ObserverProxy proxy;
+        private CaptureDevice captureDevice;
+        private ObserverProxy proxy;
 
         internal ObservableCaptureDevice(CaptureDevice captureDevice, ObserverProxy proxy)
         {
             this.captureDevice = captureDevice;
             this.proxy = proxy;
+        }
+
+        public void Dispose()
+        {
+            if (this.captureDevice is { } captureDevice)
+            {
+                captureDevice.Dispose();
+                this.captureDevice = null!;
+            }
+            if (this.proxy is { } proxy)
+            {
+                proxy.InternalDispose();
+                this.proxy = null!;
+            }
         }
 
         public VideoCharacteristics Characteristics =>
@@ -51,6 +65,9 @@ namespace FlashCap
                     throw new InvalidOperationException();
                 }
             }
+
+            internal void InternalDispose() =>
+                Interlocked.Exchange(ref this.observer, null)?.OnCompleted();
 
             public void Dispose() =>
                 Interlocked.Exchange(ref this.observer, null);
