@@ -8,9 +8,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace FlashCap.FrameProcessors
@@ -84,12 +82,18 @@ namespace FlashCap.FrameProcessors
     internal sealed class DelegatedScatteringProcessor :
         ScatteringProcessor
     {
-        private readonly PixelBufferArrivedDelegate pixelBufferArrived;
+        private PixelBufferArrivedDelegate pixelBufferArrived;
 
         public DelegatedScatteringProcessor(
             PixelBufferArrivedDelegate pixelBufferArrived, int maxQueuingFrames) :
             base(maxQueuingFrames) =>
             this.pixelBufferArrived = pixelBufferArrived;
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            this.pixelBufferArrived = null!;
+        }
 
         protected override void PixelBufferArrivedEntry(object? parameter)
         {
@@ -126,12 +130,18 @@ namespace FlashCap.FrameProcessors
     internal sealed class DelegatedScatteringTaskProcessor :
         ScatteringProcessor
     {
-        private readonly PixelBufferArrivedTaskDelegate pixelBufferArrived;
+        private PixelBufferArrivedTaskDelegate pixelBufferArrived;
 
         public DelegatedScatteringTaskProcessor(
             PixelBufferArrivedTaskDelegate pixelBufferArrived, int maxQueuingFrames) :
             base(maxQueuingFrames) =>
             this.pixelBufferArrived = pixelBufferArrived;
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            this.pixelBufferArrived = null!;
+        }
 
         protected override async void PixelBufferArrivedEntry(object? parameter)
         {
@@ -151,6 +161,58 @@ namespace FlashCap.FrameProcessors
                 using var scope = new AutoPixelBufferScope(this, buffer);
                 await this.pixelBufferArrived(scope).
                     ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine(ex);
+            }
+            finally
+            {
+                if (Interlocked.Decrement(ref base.processing) <= 0)
+                {
+                    base.final?.Set();
+                }
+            }
+        }
+    }
+
+    internal sealed class DelegatedScatteringObservableProcessor :
+        ScatteringProcessor
+    {
+        private IObserver<PixelBufferScope> observer;
+
+        public DelegatedScatteringObservableProcessor(
+            IObserver<PixelBufferScope> observer, int maxQueuingFrames) :
+            base(maxQueuingFrames) =>
+            this.observer = observer;
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+            if (this.observer != null)
+            {
+                this.observer.OnCompleted();
+                this.observer = null!;
+            }
+        }
+
+        protected override void PixelBufferArrivedEntry(object? parameter)
+        {
+            var buffer = (PixelBuffer)parameter!;
+
+            if (this.aborting)
+            {
+                if (Interlocked.Decrement(ref base.processing) <= 0)
+                {
+                    base.final?.Set();
+                }
+                return;
+            }
+
+            try
+            {
+                using var scope = new AutoPixelBufferScope(this, buffer);
+                this.observer.OnNext(scope);
             }
             catch (Exception ex)
             {

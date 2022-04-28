@@ -8,6 +8,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using FlashCap.FrameProcessors;
+using System;
 using System.Threading.Tasks;
 
 namespace FlashCap
@@ -50,6 +51,8 @@ namespace FlashCap
                     new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames) :
                     new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames));
 
+        //////////////////////////////////////////////////////////////////////////////////
+
         public static Task<CaptureDevice> OpenAsync(
             this CaptureDeviceDescriptor descriptor,
             VideoCharacteristics characteristics,
@@ -79,5 +82,37 @@ namespace FlashCap
                 isScattering ?
                     new DelegatedScatteringTaskProcessor(pixelBufferArrived, maxQueuingFrames) :
                     new DelegatedQueuingTaskProcessor(pixelBufferArrived, maxQueuingFrames));
+
+        //////////////////////////////////////////////////////////////////////////////////
+
+        public static Task<CaptureDevice> OpenAsync(
+            this CaptureDeviceDescriptor descriptor,
+            VideoCharacteristics characteristics,
+            IObserver<PixelBufferScope> observer) =>
+            descriptor.OpenWithFrameProcessorAsync(
+                characteristics, true,
+                new DelegatedQueuingObservableProcessor(observer, 1));
+
+        public static Task<CaptureDevice> OpenAsync(
+            this CaptureDeviceDescriptor descriptor,
+            VideoCharacteristics characteristics,
+            bool transcodeIfYUV,
+            IObserver<PixelBufferScope> observer) =>
+            descriptor.OpenWithFrameProcessorAsync(
+                characteristics, transcodeIfYUV,
+                new DelegatedQueuingObservableProcessor(observer, 1));
+
+        public static Task<CaptureDevice> OpenAsync(
+            this CaptureDeviceDescriptor descriptor,
+            VideoCharacteristics characteristics,
+            bool transcodeIfYUV,
+            bool isScattering,
+            int maxQueuingFrames,
+            IObserver<PixelBufferScope> observer) =>
+            descriptor.OpenWithFrameProcessorAsync(
+                characteristics, transcodeIfYUV,
+                isScattering ?
+                    new DelegatedScatteringObservableProcessor(observer, maxQueuingFrames) :
+                    new DelegatedQueuingObservableProcessor(observer, maxQueuingFrames));
     }
 }

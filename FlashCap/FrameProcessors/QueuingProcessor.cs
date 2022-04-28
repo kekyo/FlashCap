@@ -10,7 +10,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace FlashCap.FrameProcessors
@@ -134,7 +133,7 @@ namespace FlashCap.FrameProcessors
     internal sealed class DelegatedQueuingProcessor :
         QueuingProcessor
     {
-        private readonly PixelBufferArrivedDelegate pixelBufferArrived;
+        private PixelBufferArrivedDelegate pixelBufferArrived;
 
         public DelegatedQueuingProcessor(
             PixelBufferArrivedDelegate pixelBufferArrived, int maxQueuingFrames) :
@@ -143,24 +142,31 @@ namespace FlashCap.FrameProcessors
 
         protected override void ThreadEntry()
         {
-            while (true)
+            try
             {
-                if (this.Dequeue() is { } buffer)
+                while (true)
                 {
-                    try
+                    if (this.Dequeue() is { } buffer)
                     {
-                        using var scope = new AutoPixelBufferScope(this, buffer);
-                        this.pixelBufferArrived(scope);
+                        try
+                        {
+                            using var scope = new AutoPixelBufferScope(this, buffer);
+                            this.pixelBufferArrived(scope);
+                        }
+                        catch (Exception ex)
+                        {
+                            Trace.WriteLine(ex);
+                        }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Trace.WriteLine(ex);
+                        break;
                     }
                 }
-                else
-                {
-                    break;
-                }
+            }
+            finally
+            {
+                this.pixelBufferArrived = null!;
             }
         }
     }
@@ -168,7 +174,7 @@ namespace FlashCap.FrameProcessors
     internal sealed class DelegatedQueuingTaskProcessor :
         QueuingProcessor
     {
-        private readonly PixelBufferArrivedTaskDelegate pixelBufferArrived;
+        private PixelBufferArrivedTaskDelegate pixelBufferArrived;
 
         public DelegatedQueuingTaskProcessor(
             PixelBufferArrivedTaskDelegate pixelBufferArrived, int maxQueuingFrames) :
@@ -177,25 +183,74 @@ namespace FlashCap.FrameProcessors
 
         protected override async void ThreadEntry()
         {
-            while (true)
+            try
             {
-                if (this.Dequeue() is { } buffer)
+                while (true)
                 {
-                    try
+                    if (this.Dequeue() is { } buffer)
                     {
-                        using var scope = new AutoPixelBufferScope(this, buffer);
-                        await this.pixelBufferArrived(scope).
-                            ConfigureAwait(false);
+                        try
+                        {
+                            using var scope = new AutoPixelBufferScope(this, buffer);
+                            await this.pixelBufferArrived(scope).
+                                ConfigureAwait(false);
+                        }
+                        catch (Exception ex)
+                        {
+                            Trace.WriteLine(ex);
+                        }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Trace.WriteLine(ex);
+                        break;
                     }
                 }
-                else
+            }
+            finally
+            {
+                this.pixelBufferArrived = null!;
+            }
+        }
+    }
+
+    internal sealed class DelegatedQueuingObservableProcessor :
+        QueuingProcessor
+    {
+        private IObserver<PixelBufferScope> observer;
+
+        public DelegatedQueuingObservableProcessor(
+            IObserver<PixelBufferScope> observer, int maxQueuingFrames) :
+            base(maxQueuingFrames) =>
+            this.observer = observer;
+
+        protected override void ThreadEntry()
+        {
+            try
+            {
+                while (true)
                 {
-                    break;
+                    if (this.Dequeue() is { } buffer)
+                    {
+                        try
+                        {
+                            using var scope = new AutoPixelBufferScope(this, buffer);
+                            this.observer.OnNext(scope);
+                        }
+                        catch (Exception ex)
+                        {
+                            Trace.WriteLine(ex);
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
+            }
+            finally
+            {
+                this.observer.OnCompleted();
+                this.observer = null!;
             }
         }
     }
