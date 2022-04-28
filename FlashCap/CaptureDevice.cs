@@ -27,7 +27,9 @@ namespace FlashCap
             GC.SuppressFinalize(this);
         }
 
-        protected abstract void Dispose(bool disposing);
+        protected virtual void Dispose(bool disposing)
+        {
+        }
 
         public VideoCharacteristics Characteristics { get; protected set; } = null!;
         public bool IsRunning { get; protected set; }

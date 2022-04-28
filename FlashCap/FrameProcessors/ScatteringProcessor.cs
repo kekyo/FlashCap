@@ -106,7 +106,7 @@ namespace FlashCap.FrameProcessors
 
             try
             {
-                using var scope = new InternalPixelBufferScope(this, buffer);
+                using var scope = new AutoPixelBufferScope(this, buffer);
                 this.pixelBufferArrived(scope);
             }
             catch (Exception ex)
@@ -148,7 +148,7 @@ namespace FlashCap.FrameProcessors
 
             try
             {
-                using var scope = new InternalPixelBufferScope(this, buffer);
+                using var scope = new AutoPixelBufferScope(this, buffer);
                 await this.pixelBufferArrived(scope).
                     ConfigureAwait(false);
             }
