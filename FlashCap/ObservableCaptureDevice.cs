@@ -57,6 +57,7 @@ namespace FlashCap
         internal sealed class ObserverProxy : IDisposable
         {
             private volatile IObserver<PixelBufferScope>? observer;
+            private volatile bool isShutdown;
 
             public void Subscribe(IObserver<PixelBufferScope> observer)
             {
@@ -66,8 +67,11 @@ namespace FlashCap
                 }
             }
 
-            internal void InternalDispose() =>
+            internal void InternalDispose()
+            {
+                this.isShutdown = true;
                 Interlocked.Exchange(ref this.observer, null)?.OnCompleted();
+            }
 
             public void Dispose() =>
                 Interlocked.Exchange(ref this.observer, null);
@@ -76,7 +80,17 @@ namespace FlashCap
             {
                 if (this.observer is { } observer)
                 {
-                    observer.OnNext(bufferScope);
+                    try
+                    {
+                        observer.OnNext(bufferScope);
+                    }
+                    finally
+                    {
+                        if (this.isShutdown)
+                        {
+                            Interlocked.Exchange(ref this.observer, null)?.OnCompleted();
+                        }
+                    }
                 }
             }
         }
