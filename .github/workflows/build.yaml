@@ -1,40 +1,30 @@
 name: .NET
 
-on:
-  push:
-    branches:
-    - main
-    - develop
-  pull_request:
-    branches:
-    - main
-    - develop
-  workflow_dispatch:
-    branches:
+on: [push]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     steps:
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
-    - name: Setup .NET Core 2.1
+    - name: Setup .NET Core 2.2
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 2.1.811
+        dotnet-version: 2.2.*
     - name: Setup .NET Core 3.1
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 3.1.404
+        dotnet-version: 3.1.*
     - name: Setup .NET 5
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 5.0.100
+        dotnet-version: 5.0.*
     - name: Setup .NET 6
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 6.0.100
+        dotnet-version: 6.0.*
     - name: Install dependencies
       run: dotnet restore FlashCap/FlashCap.csproj
     - name: Build
