@@ -11,6 +11,7 @@ FlashCap - Independent camera capture library.
 | Package  | NuGet                                                                                                                |
 |:---------|:---------------------------------------------------------------------------------------------------------------------|
 | FlashCap | [![NuGet FlashCap](https://img.shields.io/nuget/v/FlashCap.svg?style=flat)](https://www.nuget.org/packages/FlashCap) |
+| FSharp.FlashCap | [![NuGet FSharp.FlashCap](https://img.shields.io/nuget/v/FSharp.FlashCap.svg?style=flat)](https://www.nuget.org/packages/FSharp.FlashCap) |
 
 ## CI
 
