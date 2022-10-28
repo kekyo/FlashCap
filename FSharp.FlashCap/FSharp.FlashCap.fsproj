@@ -16,6 +16,8 @@
 
   <ItemGroup>
     <Compile Include="Utilities\UtilitiesExtension.fs" />
+    <Compile Include="PixelBufferScopeExtension.fs" />
+    <Compile Include="PixelBufferExtension.fs" />
     <Compile Include="ObservableCaptureDeviceExtension.fs" />
     <Compile Include="CaptureDeviceExtension.fs" />
     <Compile Include="CaptureDeviceDescriptorExtension.fs" />
