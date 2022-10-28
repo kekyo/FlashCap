@@ -29,12 +29,12 @@ jobs:
       run: |
         dotnet restore FlashCap.Core/FlashCap.Core.csproj
         dotnet restore FlashCap/FlashCap.csproj
-        dotnet restore FSharp.FlashCap/FSharp.FlashCap.csproj
+        dotnet restore FSharp.FlashCap/FSharp.FlashCap.fsproj
     - name: Build
       run: |
         dotnet build --configuration Release --no-restore FlashCap.Core/FlashCap.Core.csproj
         dotnet build --configuration Release --no-restore FlashCap/FlashCap.csproj
-        dotnet build --configuration Release --no-restore FSharp.FlashCap/FSharp.FlashCap.csproj
+        dotnet build --configuration Release --no-restore FSharp.FlashCap/FSharp.FlashCap.fsproj
 #    - name: Test
 #      run: dotnet test --no-restore --verbosity normal -p:CITest=True
 #      timeout-minutes: 10
