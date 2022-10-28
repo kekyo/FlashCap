@@ -67,7 +67,7 @@ namespace FlashCap.Wpf.ViewModels
                         this.OnPixelBufferArrivedAsync);
 
                     // Start capturing.
-                    this.captureDevice.Start();
+                    this.captureDevice.OnStart();
                 }
                 else
                 {

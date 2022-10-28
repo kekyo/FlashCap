@@ -12,6 +12,7 @@
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/kekyo/FlashCap.git</RepositoryUrl>
+    <IsPackable>false</IsPackable>
 
     <RootNamespace>FlashCap</RootNamespace>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>

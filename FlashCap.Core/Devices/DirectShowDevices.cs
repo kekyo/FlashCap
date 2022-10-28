@@ -16,7 +16,7 @@ namespace FlashCap.Devices
 {
     public sealed class DirectShowDevices : CaptureDevices
     {
-        public override IEnumerable<CaptureDeviceDescriptor> EnumerateDescriptors() =>
+        protected override IEnumerable<CaptureDeviceDescriptor> OnEnumerateDescriptors() =>
             NativeMethods_DirectShow.EnumerateDeviceMoniker(
                 NativeMethods_DirectShow.CLSID_VideoInputDeviceCategory).
             Collect(moniker => moniker.GetPropertyBag() is { } pb ?

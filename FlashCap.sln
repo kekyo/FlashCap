@@ -31,6 +31,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.V4L2Generator", "F
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.Wpf", "samples\FlashCap.Wpf\FlashCap.Wpf.csproj", "{583903DC-9D94-4A63-AFCB-2FB88CE14C95}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.Core", "FlashCap.Core\FlashCap.Core.csproj", "{8D251497-C11E-4FE6-9EFF-913FBA826C6D}"
+EndProject
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "FSharp.FlashCap", "FSharp.FlashCap\FSharp.FlashCap.fsproj", "{AAD7F2E9-C6F7-4BDA-9D49-08469C2C7A1D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -61,6 +65,14 @@ Global
 		{583903DC-9D94-4A63-AFCB-2FB88CE14C95}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{583903DC-9D94-4A63-AFCB-2FB88CE14C95}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{583903DC-9D94-4A63-AFCB-2FB88CE14C95}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8D251497-C11E-4FE6-9EFF-913FBA826C6D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D251497-C11E-4FE6-9EFF-913FBA826C6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8D251497-C11E-4FE6-9EFF-913FBA826C6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8D251497-C11E-4FE6-9EFF-913FBA826C6D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AAD7F2E9-C6F7-4BDA-9D49-08469C2C7A1D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AAD7F2E9-C6F7-4BDA-9D49-08469C2C7A1D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AAD7F2E9-C6F7-4BDA-9D49-08469C2C7A1D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AAD7F2E9-C6F7-4BDA-9D49-08469C2C7A1D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
