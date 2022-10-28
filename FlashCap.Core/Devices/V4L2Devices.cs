@@ -169,7 +169,7 @@ namespace FlashCap.Devices
             return str;
         }
 
-        public override IEnumerable<CaptureDeviceDescriptor> EnumerateDescriptors() =>
+        protected override IEnumerable<CaptureDeviceDescriptor> OnEnumerateDescriptors() =>
             Directory.GetFiles("/dev", "video*").
             Collect(devicePath =>
             {

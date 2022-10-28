@@ -34,7 +34,13 @@ namespace FlashCap
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-        public virtual void ReleaseNow() =>
+        protected virtual void OnReleaseNow() =>
             this.Buffer = null!;
+
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+        internal void InternalReleaseNow() =>
+            this.OnReleaseNow();
     }
 }

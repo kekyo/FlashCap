@@ -18,6 +18,12 @@ namespace FlashCap
         V4L2,
     }
 
+    public delegate void PixelBufferArrivedDelegate(
+        PixelBufferScope bufferScope);
+
+    public delegate Task PixelBufferArrivedTaskDelegate(
+        PixelBufferScope bufferScope);
+
     public abstract class CaptureDeviceDescriptor
     {
         protected CaptureDeviceDescriptor(
@@ -35,10 +41,16 @@ namespace FlashCap
         public string Description { get; }
         public VideoCharacteristics[] Characteristics { get; }
 
-        public abstract Task<CaptureDevice> OpenWithFrameProcessorAsync(
+        protected abstract Task<CaptureDevice> OnOpenWithFrameProcessorAsync(
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,
             FrameProcessor frameProcessor);
+
+        internal Task<CaptureDevice> InternalOpenWithFrameProcessorAsync(
+            VideoCharacteristics characteristics,
+            bool transcodeIfYUV,
+            FrameProcessor frameProcessor) =>
+            this.OnOpenWithFrameProcessorAsync(characteristics, transcodeIfYUV, frameProcessor);
 
         public override string ToString() =>
             $"{this.Name}: {this.Description}, Characteristics={this.Characteristics.Length}";

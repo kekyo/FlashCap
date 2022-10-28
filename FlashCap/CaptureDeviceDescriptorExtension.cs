@@ -13,14 +13,17 @@ using System.Threading.Tasks;
 
 namespace FlashCap
 {
-    public delegate void PixelBufferArrivedDelegate(
-        PixelBufferScope bufferScope);
-
-    public delegate Task PixelBufferArrivedTaskDelegate(
-        PixelBufferScope bufferScope);
-
     public static class CaptureDeviceDescriptorExtension
     {
+        public static Task<CaptureDevice> OpenWithFrameProcessorAsync(
+            this CaptureDeviceDescriptor descriptor,
+            VideoCharacteristics characteristics,
+            bool transcodeIfYUV,
+            FrameProcessor frameProcessor) =>
+            descriptor.InternalOpenWithFrameProcessorAsync(characteristics, transcodeIfYUV, frameProcessor);
+
+        //////////////////////////////////////////////////////////////////////////////////
+
         public static Task<CaptureDevice> OpenAsync(
             this CaptureDeviceDescriptor descriptor,
             VideoCharacteristics characteristics,

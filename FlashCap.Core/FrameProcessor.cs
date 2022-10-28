@@ -111,7 +111,7 @@ namespace FlashCap
                 {
                     if (this.parent is { } parent)
                     {
-                        base.ReleaseNow();
+                        base.OnReleaseNow();
                         this.parent.ReleasePixelBuffer(this.Buffer);
                         this.parent = null;
                     }
@@ -121,7 +121,7 @@ namespace FlashCap
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-            public override void ReleaseNow() =>
+            protected override void OnReleaseNow() =>
                 this.Dispose();
         }
     }

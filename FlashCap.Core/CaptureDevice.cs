@@ -34,8 +34,13 @@ namespace FlashCap
         public VideoCharacteristics Characteristics { get; protected set; } = null!;
         public bool IsRunning { get; protected set; }
 
-        public abstract void Start();
-        public abstract void Stop();
+        protected abstract void OnStart();
+        protected abstract void OnStop();
+
+        internal void InternalStart() =>
+            this.OnStart();
+        internal void InternalStop() =>
+            this.OnStop();
 
         protected abstract void OnCapture(
             IntPtr pData, int size, long timestampMicroseconds, long frameIndex, PixelBuffer buffer);

@@ -12,21 +12,25 @@ using FlashCap.Internal;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 
 namespace FlashCap
 {
     public class CaptureDevices
     {
-        public virtual IEnumerable<CaptureDeviceDescriptor> EnumerateDescriptors() =>
+        protected virtual IEnumerable<CaptureDeviceDescriptor> OnEnumerateDescriptors() =>
             NativeMethods.CurrentPlatform switch
             {
                 NativeMethods.Platforms.Windows =>
-                    new DirectShowDevices().EnumerateDescriptors().
-                    Concat(new VideoForWindowsDevices().EnumerateDescriptors()),
+                    new DirectShowDevices().OnEnumerateDescriptors().
+                    Concat(new VideoForWindowsDevices().OnEnumerateDescriptors()),
                 NativeMethods.Platforms.Linux =>
-                    new V4L2Devices().EnumerateDescriptors(),
+                    new V4L2Devices().OnEnumerateDescriptors(),
                 _ =>
                     ArrayEx.Empty<CaptureDeviceDescriptor>(),
             };
+
+        internal IEnumerable<CaptureDeviceDescriptor> InternalEnumerateDescriptors() =>
+            this.OnEnumerateDescriptors();
     }
 }

@@ -104,14 +104,14 @@ namespace FlashCap
 
         public long FrameIndex { get; }
 
-        private enum BufferStrategies
+        internal enum BufferStrategies
         {
             ForceCopy,
             CopyWhenDifferentSizeOrReuse,
             ForceReuse,
         }
 
-        private unsafe ArraySegment<byte> InternalExtractImage(BufferStrategies strategy)
+        internal unsafe ArraySegment<byte> InternalExtractImage(BufferStrategies strategy)
         {
             lock (this)
             {
@@ -225,22 +225,5 @@ namespace FlashCap
                 return new ArraySegment<byte>(copied);
             }
         }
-
-        public byte[] ExtractImage()
-        {
-            var image = this.InternalExtractImage(BufferStrategies.CopyWhenDifferentSizeOrReuse);
-            Debug.Assert(image.Array!.Length == image.Count);
-            return image.Array;
-        }
-
-        public byte[] CopyImage()
-        {
-            var image = InternalExtractImage(BufferStrategies.ForceCopy);
-            Debug.Assert(image.Array!.Length == image.Count);
-            return image.Array;
-        }
-
-        public ArraySegment<byte> ReferImage() =>
-            this.InternalExtractImage(BufferStrategies.ForceReuse);
     }
 }

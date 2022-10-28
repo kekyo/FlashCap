@@ -11,27 +11,27 @@ using System.Threading.Tasks;
 
 namespace FlashCap.Devices
 {
-    public sealed class VideoForWindowsDeviceDescriptor : CaptureDeviceDescriptor
+    public sealed class V4L2DeviceDescriptor : CaptureDeviceDescriptor
     {
-        private readonly int deviceIndex;
+        private readonly string devicePath;
 
-        internal VideoForWindowsDeviceDescriptor(
-            int deviceIndex, string name, string description,
+        internal V4L2DeviceDescriptor(
+            string devicePath, string name, string description,
             VideoCharacteristics[] characteristics) :
             base(name, description, characteristics) =>
-            this.deviceIndex = deviceIndex;
+            this.devicePath = devicePath;
 
         public override object Identity =>
-            this.deviceIndex;
+            this.devicePath;
 
         public override DeviceTypes DeviceType =>
-            DeviceTypes.VideoForWindows;
+            DeviceTypes.V4L2;
 
-        public override Task<CaptureDevice> OpenWithFrameProcessorAsync(
+        protected override Task<CaptureDevice> OnOpenWithFrameProcessorAsync(
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,
             FrameProcessor frameProcessor) =>
-            TaskEx.FromResult((CaptureDevice)new VideoForWindowsDevice(
-                this.deviceIndex, characteristics, transcodeIfYUV, frameProcessor));
+            TaskEx.FromResult((CaptureDevice)new V4L2Device(
+                devicePath, characteristics, transcodeIfYUV, frameProcessor));
     }
 }

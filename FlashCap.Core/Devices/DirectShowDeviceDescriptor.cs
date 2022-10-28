@@ -27,7 +27,7 @@ namespace FlashCap.Devices
         public override DeviceTypes DeviceType =>
             DeviceTypes.DirectShow;
 
-        public override Task<CaptureDevice> OpenWithFrameProcessorAsync(
+        protected override Task<CaptureDevice> OnOpenWithFrameProcessorAsync(
             VideoCharacteristics characteristics,
             bool transcodeIfYUV,
             FrameProcessor frameProcessor) =>

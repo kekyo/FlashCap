@@ -43,16 +43,19 @@ namespace FlashCap
         public bool IsRunning =>
             this.captureDevice.IsRunning;
 
-        public void Start() =>
-            this.captureDevice.Start();
-        public void Stop() =>
-            this.captureDevice.Stop();
+        internal void InternalStart() =>
+            this.captureDevice.InternalStart();
+        internal void InternalStop() =>
+            this.captureDevice.InternalStop();
 
-        public IDisposable Subscribe(IObserver<PixelBufferScope> observer)
+        internal IDisposable InternalSubscribe(IObserver<PixelBufferScope> observer)
         {
             this.proxy.Subscribe(observer);
             return this.proxy;
         }
+
+        IDisposable IObservable<PixelBufferScope>.Subscribe(IObserver<PixelBufferScope> observer) =>
+            this.InternalSubscribe(observer);
 
         internal sealed class ObserverProxy : IDisposable
         {
