@@ -223,7 +223,7 @@ namespace FlashCap.Devices
                 {
                     if (this.graphBuilder != null)
                     {
-                        this.Stop();
+                        this.OnStop();
 
                         this.frameProcessor.Dispose();
 
@@ -245,7 +245,7 @@ namespace FlashCap.Devices
             }
         }
 
-        public override void Start()
+        protected override void OnStart()
         {
             lock (this)
             {
@@ -266,7 +266,7 @@ namespace FlashCap.Devices
             }
         }
 
-        public override void Stop()
+        protected override void OnStop()
         {
             lock (this)
             {

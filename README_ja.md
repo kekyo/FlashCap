@@ -11,12 +11,14 @@ FlashCap - シンプルで依存性のない、カメラキャプチャライブ
 | Package  | NuGet                                                                                                                |
 |:---------|:---------------------------------------------------------------------------------------------------------------------|
 | FlashCap | [![NuGet FlashCap](https://img.shields.io/nuget/v/FlashCap.svg?style=flat)](https://www.nuget.org/packages/FlashCap) |
+| FSharp.FlashCap | [![NuGet FSharp.FlashCap](https://img.shields.io/nuget/v/FSharp.FlashCap.svg?style=flat)](https://www.nuget.org/packages/FSharp.FlashCap) |
 
 ## CI
 
 | main                                                                                                                                                                 | develop                                                                                                                                                                       |
 |:---------------------------------------------------------------------------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | [![FlashCap CI build (main)](https://github.com/kekyo/FlashCap/workflows/.NET/badge.svg?branch=main)](https://github.com/kekyo/FlashCap/actions?query=branch%3Amain) | [![FlashCap CI build (develop)](https://github.com/kekyo/FlashCap/workflows/.NET/badge.svg?branch=develop)](https://github.com/kekyo/FlashCap/actions?query=branch%3Adevelop) |
+
 
 ----
 
@@ -32,9 +34,14 @@ FlashCap - シンプルで依存性のない、カメラキャプチャライブ
 また、公式以外の他のライブラリに依存することもありません。
 [NuGetの依存ページを参照して下さい](https://www.nuget.org/packages/FlashCap)
 
+
 ----
 
 ## 簡単なコード例
+
+`FlashCap` NuGetパッケージをインストールします。
+
+* `FSharp.FlashCap`パッケージを使用すれば、F#向けに最適化されたAPIセットを使う事が出来ます。
 
 最初に、対象デバイスと映像の特性を列挙します:
 
@@ -120,6 +127,7 @@ deviceObservable.Start();
 
 解説記事はこちら（英語）: ["Easy to implement video image capture with FlashCap" (dev.to)](https://dev.to/kozy_kekyo/easy-to-implement-video-image-capture-with-flashcap-o5a)
 
+
 ----
 
 ## 動作環境
@@ -170,6 +178,7 @@ deviceObservable.Start();
 * Surface2 (arm32, Windows RT 8.1 JB'd)
   * デバイスが見つかりませんでした。VFWとDirectShowの両方に対応していない可能性があります。
 
+
 ----
 
 ## 完全なサンプルコード
@@ -185,6 +194,7 @@ Avaloniaのサンプルコードは、単一のコードで、WindowsとLinuxの
 ![FlashCap.Avalonia](Images/FlashCap.Avalonia_Windows.png)
 
 ![FlashCap.Avalonia](Images/FlashCap.Avalonia_Linux.png)
+
 
 ----
 
@@ -515,6 +525,7 @@ device.Start();
 
 それは、きわめて高度に最適化された、フレームと画像データの処理を実装できることです。例えば、ピクセルバッファは効率よく作られていますが、必ず使用しなければならないわけではありません。（`Capture()`メソッドの呼び出しは任意です。）引数によって、生の画像データへのポインタとサイズが与えられているため、画像データに直接アクセスすることは可能です。そこで、あなた独自の画像データ処理を実装すれば、最速の処理を実現する事が出来ます。
 
+
 ----
 
 ## 制限
@@ -524,16 +535,20 @@ device.Start();
   2. ソースデバイス（本当のカメラデバイス）に対応する各ドライバ。しかし、プログラマブルに選択することはできません。
      複数のカメラデバイスが検出された場合、自動的に選択ダイアログが表示されます。
 
+
 ----
 
 ## License
 
 Apache-v2.
 
+
 ----
 
 ## 履歴
 
+* 1.3.0:
+  * F#向けのAPIを公開する `FSharp.FlashCap` パッケージを追加。
 * 1.2.0:
   * `AsObservableAsync()`で、Reactive Extensionに対応しました。
 * 1.1.0:

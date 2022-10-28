@@ -16,7 +16,7 @@ namespace FlashCap.Devices
 {
     public sealed class VideoForWindowsDevices : CaptureDevices
     {
-        public override IEnumerable<CaptureDeviceDescriptor> EnumerateDescriptors() =>
+        protected override IEnumerable<CaptureDeviceDescriptor> OnEnumerateDescriptors() =>
             Enumerable.Range(0, NativeMethods_VideoForWindows.MaxVideoForWindowsDevices).
             Collect(index =>
             {

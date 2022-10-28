@@ -12,11 +12,12 @@
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/kekyo/FlashCap.git</RepositoryUrl>
+    <IsPackable>false</IsPackable>
 
     <RootNamespace>FlashCap</RootNamespace>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1570;CS1591;CA1416</NoWarn>
+    <NoWarn>$(NoWarn);CS1570;CS1591;CA1416;NU1803</NoWarn>
 
     <Product>FlashCap</Product>
     <Trademark>FlashCap</Trademark>
@@ -34,24 +35,25 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' != 'Release'">
-    <DebugType>full</DebugType>
+    <DebugType>portable</DebugType>
     <Deterministic>false</Deterministic>
     <EmbedUntrackedSources>false</EmbedUntrackedSources>
     <ContinuousIntegrationBuild>false</ContinuousIntegrationBuild>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
-    <DebugType>portable</DebugType>
+    <DebugType>embedded</DebugType>
     <Deterministic>true</Deterministic>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="RelaxVersioner" Version="2.6.0" PrivateAssets="All" />
+    <PackageReference Include="RelaxVersioner" Version="2.13.1" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <SourceRoot Include="$(MSBuildThisFileDirectory)/"/>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
   </ItemGroup>
 
