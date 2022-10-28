@@ -37,6 +37,10 @@ It also does not depend on any non-official libraries.
 
 ## Short sample code
 
+Install the `FlashCap` NuGet package.
+
+* The `FSharp.FlashCap` package allows you to use an API set optimized for F#.
+
 Enumerate target devices and video characteristics:
 
 ```csharp
@@ -121,6 +125,7 @@ deviceObservable.Start();
 
 Published introduction article: ["Easy to implement video image capture with FlashCap" (dev.to)](https://dev.to/kozy_kekyo/easy-to-implement-video-image-capture-with-flashcap-o5a)
 
+
 ----
 
 ## Target environments
@@ -170,6 +175,7 @@ Couldn't detect any devices on FlashCap:
 * Surface2 (arm32, Windows RT 8.1 JB'd)
   * Any devices are not found, may not be compatible with both VFW and DirectShow.
 
+
 ----
 
 ## Fully sample code
@@ -188,6 +194,7 @@ It is pretty fast.
 ![FlashCap.Avalonia](Images/FlashCap.Avalonia_Windows.png)
 
 ![FlashCap.Avalonia](Images/FlashCap.Avalonia_Linux.png)
+
 
 ----
 
@@ -575,6 +582,7 @@ For example, pixel buffers are created efficiently, but we do not have to be use
 Since a pointer to the raw image data and its size are given by the arguments, it is possible to access the image data directly.
 So, you can implement your own image data processing to achieve the fastest possible processing.
 
+
 ----
 
 ## Limitation
@@ -584,16 +592,20 @@ So, you can implement your own image data processing to achieve the fastest poss
   2. Source devices (truly real camera devices) each drivers. But we could not select programmable.
      Will show up selection dialog automatically when multiple camera devices are found.
 
+
 ----
 
 ## License
 
 Apache-v2.
 
+
 ----
 
 ## History
 
+* 1.3.0:
+  * Added `FSharp.FlashCap` package that exposes API set for F#.
 * 1.2.0:
   * Supported Reactive Extension on `AsObservableAsync()`.
 * 1.1.0:

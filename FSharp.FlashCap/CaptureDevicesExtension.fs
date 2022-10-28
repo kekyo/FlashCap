@@ -14,7 +14,7 @@ module public CaptureDevicesExtension =
 
     type public CaptureDevices with
 
-        member self.enumerateDescriptors() =
+        member self.enumerateDescriptors() : seq<_> =
             self.InternalEnumerateDescriptors()
 
         member self.getDescriptors() =
