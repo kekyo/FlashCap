@@ -16,7 +16,7 @@
     <RootNamespace>FlashCap</RootNamespace>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1570;CS1591;CA1416</NoWarn>
+    <NoWarn>$(NoWarn);CS1570;CS1591;CA1416;NU1803</NoWarn>
 
     <Product>FlashCap</Product>
     <Trademark>FlashCap</Trademark>
@@ -52,6 +52,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <SourceRoot Include="$(MSBuildThisFileDirectory)/"/>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
   </ItemGroup>
 
