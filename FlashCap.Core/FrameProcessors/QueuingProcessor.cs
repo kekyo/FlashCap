@@ -12,84 +12,106 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 
-namespace FlashCap.FrameProcessors
+namespace FlashCap.FrameProcessors;
+
+internal abstract class QueuingProcessor :
+    FrameProcessor
 {
-    internal abstract class QueuingProcessor :
-        FrameProcessor
+    private readonly int maxQueuingFrames;
+    private readonly Queue<PixelBuffer> queue = new();
+    private ManualResetEventSlim arrived = new(false);
+    private ManualResetEventSlim abort = new(false);
+    private volatile bool aborting;
+    private Thread thread;
+
+    protected QueuingProcessor(int maxQueuingFrames)
     {
-        private readonly int maxQueuingFrames;
-        private readonly Queue<PixelBuffer> queue = new();
-        private ManualResetEventSlim arrived = new(false);
-        private ManualResetEventSlim abort = new(false);
-        private volatile bool aborting;
-        private Thread thread;
+        this.maxQueuingFrames = maxQueuingFrames;
+        this.thread = new Thread(this.ThreadEntry);
+        this.thread.IsBackground = true;
+        this.thread.Start();
+    }
 
-        protected QueuingProcessor(int maxQueuingFrames)
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing && this.thread != null)
         {
-            this.maxQueuingFrames = maxQueuingFrames;
-            this.thread = new Thread(this.ThreadEntry);
-            this.thread.IsBackground = true;
-            this.thread.Start();
-        }
+            this.aborting = true;
+            this.abort.Set();
 
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && this.thread != null)
+            // Force exhaust.
+            lock (this.queue)
             {
-                this.aborting = true;
-                this.abort.Set();
-
-                // Force exhaust.
-                lock (this.queue)
-                {
-                    this.queue.Clear();
-                    this.arrived.Reset();
-                }
-
-                // HACK: Avoid deadlocking when arrived event handlers stuck in disposing process.
-                this.thread.Join(TimeSpan.FromSeconds(2));
-                this.thread = null!;
+                this.queue.Clear();
+                this.arrived.Reset();
             }
+
+            // HACK: Avoid deadlocking when arrived event handlers stuck in disposing process.
+            this.thread.Join(TimeSpan.FromSeconds(2));
+            this.thread = null!;
+        }
+    }
+
+    public override sealed void OnFrameArrived(
+        CaptureDevice captureDevice,
+        IntPtr pData, int size,
+        long timestampMicroseconds, long frameIndex)
+    {
+        if (this.aborting)
+        {
+            return;
         }
 
-        public override sealed void OnFrameArrived(
-            CaptureDevice captureDevice,
-            IntPtr pData, int size,
-            long timestampMicroseconds, long frameIndex)
+        lock (this.queue)
         {
-            if (this.aborting)
+            if (this.queue.Count >= this.maxQueuingFrames)
             {
                 return;
             }
+        }
 
-            lock (this.queue)
+        var buffer = base.GetPixelBuffer();
+
+        this.Capture(
+            captureDevice,
+            pData, size,
+            timestampMicroseconds, frameIndex,
+            buffer);
+
+        lock (this.queue)
+        {
+            this.queue.Enqueue(buffer);
+            if (this.queue.Count == 1)
             {
-                if (this.queue.Count >= this.maxQueuingFrames)
-                {
-                    return;
-                }
+                this.arrived.Set();
             }
+        }
+    }
 
-            var buffer = base.GetPixelBuffer();
-
-            this.Capture(
-                captureDevice,
-                pData, size,
-                timestampMicroseconds, frameIndex,
-                buffer);
-
-            lock (this.queue)
+    protected PixelBuffer? Dequeue()
+    {
+        lock (this.queue)
+        {
+            if (this.queue.Count >= 1)
             {
-                this.queue.Enqueue(buffer);
-                if (this.queue.Count == 1)
-                {
-                    this.arrived.Set();
-                }
+                return this.queue.Dequeue();
+            }
+            else
+            {
+                this.arrived.Reset();
             }
         }
 
-        protected PixelBuffer? Dequeue()
+        var handles = new[] { this.abort.WaitHandle, this.arrived.WaitHandle };
+
+        while (true)
         {
+            var index = WaitHandle.WaitAny(handles);
+            if (index == 0)
+            {
+                return null;
+            }
+
             lock (this.queue)
             {
                 if (this.queue.Count >= 1)
@@ -98,118 +120,95 @@ namespace FlashCap.FrameProcessors
                 }
                 else
                 {
+                    // Sprious
                     this.arrived.Reset();
                 }
             }
+        }
+    }
 
-            var handles = new[] { this.abort.WaitHandle, this.arrived.WaitHandle };
+    protected abstract void ThreadEntry();
+}
 
+internal sealed class DelegatedQueuingProcessor :
+    QueuingProcessor
+{
+    private PixelBufferArrivedDelegate pixelBufferArrived;
+
+    public DelegatedQueuingProcessor(
+        PixelBufferArrivedDelegate pixelBufferArrived, int maxQueuingFrames) :
+        base(maxQueuingFrames) =>
+        this.pixelBufferArrived = pixelBufferArrived;
+
+    protected override void ThreadEntry()
+    {
+        try
+        {
             while (true)
             {
-                var index = WaitHandle.WaitAny(handles);
-                if (index == 0)
+                if (this.Dequeue() is { } buffer)
                 {
-                    return null;
+                    try
+                    {
+                        using var scope = new AutoPixelBufferScope(this, buffer);
+                        this.pixelBufferArrived(scope);
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.WriteLine(ex);
+                    }
                 }
-
-                lock (this.queue)
+                else
                 {
-                    if (this.queue.Count >= 1)
-                    {
-                        return this.queue.Dequeue();
-                    }
-                    else
-                    {
-                        // Sprious
-                        this.arrived.Reset();
-                    }
+                    break;
                 }
             }
         }
-
-        protected abstract void ThreadEntry();
-    }
-
-    internal sealed class DelegatedQueuingProcessor :
-        QueuingProcessor
-    {
-        private PixelBufferArrivedDelegate pixelBufferArrived;
-
-        public DelegatedQueuingProcessor(
-            PixelBufferArrivedDelegate pixelBufferArrived, int maxQueuingFrames) :
-            base(maxQueuingFrames) =>
-            this.pixelBufferArrived = pixelBufferArrived;
-
-        protected override void ThreadEntry()
+        finally
         {
-            try
-            {
-                while (true)
-                {
-                    if (this.Dequeue() is { } buffer)
-                    {
-                        try
-                        {
-                            using var scope = new AutoPixelBufferScope(this, buffer);
-                            this.pixelBufferArrived(scope);
-                        }
-                        catch (Exception ex)
-                        {
-                            Trace.WriteLine(ex);
-                        }
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-            }
-            finally
-            {
-                this.pixelBufferArrived = null!;
-            }
+            this.pixelBufferArrived = null!;
         }
     }
+}
 
-    internal sealed class DelegatedQueuingTaskProcessor :
-        QueuingProcessor
+internal sealed class DelegatedQueuingTaskProcessor :
+    QueuingProcessor
+{
+    private PixelBufferArrivedTaskDelegate pixelBufferArrived;
+
+    public DelegatedQueuingTaskProcessor(
+        PixelBufferArrivedTaskDelegate pixelBufferArrived, int maxQueuingFrames) :
+        base(maxQueuingFrames) =>
+        this.pixelBufferArrived = pixelBufferArrived;
+
+    protected override async void ThreadEntry()
     {
-        private PixelBufferArrivedTaskDelegate pixelBufferArrived;
-
-        public DelegatedQueuingTaskProcessor(
-            PixelBufferArrivedTaskDelegate pixelBufferArrived, int maxQueuingFrames) :
-            base(maxQueuingFrames) =>
-            this.pixelBufferArrived = pixelBufferArrived;
-
-        protected override async void ThreadEntry()
+        try
         {
-            try
+            while (true)
             {
-                while (true)
+                if (this.Dequeue() is { } buffer)
                 {
-                    if (this.Dequeue() is { } buffer)
+                    try
                     {
-                        try
-                        {
-                            using var scope = new AutoPixelBufferScope(this, buffer);
-                            await this.pixelBufferArrived(scope).
-                                ConfigureAwait(false);
-                        }
-                        catch (Exception ex)
-                        {
-                            Trace.WriteLine(ex);
-                        }
+                        using var scope = new AutoPixelBufferScope(this, buffer);
+                        await this.pixelBufferArrived(scope).
+                            ConfigureAwait(false);
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        break;
+                        Trace.WriteLine(ex);
                     }
                 }
+                else
+                {
+                    break;
+                }
             }
-            finally
-            {
-                this.pixelBufferArrived = null!;
-            }
+        }
+        finally
+        {
+            this.pixelBufferArrived = null!;
         }
     }
 }

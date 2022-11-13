@@ -9,29 +9,28 @@
 
 using System.Threading.Tasks;
 
-namespace FlashCap.Devices
+namespace FlashCap.Devices;
+
+public sealed class DirectShowDeviceDescriptor : CaptureDeviceDescriptor
 {
-    public sealed class DirectShowDeviceDescriptor : CaptureDeviceDescriptor
-    {
-        private readonly string devicePath;
+    private readonly string devicePath;
 
-        internal DirectShowDeviceDescriptor(
-            string devicePath, string name, string description,
-            VideoCharacteristics[] characteristics) :
-            base(name, description, characteristics) =>
-            this.devicePath = devicePath;
+    internal DirectShowDeviceDescriptor(
+        string devicePath, string name, string description,
+        VideoCharacteristics[] characteristics) :
+        base(name, description, characteristics) =>
+        this.devicePath = devicePath;
 
-        public override object Identity =>
-            this.devicePath;
+    public override object Identity =>
+        this.devicePath;
 
-        public override DeviceTypes DeviceType =>
-            DeviceTypes.DirectShow;
+    public override DeviceTypes DeviceType =>
+        DeviceTypes.DirectShow;
 
-        protected override Task<CaptureDevice> OnOpenWithFrameProcessorAsync(
-            VideoCharacteristics characteristics,
-            bool transcodeIfYUV,
-            FrameProcessor frameProcessor) =>
-            TaskEx.FromResult((CaptureDevice)new DirectShowDevice(
-                this.devicePath, characteristics, transcodeIfYUV, frameProcessor));  // TODO:
-    }
+    protected override Task<CaptureDevice> OnOpenWithFrameProcessorAsync(
+        VideoCharacteristics characteristics,
+        bool transcodeIfYUV,
+        FrameProcessor frameProcessor) =>
+        TaskEx.FromResult((CaptureDevice)new DirectShowDevice(
+            this.devicePath, characteristics, transcodeIfYUV, frameProcessor));  // TODO:
 }

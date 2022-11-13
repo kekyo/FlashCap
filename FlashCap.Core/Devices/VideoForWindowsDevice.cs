@@ -13,199 +13,198 @@ using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace FlashCap.Devices
+namespace FlashCap.Devices;
+
+public sealed class VideoForWindowsDevice : CaptureDevice
 {
-    public sealed class VideoForWindowsDevice : CaptureDevice
+    private readonly int deviceIndex;
+    private readonly bool transcodeIfYUV;
+    private readonly FrameProcessor frameProcessor;
+    private readonly TimestampCounter counter = new();
+    private long frameIndex;
+
+    private IndependentSingleApartmentContext? workingContext = new();
+    private IntPtr handle;
+    private GCHandle thisPin;
+    private NativeMethods_VideoForWindows.CAPVIDEOCALLBACK? callback;
+    private IntPtr pBih;
+
+    internal unsafe VideoForWindowsDevice(
+        int deviceIndex,
+        VideoCharacteristics characteristics,
+        bool transcodeIfYUV,
+        FrameProcessor frameProcessor)
     {
-        private readonly int deviceIndex;
-        private readonly bool transcodeIfYUV;
-        private readonly FrameProcessor frameProcessor;
-        private readonly TimestampCounter counter = new();
-        private long frameIndex;
+        this.deviceIndex = deviceIndex;
+        this.Characteristics = characteristics;
+        this.transcodeIfYUV = transcodeIfYUV;
+        this.frameProcessor = frameProcessor;
 
-        private IndependentSingleApartmentContext? workingContext = new();
-        private IntPtr handle;
-        private GCHandle thisPin;
-        private NativeMethods_VideoForWindows.CAPVIDEOCALLBACK? callback;
-        private IntPtr pBih;
-
-        internal unsafe VideoForWindowsDevice(
-            int deviceIndex,
-            VideoCharacteristics characteristics,
-            bool transcodeIfYUV,
-            FrameProcessor frameProcessor)
+        if (!NativeMethods.GetCompressionAndBitCount(
+            characteristics.PixelFormat, out var compression, out var bitCount))
         {
-            this.deviceIndex = deviceIndex;
-            this.Characteristics = characteristics;
-            this.transcodeIfYUV = transcodeIfYUV;
-            this.frameProcessor = frameProcessor;
+            throw new ArgumentException(
+                $"FlashCap: Couldn't set video format [1]: DeviceIndex={deviceIndex}");
+        }
 
-            if (!NativeMethods.GetCompressionAndBitCount(
-                characteristics.PixelFormat, out var compression, out var bitCount))
+        this.workingContext!.Send(_ =>
+        {
+            this.handle = NativeMethods_VideoForWindows.CreateVideoSourceWindow(deviceIndex);
+
+            NativeMethods_VideoForWindows.capDriverConnect(this.handle, this.deviceIndex);
+
+            ///////////////////////////////////////
+
+            NativeMethods_VideoForWindows.capSetPreviewScale(this.handle, false);
+            NativeMethods_VideoForWindows.capSetPreviewFPS(this.handle, 15);
+            NativeMethods_VideoForWindows.capSetOverlay(this.handle, true);
+
+            ///////////////////////////////////////
+
+            // At first set 5fps, because can't set both fps and video format atomicity.
+            NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out var cp);
+            cp.dwRequestMicroSecPerFrame = 1_000_000 / 5;   // 5fps
+            if (!NativeMethods_VideoForWindows.capCaptureSetSetup(handle, cp))
             {
                 throw new ArgumentException(
-                    $"FlashCap: Couldn't set video format [1]: DeviceIndex={deviceIndex}");
+                    $"FlashCap: Couldn't set video frame rate [1]: DeviceIndex={deviceIndex}");
             }
+            NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out cp);
 
-            this.workingContext!.Send(_ =>
+            var pih = NativeMethods.AllocateMemory((IntPtr)sizeof(NativeMethods.BITMAPINFOHEADER));
+            try
             {
-                this.handle = NativeMethods_VideoForWindows.CreateVideoSourceWindow(deviceIndex);
+                var pBih = (NativeMethods.BITMAPINFOHEADER*)pih.ToPointer();
 
-                NativeMethods_VideoForWindows.capDriverConnect(this.handle, this.deviceIndex);
+                pBih->biSize = sizeof(NativeMethods.BITMAPINFOHEADER);
+                pBih->biCompression = compression;
+                pBih->biPlanes = 1;
+                pBih->biBitCount = bitCount;
+                pBih->biWidth = characteristics.Width;
+                pBih->biHeight = characteristics.Height;
+                pBih->biSizeImage = pBih->CalculateImageSize();
 
-                ///////////////////////////////////////
+                // Try to set video format.
+                if (!NativeMethods_VideoForWindows.capSetVideoFormat(handle, pih))
+                {
+                    throw new ArgumentException(
+                        $"FlashCap: Couldn't set video format [2]: DeviceIndex={deviceIndex}");
+                }
 
-                NativeMethods_VideoForWindows.capSetPreviewScale(this.handle, false);
-                NativeMethods_VideoForWindows.capSetPreviewFPS(this.handle, 15);
-                NativeMethods_VideoForWindows.capSetOverlay(this.handle, true);
-
-                ///////////////////////////////////////
-
-                // At first set 5fps, because can't set both fps and video format atomicity.
-                NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out var cp);
-                cp.dwRequestMicroSecPerFrame = 1_000_000 / 5;   // 5fps
+                // Try to set fps, but VFW API may cause ignoring it silently...
+                cp.dwRequestMicroSecPerFrame =
+                    (int)(1_000_000 / characteristics.FramesPerSecond);
                 if (!NativeMethods_VideoForWindows.capCaptureSetSetup(handle, cp))
                 {
                     throw new ArgumentException(
-                        $"FlashCap: Couldn't set video frame rate [1]: DeviceIndex={deviceIndex}");
+                        $"FlashCap: Couldn't set video frame rate [2]: DeviceIndex={deviceIndex}");
                 }
                 NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out cp);
+            }
+            finally
+            {
+                NativeMethods.FreeMemory(pih);
+            }
 
-                var pih = NativeMethods.AllocateMemory((IntPtr)sizeof(NativeMethods.BITMAPINFOHEADER));
-                try
-                {
-                    var pBih = (NativeMethods.BITMAPINFOHEADER*)pih.ToPointer();
+            // Get final video format.
+            NativeMethods_VideoForWindows.capGetVideoFormat(handle, out this.pBih);
 
-                    pBih->biSize = sizeof(NativeMethods.BITMAPINFOHEADER);
-                    pBih->biCompression = compression;
-                    pBih->biPlanes = 1;
-                    pBih->biBitCount = bitCount;
-                    pBih->biWidth = characteristics.Width;
-                    pBih->biHeight = characteristics.Height;
-                    pBih->biSizeImage = pBih->CalculateImageSize();
+            ///////////////////////////////////////
 
-                    // Try to set video format.
-                    if (!NativeMethods_VideoForWindows.capSetVideoFormat(handle, pih))
-                    {
-                        throw new ArgumentException(
-                            $"FlashCap: Couldn't set video format [2]: DeviceIndex={deviceIndex}");
-                    }
+            // https://stackoverflow.com/questions/4097235/is-it-necessary-to-gchandle-alloc-each-callback-in-a-class
+            this.thisPin = GCHandle.Alloc(this, GCHandleType.Normal);
+            this.callback = this.CallbackEntry;
 
-                    // Try to set fps, but VFW API may cause ignoring it silently...
-                    cp.dwRequestMicroSecPerFrame =
-                        (int)(1_000_000 / characteristics.FramesPerSecond);
-                    if (!NativeMethods_VideoForWindows.capCaptureSetSetup(handle, cp))
-                    {
-                        throw new ArgumentException(
-                            $"FlashCap: Couldn't set video frame rate [2]: DeviceIndex={deviceIndex}");
-                    }
-                    NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out cp);
-                }
-                finally
-                {
-                    NativeMethods.FreeMemory(pih);
-                }
+            NativeMethods_VideoForWindows.capSetCallbackFrame(this.handle, this.callback);
+        }, null);
+    }
 
-                // Get final video format.
-                NativeMethods_VideoForWindows.capGetVideoFormat(handle, out this.pBih);
+    protected override void Dispose(bool disposing)
+    {
+        // This class will only collect when explicitly disposing.
+        // Because it holds by objref pinning on running state.
 
-                ///////////////////////////////////////
-
-                // https://stackoverflow.com/questions/4097235/is-it-necessary-to-gchandle-alloc-each-callback-in-a-class
-                this.thisPin = GCHandle.Alloc(this, GCHandleType.Normal);
-                this.callback = this.CallbackEntry;
-
-                NativeMethods_VideoForWindows.capSetCallbackFrame(this.handle, this.callback);
-            }, null);
-        }
-
-        protected override void Dispose(bool disposing)
+        if (this.handle != IntPtr.Zero)
         {
-            // This class will only collect when explicitly disposing.
-            // Because it holds by objref pinning on running state.
+            this.workingContext!.Send(_ =>
+            {
+                NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
+                this.IsRunning = false;
+                NativeMethods_VideoForWindows.capSetCallbackFrame(this.handle, null);
+                NativeMethods_VideoForWindows.capDriverDisconnect(this.handle, this.deviceIndex);
+                NativeMethods_VideoForWindows.DestroyWindow(this.handle);
+                this.handle = IntPtr.Zero;
+                this.thisPin.Free();
+                this.callback = null;
+                NativeMethods.FreeMemory(this.pBih);
+                this.pBih = IntPtr.Zero;
+            }, null);
 
-            if (this.handle != IntPtr.Zero)
+            this.workingContext.Dispose();
+            this.workingContext = null;
+        }
+    }
+
+    private void CallbackEntry(
+        IntPtr hWnd, in NativeMethods_VideoForWindows.VIDEOHDR hdr)
+    {
+        // HACK: Avoid stupid camera devices...
+        if (hdr.dwBytesUsed >= 64)
+        {
+            try
+            {
+                this.frameProcessor.OnFrameArrived(
+                    this,
+                    hdr.lpData, hdr.dwBytesUsed,
+                    // HACK: `hdr.dwTimeCaptured` always zero on my environment...
+                    this.counter.ElapsedMicroseconds,
+                    this.frameIndex++);
+            }
+            // DANGER: Stop leaking exception around outside of unmanaged area...
+            catch (Exception ex)
+            {
+                Trace.WriteLine(ex);
+            }
+        }
+    }
+
+    protected override void OnStart()
+    {
+        lock (this)
+        {
+            if (!this.IsRunning)
             {
                 this.workingContext!.Send(_ =>
                 {
-                    NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
-                    this.IsRunning = false;
-                    NativeMethods_VideoForWindows.capSetCallbackFrame(this.handle, null);
-                    NativeMethods_VideoForWindows.capDriverDisconnect(this.handle, this.deviceIndex);
-                    NativeMethods_VideoForWindows.DestroyWindow(this.handle);
-                    this.handle = IntPtr.Zero;
-                    this.thisPin.Free();
-                    this.callback = null;
-                    NativeMethods.FreeMemory(this.pBih);
-                    this.pBih = IntPtr.Zero;
+                    this.frameIndex = 0;
+                    this.counter.Restart();
+                    NativeMethods_VideoForWindows.capShowPreview(this.handle, true);
                 }, null);
-
-                this.workingContext.Dispose();
-                this.workingContext = null;
+                this.IsRunning = true;
             }
         }
+    }
 
-        private void CallbackEntry(
-            IntPtr hWnd, in NativeMethods_VideoForWindows.VIDEOHDR hdr)
+    protected override void OnStop()
+    {
+        lock (this)
         {
-            // HACK: Avoid stupid camera devices...
-            if (hdr.dwBytesUsed >= 64)
+            if (this.IsRunning)
             {
-                try
+                this.IsRunning = false;
+                this.workingContext!.Send(_ =>
                 {
-                    this.frameProcessor.OnFrameArrived(
-                        this,
-                        hdr.lpData, hdr.dwBytesUsed,
-                        // HACK: `hdr.dwTimeCaptured` always zero on my environment...
-                        this.counter.ElapsedMicroseconds,
-                        this.frameIndex++);
-                }
-                // DANGER: Stop leaking exception around outside of unmanaged area...
-                catch (Exception ex)
-                {
-                    Trace.WriteLine(ex);
-                }
+                    NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
+                }, null);
             }
         }
-
-        protected override void OnStart()
-        {
-            lock (this)
-            {
-                if (!this.IsRunning)
-                {
-                    this.workingContext!.Send(_ =>
-                    {
-                        this.frameIndex = 0;
-                        this.counter.Restart();
-                        NativeMethods_VideoForWindows.capShowPreview(this.handle, true);
-                    }, null);
-                    this.IsRunning = true;
-                }
-            }
-        }
-
-        protected override void OnStop()
-        {
-            lock (this)
-            {
-                if (this.IsRunning)
-                {
-                    this.IsRunning = false;
-                    this.workingContext!.Send(_ =>
-                    {
-                        NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
-                    }, null);
-                }
-            }
-        }
+    }
 
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-        protected override void OnCapture(
-            IntPtr pData, int size, long timestampMicroseconds, long frameIndex,
-            PixelBuffer buffer) =>
-            buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeIfYUV);
-    }
+    protected override void OnCapture(
+        IntPtr pData, int size, long timestampMicroseconds, long frameIndex,
+        PixelBuffer buffer) =>
+        buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeIfYUV);
 }

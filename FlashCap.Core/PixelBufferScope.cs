@@ -9,38 +9,37 @@
 
 using System.Runtime.CompilerServices;
 
-namespace FlashCap
+namespace FlashCap;
+
+public abstract class PixelBufferScope
 {
-    public abstract class PixelBufferScope
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+    protected PixelBufferScope(PixelBuffer buffer) =>
+        this.Buffer = buffer;
+
+    public PixelBuffer Buffer
     {
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-        protected PixelBufferScope(PixelBuffer buffer) =>
-            this.Buffer = buffer;
-
-        public PixelBuffer Buffer
-        {
-#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-            get;
-#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-            private set;
-        }
-
+        get;
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-        protected virtual void OnReleaseNow() =>
-            this.Buffer = null!;
-
-#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-        internal void InternalReleaseNow() =>
-            this.OnReleaseNow();
+        private set;
     }
+
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+    protected virtual void OnReleaseNow() =>
+        this.Buffer = null!;
+
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+    internal void InternalReleaseNow() =>
+        this.OnReleaseNow();
 }

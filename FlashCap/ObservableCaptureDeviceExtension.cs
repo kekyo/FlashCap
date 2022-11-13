@@ -9,19 +9,18 @@
 
 using System;
 
-namespace FlashCap
+namespace FlashCap;
+
+public static class ObservableCaptureDeviceExtension
 {
-    public static class ObservableCaptureDeviceExtension
-    {
-        public static void Start(this ObservableCaptureDevice observableCaptureDevice) =>
-            observableCaptureDevice.InternalStart();
+    public static void Start(this ObservableCaptureDevice observableCaptureDevice) =>
+        observableCaptureDevice.InternalStart();
 
-        public static void Stop(this ObservableCaptureDevice observableCaptureDevice) =>
-            observableCaptureDevice.InternalStop();
+    public static void Stop(this ObservableCaptureDevice observableCaptureDevice) =>
+        observableCaptureDevice.InternalStop();
 
-        public static IDisposable Subscribe(
-            this ObservableCaptureDevice observableCaptureDevice,
-            IObserver<PixelBufferScope> observer) =>
-            observableCaptureDevice.InternalSubscribe(observer);
-    }
+    public static IDisposable Subscribe(
+        this ObservableCaptureDevice observableCaptureDevice,
+        IObserver<PixelBufferScope> observer) =>
+        observableCaptureDevice.InternalSubscribe(observer);
 }

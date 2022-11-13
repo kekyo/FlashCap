@@ -9,50 +9,49 @@
 
 using System.Threading.Tasks;
 
-namespace FlashCap
+namespace FlashCap;
+
+public enum DeviceTypes
 {
-    public enum DeviceTypes
+    VideoForWindows,
+    DirectShow,
+    V4L2,
+}
+
+public delegate void PixelBufferArrivedDelegate(
+    PixelBufferScope bufferScope);
+
+public delegate Task PixelBufferArrivedTaskDelegate(
+    PixelBufferScope bufferScope);
+
+public abstract class CaptureDeviceDescriptor
+{
+    protected CaptureDeviceDescriptor(
+        string name, string description,
+        VideoCharacteristics[] characteristics)
     {
-        VideoForWindows,
-        DirectShow,
-        V4L2,
+        this.Name = name;
+        this.Description = description;
+        this.Characteristics = characteristics;
     }
 
-    public delegate void PixelBufferArrivedDelegate(
-        PixelBufferScope bufferScope);
+    public abstract object Identity { get; }
+    public abstract DeviceTypes DeviceType { get; }
+    public string Name { get; }
+    public string Description { get; }
+    public VideoCharacteristics[] Characteristics { get; }
 
-    public delegate Task PixelBufferArrivedTaskDelegate(
-        PixelBufferScope bufferScope);
+    protected abstract Task<CaptureDevice> OnOpenWithFrameProcessorAsync(
+        VideoCharacteristics characteristics,
+        bool transcodeIfYUV,
+        FrameProcessor frameProcessor);
 
-    public abstract class CaptureDeviceDescriptor
-    {
-        protected CaptureDeviceDescriptor(
-            string name, string description,
-            VideoCharacteristics[] characteristics)
-        {
-            this.Name = name;
-            this.Description = description;
-            this.Characteristics = characteristics;
-        }
+    internal Task<CaptureDevice> InternalOpenWithFrameProcessorAsync(
+        VideoCharacteristics characteristics,
+        bool transcodeIfYUV,
+        FrameProcessor frameProcessor) =>
+        this.OnOpenWithFrameProcessorAsync(characteristics, transcodeIfYUV, frameProcessor);
 
-        public abstract object Identity { get; }
-        public abstract DeviceTypes DeviceType { get; }
-        public string Name { get; }
-        public string Description { get; }
-        public VideoCharacteristics[] Characteristics { get; }
-
-        protected abstract Task<CaptureDevice> OnOpenWithFrameProcessorAsync(
-            VideoCharacteristics characteristics,
-            bool transcodeIfYUV,
-            FrameProcessor frameProcessor);
-
-        internal Task<CaptureDevice> InternalOpenWithFrameProcessorAsync(
-            VideoCharacteristics characteristics,
-            bool transcodeIfYUV,
-            FrameProcessor frameProcessor) =>
-            this.OnOpenWithFrameProcessorAsync(characteristics, transcodeIfYUV, frameProcessor);
-
-        public override string ToString() =>
-            $"{this.Name}: {this.Description}, Characteristics={this.Characteristics.Length}";
-    }
+    public override string ToString() =>
+        $"{this.Name}: {this.Description}, Characteristics={this.Characteristics.Length}";
 }

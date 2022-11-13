@@ -16,350 +16,349 @@ using System.Threading;
 using static FlashCap.Internal.NativeMethods_V4L2;
 using static FlashCap.Internal.V4L2.NativeMethods_V4L2_Interop;
 
-namespace FlashCap.Devices
+namespace FlashCap.Devices;
+
+public sealed class V4L2Device : CaptureDevice
 {
-    public sealed class V4L2Device : CaptureDevice
+    private const int BufferCount = 2;
+    
+    private readonly string devicePath;
+    private readonly bool transcodeIfYUV;
+    private readonly FrameProcessor frameProcessor;
+    private readonly TimestampCounter counter = new();
+    private long frameIndex;
+    
+    private int fd;
+    private IntPtr pBih;
+    private IntPtr[] pBuffers = new IntPtr[BufferCount];
+    private int[] bufferLength = new int[BufferCount];
+    private Thread thread;
+    private int abortrfd;
+    private int abortwfd;
+
+    internal unsafe V4L2Device(
+        string devicePath, VideoCharacteristics characteristics, bool transcodeIfYUV,
+        FrameProcessor frameProcessor)
     {
-        private const int BufferCount = 2;
-        
-        private readonly string devicePath;
-        private readonly bool transcodeIfYUV;
-        private readonly FrameProcessor frameProcessor;
-        private readonly TimestampCounter counter = new();
-        private long frameIndex;
-        
-        private int fd;
-        private IntPtr pBih;
-        private IntPtr[] pBuffers = new IntPtr[BufferCount];
-        private int[] bufferLength = new int[BufferCount];
-        private Thread thread;
-        private int abortrfd;
-        private int abortwfd;
+        this.devicePath = devicePath;
+        this.Characteristics = characteristics;
+        this.transcodeIfYUV = transcodeIfYUV;
+        this.frameProcessor = frameProcessor;
 
-        internal unsafe V4L2Device(
-            string devicePath, VideoCharacteristics characteristics, bool transcodeIfYUV,
-            FrameProcessor frameProcessor)
+        if (!NativeMethods.GetCompressionAndBitCount(
+            characteristics.PixelFormat, out var compression, out var bitCount))
         {
-            this.devicePath = devicePath;
-            this.Characteristics = characteristics;
-            this.transcodeIfYUV = transcodeIfYUV;
-            this.frameProcessor = frameProcessor;
+            throw new ArgumentException(
+                $"FlashCap: Couldn't set video format [1]: DevicePath={this.devicePath}");
+        }
 
-            if (!NativeMethods.GetCompressionAndBitCount(
-                characteristics.PixelFormat, out var compression, out var bitCount))
+        var pix_fmts = GetPixelFormats(
+            characteristics.PixelFormat);
+        if (pix_fmts.Length == 0)
+        {
+            throw new ArgumentException(
+                $"FlashCap: Couldn't set video format [2]: DevicePath={this.devicePath}");
+        }
+
+        if (open(this.devicePath, OPENBITS.O_RDWR) is { } fd && fd < 0)
+        {
+            var code = Marshal.GetLastWin32Error();
+            throw new ArgumentException(
+                $"FlashCap: Couldn't open video device: Code={code}, DevicePath={this.devicePath}");
+        }
+
+        try
+        {
+            var applied = false;
+            foreach (var pix_fmt in pix_fmts)
+            {
+                var fmt_pix = Interop.Create_v4l2_pix_format();
+                fmt_pix.width = (uint)characteristics.Width;
+                fmt_pix.height = (uint)characteristics.Height;
+                fmt_pix.pixelformat = pix_fmt;
+                fmt_pix.field = (uint)v4l2_field.ANY;
+                
+                var format = Interop.Create_v4l2_format();
+                format.type = (uint)v4l2_buf_type.VIDEO_CAPTURE;
+                format.fmt_pix = fmt_pix;
+                
+                if (ioctl(fd, Interop.VIDIOC_S_FMT, format) == 0)
+                {
+                    applied = true;
+                    break;
+                }
+            }
+            if (!applied)
             {
                 throw new ArgumentException(
-                    $"FlashCap: Couldn't set video format [1]: DevicePath={this.devicePath}");
+                    $"FlashCap: Couldn't set video format [3]: DevicePath={this.devicePath}");
             }
 
-            var pix_fmts = GetPixelFormats(
-                characteristics.PixelFormat);
-            if (pix_fmts.Length == 0)
-            {
-                throw new ArgumentException(
-                    $"FlashCap: Couldn't set video format [2]: DevicePath={this.devicePath}");
-            }
+            var requestbuffers = Interop.Create_v4l2_requestbuffers();
+            requestbuffers.count = BufferCount;   // Flipping
+            requestbuffers.type = (uint)v4l2_buf_type.VIDEO_CAPTURE;
+            requestbuffers.memory = (uint)v4l2_memory.MMAP;
 
-            if (open(this.devicePath, OPENBITS.O_RDWR) is { } fd && fd < 0)
+            if (ioctl(fd, Interop.VIDIOC_REQBUFS, requestbuffers) < 0)
             {
                 var code = Marshal.GetLastWin32Error();
                 throw new ArgumentException(
-                    $"FlashCap: Couldn't open video device: Code={code}, DevicePath={this.devicePath}");
+                    $"FlashCap: Couldn't allocate video buffer: Code={code}, DevicePath={this.devicePath}");
             }
 
+            for (var index = 0; index < requestbuffers.count; index++)
+            {
+                var buffer = Interop.Create_v4l2_buffer();
+                buffer.type = (uint)v4l2_buf_type.VIDEO_CAPTURE;
+                buffer.memory = (uint)v4l2_memory.MMAP;
+                buffer.index = (uint)index;
+                
+                if (ioctl(fd, Interop.VIDIOC_QUERYBUF, buffer) < 0)
+                {
+                    var code = Marshal.GetLastWin32Error();
+                    throw new ArgumentException(
+                        $"FlashCap: Couldn't assign video buffer: Code={code}, DevicePath={this.devicePath}");
+                }
+                
+                if (mmap(IntPtr.Zero, buffer.length, PROT.READ, MAP.SHARED,
+                    fd, buffer.m_offset) is { } pBuffer &&
+                    pBuffer == MAP_FAILED)
+                {
+                    var code = Marshal.GetLastWin32Error();
+                    throw new ArgumentException(
+                        $"FlashCap: Couldn't map video buffer: Code={code}, DevicePath={this.devicePath}");
+                }
+
+                pBuffers[index] = pBuffer;
+                bufferLength[index] = (int)buffer.length;
+
+                if (ioctl(fd, Interop.VIDIOC_QBUF, buffer) < 0)
+                {
+                    var code = Marshal.GetLastWin32Error();
+                    throw new ArgumentException(
+                        $"FlashCap: Couldn't enqueue video buffer: Code={code}, DevicePath={this.devicePath}");
+                }
+            }
+
+            var abortfds = new int[2];
+            if (pipe(abortfds) < 0)
+            {
+                var code = Marshal.GetLastWin32Error();
+                throw new ArgumentException(
+                    $"FlashCap: Couldn't open pipe: Code={code}, DevicePath={this.devicePath}");
+            }
+            this.abortrfd = abortfds[0];
+            this.abortwfd = abortfds[1];
+
+            var pih = NativeMethods.AllocateMemory((IntPtr)sizeof(NativeMethods.BITMAPINFOHEADER));
             try
             {
-                var applied = false;
-                foreach (var pix_fmt in pix_fmts)
-                {
-                    var fmt_pix = Interop.Create_v4l2_pix_format();
-                    fmt_pix.width = (uint)characteristics.Width;
-                    fmt_pix.height = (uint)characteristics.Height;
-                    fmt_pix.pixelformat = pix_fmt;
-                    fmt_pix.field = (uint)v4l2_field.ANY;
-                    
-                    var format = Interop.Create_v4l2_format();
-                    format.type = (uint)v4l2_buf_type.VIDEO_CAPTURE;
-                    format.fmt_pix = fmt_pix;
-                    
-                    if (ioctl(fd, Interop.VIDIOC_S_FMT, format) == 0)
-                    {
-                        applied = true;
-                        break;
-                    }
-                }
-                if (!applied)
-                {
-                    throw new ArgumentException(
-                        $"FlashCap: Couldn't set video format [3]: DevicePath={this.devicePath}");
-                }
+                var pBih = (NativeMethods.BITMAPINFOHEADER*)pih.ToPointer();
 
-                var requestbuffers = Interop.Create_v4l2_requestbuffers();
-                requestbuffers.count = BufferCount;   // Flipping
-                requestbuffers.type = (uint)v4l2_buf_type.VIDEO_CAPTURE;
-                requestbuffers.memory = (uint)v4l2_memory.MMAP;
+                pBih->biSize = sizeof(NativeMethods.BITMAPINFOHEADER);
+                pBih->biCompression = compression;
+                pBih->biPlanes = 1;
+                pBih->biBitCount = bitCount;
+                pBih->biWidth = characteristics.Width;
+                pBih->biHeight = characteristics.Height;
+                pBih->biSizeImage = pBih->CalculateImageSize();
+                
+                this.fd = fd;
+                this.pBih = pih;
 
-                if (ioctl(fd, Interop.VIDIOC_REQBUFS, requestbuffers) < 0)
-                {
-                    var code = Marshal.GetLastWin32Error();
-                    throw new ArgumentException(
-                        $"FlashCap: Couldn't allocate video buffer: Code={code}, DevicePath={this.devicePath}");
-                }
-
-                for (var index = 0; index < requestbuffers.count; index++)
-                {
-                    var buffer = Interop.Create_v4l2_buffer();
-                    buffer.type = (uint)v4l2_buf_type.VIDEO_CAPTURE;
-                    buffer.memory = (uint)v4l2_memory.MMAP;
-                    buffer.index = (uint)index;
-                    
-                    if (ioctl(fd, Interop.VIDIOC_QUERYBUF, buffer) < 0)
-                    {
-                        var code = Marshal.GetLastWin32Error();
-                        throw new ArgumentException(
-                            $"FlashCap: Couldn't assign video buffer: Code={code}, DevicePath={this.devicePath}");
-                    }
-                    
-                    if (mmap(IntPtr.Zero, buffer.length, PROT.READ, MAP.SHARED,
-                        fd, buffer.m_offset) is { } pBuffer &&
-                        pBuffer == MAP_FAILED)
-                    {
-                        var code = Marshal.GetLastWin32Error();
-                        throw new ArgumentException(
-                            $"FlashCap: Couldn't map video buffer: Code={code}, DevicePath={this.devicePath}");
-                    }
-
-                    pBuffers[index] = pBuffer;
-                    bufferLength[index] = (int)buffer.length;
-
-                    if (ioctl(fd, Interop.VIDIOC_QBUF, buffer) < 0)
-                    {
-                        var code = Marshal.GetLastWin32Error();
-                        throw new ArgumentException(
-                            $"FlashCap: Couldn't enqueue video buffer: Code={code}, DevicePath={this.devicePath}");
-                    }
-                }
-
-                var abortfds = new int[2];
-                if (pipe(abortfds) < 0)
-                {
-                    var code = Marshal.GetLastWin32Error();
-                    throw new ArgumentException(
-                        $"FlashCap: Couldn't open pipe: Code={code}, DevicePath={this.devicePath}");
-                }
-                this.abortrfd = abortfds[0];
-                this.abortwfd = abortfds[1];
-
-                var pih = NativeMethods.AllocateMemory((IntPtr)sizeof(NativeMethods.BITMAPINFOHEADER));
-                try
-                {
-                    var pBih = (NativeMethods.BITMAPINFOHEADER*)pih.ToPointer();
-
-                    pBih->biSize = sizeof(NativeMethods.BITMAPINFOHEADER);
-                    pBih->biCompression = compression;
-                    pBih->biPlanes = 1;
-                    pBih->biBitCount = bitCount;
-                    pBih->biWidth = characteristics.Width;
-                    pBih->biHeight = characteristics.Height;
-                    pBih->biSizeImage = pBih->CalculateImageSize();
-                    
-                    this.fd = fd;
-                    this.pBih = pih;
-
-                    this.thread = new Thread(this.ThreadEntry);
-                    this.thread.IsBackground = true;
-                    this.thread.Start();
-                }
-                catch
-                {
-                    NativeMethods.FreeMemory(pih);
-                    throw;
-                }
+                this.thread = new Thread(this.ThreadEntry);
+                this.thread.IsBackground = true;
+                this.thread.Start();
             }
             catch
             {
-                close(fd);
+                NativeMethods.FreeMemory(pih);
                 throw;
             }
         }
-
-        protected override void Dispose(bool disposing)
+        catch
         {
-            if (disposing)
+            close(fd);
+            throw;
+        }
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            if (this.abortwfd != -1)
             {
-                if (this.abortwfd != -1)
+                lock (this)
                 {
-                    lock (this)
+                    if (this.IsRunning)
                     {
-                        if (this.IsRunning)
-                        {
-                            ioctl(
-                                this.fd, Interop.VIDIOC_STREAMOFF,
-                                (int)v4l2_buf_type.VIDEO_CAPTURE);
-                        }
+                        ioctl(
+                            this.fd, Interop.VIDIOC_STREAMOFF,
+                            (int)v4l2_buf_type.VIDEO_CAPTURE);
                     }
-                    
-                    write(this.abortwfd, new byte[] { 0x01 }, 1);
-                    
-                    this.thread.Join();
-                    close(this.abortwfd);
-                    this.abortwfd = -1;
                 }
-            }
-            else
-            {
-                if (this.abortwfd != -1)
-                {
-                    write(this.abortwfd, new byte[] { 0x01 }, 1);
-                    close(this.abortwfd);
-                    this.abortwfd = -1;
-                }
+                
+                write(this.abortwfd, new byte[] { 0x01 }, 1);
+                
+                this.thread.Join();
+                close(this.abortwfd);
+                this.abortwfd = -1;
             }
         }
-
-        private void ThreadEntry()
+        else
         {
-            static bool IsIgnore(int code) =>
-                code switch
-                {
-                    EINTR => true,
-                    EINVAL => true,
-                    _ => false,
-                };
-            
-            var fds = new[]
+            if (this.abortwfd != -1)
             {
-                new pollfd
-                {
-                    fd = this.abortrfd,
-                    events = POLLBITS.POLLIN,
-                },
-                new pollfd
-                {
-                    fd = this.fd,
-                    events = POLLBITS.POLLIN,
-                }
-            };
-            var buffer = Interop.Create_v4l2_buffer();
-            buffer.type = (uint)v4l2_buf_type.VIDEO_CAPTURE;
-            buffer.memory = (uint)v4l2_memory.MMAP;
+                write(this.abortwfd, new byte[] { 0x01 }, 1);
+                close(this.abortwfd);
+                this.abortwfd = -1;
+            }
+        }
+    }
 
-            try
+    private void ThreadEntry()
+    {
+        static bool IsIgnore(int code) =>
+            code switch
             {
-                while (true)
+                EINTR => true,
+                EINVAL => true,
+                _ => false,
+            };
+        
+        var fds = new[]
+        {
+            new pollfd
+            {
+                fd = this.abortrfd,
+                events = POLLBITS.POLLIN,
+            },
+            new pollfd
+            {
+                fd = this.fd,
+                events = POLLBITS.POLLIN,
+            }
+        };
+        var buffer = Interop.Create_v4l2_buffer();
+        buffer.type = (uint)v4l2_buf_type.VIDEO_CAPTURE;
+        buffer.memory = (uint)v4l2_memory.MMAP;
+
+        try
+        {
+            while (true)
+            {
+                var result = poll(fds, fds.Length, -1);
+                if (result == 0)
                 {
-                    var result = poll(fds, fds.Length, -1);
-                    if (result == 0)
+                    break;
+                }
+                if (result != 1)
+                {
+                    var code = Marshal.GetLastWin32Error();
+                    if (code == EINTR)
+                    {
+                        continue;
+                    }
+                    // Couldn't get with EINVAL, maybe discarding.
+                    if (code == EINVAL)
                     {
                         break;
                     }
-                    if (result != 1)
-                    {
-                        var code = Marshal.GetLastWin32Error();
-                        if (code == EINTR)
-                        {
-                            continue;
-                        }
-                        // Couldn't get with EINVAL, maybe discarding.
-                        if (code == EINVAL)
-                        {
-                            break;
-                        }
-                        throw new ArgumentException(
-                            $"FlashCap: Couldn't get fd status: Code={code}, DevicePath={this.devicePath}");
-                    }
+                    throw new ArgumentException(
+                        $"FlashCap: Couldn't get fd status: Code={code}, DevicePath={this.devicePath}");
+                }
 
-                    if (ioctl(this.fd, Interop.VIDIOC_DQBUF, buffer) < 0)
+                if (ioctl(this.fd, Interop.VIDIOC_DQBUF, buffer) < 0)
+                {
+                    // Couldn't get, maybe discarding.
+                    if (Marshal.GetLastWin32Error() is { } code && IsIgnore(code))
                     {
-                        // Couldn't get, maybe discarding.
-                        if (Marshal.GetLastWin32Error() is { } code && IsIgnore(code))
-                        {
-                            continue;
-                        }
-                        throw new ArgumentException(
-                            $"FlashCap: Couldn't dequeue video buffer: Code={code}, DevicePath={this.devicePath}");
+                        continue;
                     }
+                    throw new ArgumentException(
+                        $"FlashCap: Couldn't dequeue video buffer: Code={code}, DevicePath={this.devicePath}");
+                }
 
-                    this.frameProcessor.OnFrameArrived(
-                        this,
-                        this.pBuffers[buffer.index],
-                        (int)buffer.bytesused,
-                        // buffer.timestamp is untrustworthy.
-                        this.counter.ElapsedMicroseconds,
-                        this.frameIndex++);
-                
-                    if (ioctl(this.fd, Interop.VIDIOC_QBUF, buffer) < 0)
+                this.frameProcessor.OnFrameArrived(
+                    this,
+                    this.pBuffers[buffer.index],
+                    (int)buffer.bytesused,
+                    // buffer.timestamp is untrustworthy.
+                    this.counter.ElapsedMicroseconds,
+                    this.frameIndex++);
+            
+                if (ioctl(this.fd, Interop.VIDIOC_QBUF, buffer) < 0)
+                {
+                    // Couldn't get, maybe discarding.
+                    if (Marshal.GetLastWin32Error() is { } code && IsIgnore(code))
                     {
-                        // Couldn't get, maybe discarding.
-                        if (Marshal.GetLastWin32Error() is { } code && IsIgnore(code))
-                        {
-                            continue;
-                        }
-                        throw new ArgumentException(
-                            $"FlashCap: Couldn't enqueue video buffer: Code={code}, DevicePath={this.devicePath}");
+                        continue;
                     }
+                    throw new ArgumentException(
+                        $"FlashCap: Couldn't enqueue video buffer: Code={code}, DevicePath={this.devicePath}");
                 }
             }
-            finally
+        }
+        finally
+        {
+            close(this.abortrfd);
+            close(this.fd);
+            NativeMethods.FreeMemory(this.pBih);
+            this.abortrfd = -1;
+            this.fd = -1;
+            this.pBih = IntPtr.Zero;
+        }
+    }
+
+    protected override void OnStart()
+    {
+        lock (this)
+        {
+            if (!this.IsRunning)
             {
-                close(this.abortrfd);
-                close(this.fd);
-                NativeMethods.FreeMemory(this.pBih);
-                this.abortrfd = -1;
-                this.fd = -1;
-                this.pBih = IntPtr.Zero;
+                this.frameIndex = 0;
+                this.counter.Restart();
+
+                if (ioctl(
+                    this.fd, Interop.VIDIOC_STREAMON,
+                    (int)v4l2_buf_type.VIDEO_CAPTURE) < 0)
+                {
+                    var code = Marshal.GetLastWin32Error();
+                    throw new ArgumentException(
+                        $"FlashCap: Couldn't start capture: Code={code}, DevicePath={this.devicePath}");
+                }
+                this.IsRunning = true;
             }
         }
+    }
 
-        protected override void OnStart()
+    protected override void OnStop()
+    {
+        lock (this)
         {
-            lock (this)
+            if (this.IsRunning)
             {
-                if (!this.IsRunning)
+                this.IsRunning = false;
+                if (ioctl(
+                    this.fd, Interop.VIDIOC_STREAMOFF,
+                    (int)v4l2_buf_type.VIDEO_CAPTURE) < 0)
                 {
-                    this.frameIndex = 0;
-                    this.counter.Restart();
-
-                    if (ioctl(
-                        this.fd, Interop.VIDIOC_STREAMON,
-                        (int)v4l2_buf_type.VIDEO_CAPTURE) < 0)
-                    {
-                        var code = Marshal.GetLastWin32Error();
-                        throw new ArgumentException(
-                            $"FlashCap: Couldn't start capture: Code={code}, DevicePath={this.devicePath}");
-                    }
+                    var code = Marshal.GetLastWin32Error();
                     this.IsRunning = true;
+                    throw new ArgumentException(
+                        $"FlashCap: Couldn't stop capture: Code={code}, DevicePath={this.devicePath}");
                 }
             }
         }
-
-        protected override void OnStop()
-        {
-            lock (this)
-            {
-                if (this.IsRunning)
-                {
-                    this.IsRunning = false;
-                    if (ioctl(
-                        this.fd, Interop.VIDIOC_STREAMOFF,
-                        (int)v4l2_buf_type.VIDEO_CAPTURE) < 0)
-                    {
-                        var code = Marshal.GetLastWin32Error();
-                        this.IsRunning = true;
-                        throw new ArgumentException(
-                            $"FlashCap: Couldn't stop capture: Code={code}, DevicePath={this.devicePath}");
-                    }
-                }
-            }
-        }
+    }
 
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-        protected override void OnCapture(
-            IntPtr pData, int size,
-            long timestampMicroseconds, long frameIndex,
-            PixelBuffer buffer) =>
-            buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeIfYUV);
-    }
+    protected override void OnCapture(
+        IntPtr pData, int size,
+        long timestampMicroseconds, long frameIndex,
+        PixelBuffer buffer) =>
+        buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeIfYUV);
 }

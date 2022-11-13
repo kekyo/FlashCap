@@ -9,11 +9,10 @@
 
 using System.Windows;
 
-namespace FlashCap.Wpf.Views
+namespace FlashCap.Wpf.Views;
+
+public sealed partial class MainWindow : Window
 {
-    public sealed partial class MainWindow : Window
-    {
-        public MainWindow() =>
-            InitializeComponent();
-    }
+    public MainWindow() =>
+        InitializeComponent();
 }

@@ -7,14 +7,13 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-namespace FlashCap
-{
-    public static class CaptureDeviceExtension
-    {
-        public static void Start(this CaptureDevice captureDevice) =>
-            captureDevice.InternalStart();
+namespace FlashCap;
 
-        public static void Stop(this CaptureDevice captureDevice) =>
-            captureDevice.InternalStop();
-    }
+public static class CaptureDeviceExtension
+{
+    public static void Start(this CaptureDevice captureDevice) =>
+        captureDevice.InternalStart();
+
+    public static void Stop(this CaptureDevice captureDevice) =>
+        captureDevice.InternalStop();
 }
