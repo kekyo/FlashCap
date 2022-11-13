@@ -89,7 +89,7 @@ namespace FlashCap.Wpf.ViewModels
             ArraySegment<byte> image = bufferScope.Buffer.ReferImage();
 #endif
             // Decode image data to a bitmap:
-            var bitmap = SKBitmap.Decode(image.AsStream());
+            var bitmap = SKBitmap.Decode(image);
 
             // `bitmap` is copied, so we can release pixel buffer now.
             bufferScope.ReleaseNow();

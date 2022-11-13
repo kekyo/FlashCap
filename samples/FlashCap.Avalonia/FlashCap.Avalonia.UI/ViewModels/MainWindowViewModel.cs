@@ -7,9 +7,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-using Avalonia.Media.Imaging;
 using Epoxy;
 using FlashCap.Utilities;
+using SkiaSharp;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -29,7 +29,7 @@ namespace FlashCap.Avalonia.ViewModels
 
         // Binding members.
         public Command? Opened { get; }
-        public Bitmap? Image { get; private set; }
+        public SKBitmap? Image { get; private set; }
         public string? Device { get; private set; }
         public string? Characteristics { get; private set; }
 
@@ -94,7 +94,7 @@ namespace FlashCap.Avalonia.ViewModels
             ArraySegment<byte> image = bufferScope.Buffer.ReferImage();
 #endif
             // Decode image data to a bitmap:
-            var bitmap = new Bitmap(image.AsStream());
+            var bitmap = SKBitmap.Decode(image);
 
             // `bitmap` is copied, so we can release pixel buffer now.
             bufferScope.ReleaseNow();
