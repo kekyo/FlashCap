@@ -24,4 +24,6 @@ type UtilitiesExtension =
 
     [<Extension>]
     static member asStream(self: byte[]) =
-        new MemoryStream(self)
+        match self with
+        | null ->  new MemoryStream(ArrayEx.Empty<byte>())
+        | _ -> new MemoryStream(self)
