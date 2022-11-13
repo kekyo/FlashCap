@@ -7,6 +7,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FlashCap.Devices;
@@ -30,7 +31,9 @@ public sealed class V4L2DeviceDescriptor : CaptureDeviceDescriptor
     protected override Task<CaptureDevice> OnOpenWithFrameProcessorAsync(
         VideoCharacteristics characteristics,
         bool transcodeIfYUV,
-        FrameProcessor frameProcessor) =>
-        TaskEx.FromResult((CaptureDevice)new V4L2Device(
-            devicePath, characteristics, transcodeIfYUV, frameProcessor));
+        FrameProcessor frameProcessor,
+        CancellationToken ct) =>
+        this.InternalOnOpenWithFrameProcessorAsync(
+            new V4L2Device(),
+            this.devicePath, characteristics, transcodeIfYUV, frameProcessor, ct);
 }

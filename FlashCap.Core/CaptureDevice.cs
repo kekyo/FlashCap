@@ -9,6 +9,8 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace FlashCap;
 
@@ -31,20 +33,44 @@ public abstract class CaptureDevice : IDisposable
     {
     }
 
+    protected abstract Task OnInitializeAsync(
+        object identity,
+        VideoCharacteristics characteristics,
+        bool transcodeIfYUV,
+        FrameProcessor frameProcessor,
+        CancellationToken ct);
+
     public VideoCharacteristics Characteristics { get; protected set; } = null!;
     public bool IsRunning { get; protected set; }
 
     protected abstract void OnStart();
     protected abstract void OnStop();
 
-    internal void InternalStart() =>
-        this.OnStart();
-    internal void InternalStop() =>
-        this.OnStop();
-
     protected abstract void OnCapture(
         IntPtr pData, int size, long timestampMicroseconds, long frameIndex, PixelBuffer buffer);
 
+    //////////////////////////////////////////////////////////////////////////
+
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+    internal Task InternalInitializeAsync(
+        object identity,
+        VideoCharacteristics characteristics,
+        bool transcodeIfYUV,
+        FrameProcessor frameProcessor,
+        CancellationToken ct) =>
+        this.OnInitializeAsync(identity, characteristics, transcodeIfYUV, frameProcessor, ct);
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+    internal void InternalStart() =>
+        this.OnStart();
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+    internal void InternalStop() =>
+        this.OnStop();
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif

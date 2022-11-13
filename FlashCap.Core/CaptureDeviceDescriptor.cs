@@ -7,6 +7,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FlashCap;
@@ -44,14 +46,43 @@ public abstract class CaptureDeviceDescriptor
     protected abstract Task<CaptureDevice> OnOpenWithFrameProcessorAsync(
         VideoCharacteristics characteristics,
         bool transcodeIfYUV,
-        FrameProcessor frameProcessor);
-
-    internal Task<CaptureDevice> InternalOpenWithFrameProcessorAsync(
-        VideoCharacteristics characteristics,
-        bool transcodeIfYUV,
-        FrameProcessor frameProcessor) =>
-        this.OnOpenWithFrameProcessorAsync(characteristics, transcodeIfYUV, frameProcessor);
+        FrameProcessor frameProcessor,
+        CancellationToken ct);
 
     public override string ToString() =>
         $"{this.Name}: {this.Description}, Characteristics={this.Characteristics.Length}";
+
+
+    //////////////////////////////////////////////////////////////////////////
+
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+    internal Task<CaptureDevice> InternalOpenWithFrameProcessorAsync(
+        VideoCharacteristics characteristics,
+        bool transcodeIfYUV,
+        FrameProcessor frameProcessor,
+        CancellationToken ct) =>
+        this.OnOpenWithFrameProcessorAsync(characteristics, transcodeIfYUV, frameProcessor, ct);
+
+    internal async Task<CaptureDevice> InternalOnOpenWithFrameProcessorAsync(
+        CaptureDevice preConstructedDevice,
+        object identity,
+        VideoCharacteristics characteristics,
+        bool transcodeIfYUV,
+        FrameProcessor frameProcessor,
+        CancellationToken ct)
+    {
+        try
+        {
+            await preConstructedDevice.InternalInitializeAsync(
+                identity, characteristics, transcodeIfYUV, frameProcessor, ct);
+        }
+        catch
+        {
+            preConstructedDevice.Dispose();
+            throw;
+        }
+        return preConstructedDevice;
+    }
 }

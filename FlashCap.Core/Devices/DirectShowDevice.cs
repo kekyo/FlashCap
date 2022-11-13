@@ -13,6 +13,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace FlashCap.Devices;
 
@@ -66,18 +68,27 @@ public sealed class DirectShowDevice :
         }
     }
 
-    private readonly bool transcodeIfYUV;
-    private readonly FrameProcessor frameProcessor;
+    private bool transcodeIfYUV;
+    private FrameProcessor frameProcessor;
     private NativeMethods_DirectShow.IGraphBuilder? graphBuilder;
     private SampleGrabberSink? sampleGrabberSink;
     private IntPtr pBih;
 
-    internal DirectShowDevice(
-        string devicePath,
+#pragma warning disable CS8618
+    internal DirectShowDevice()
+#pragma warning restore CS8618
+    {
+    }
+
+    protected override Task OnInitializeAsync(
+        object identity,
         VideoCharacteristics characteristics,
         bool transcodeIfYUV,
-        FrameProcessor frameProcessor)
+        FrameProcessor frameProcessor,
+        CancellationToken ct)
     {
+        var devicePath = (string)identity;
+
         this.transcodeIfYUV = transcodeIfYUV;
         this.frameProcessor = frameProcessor;
 
@@ -213,6 +224,8 @@ public sealed class DirectShowDevice :
             throw new ArgumentException(
                 $"FlashCap: Couldn't find a device: DevicePath={devicePath}");
         }
+
+        return TaskCompat.CompletedTask;
     }
 
     protected override void Dispose(bool disposing)

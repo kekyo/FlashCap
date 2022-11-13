@@ -12,7 +12,7 @@ using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
-
+using System.Threading.Tasks;
 using static FlashCap.Internal.NativeMethods_V4L2;
 using static FlashCap.Internal.V4L2.NativeMethods_V4L2_Interop;
 
@@ -21,11 +21,12 @@ namespace FlashCap.Devices;
 public sealed class V4L2Device : CaptureDevice
 {
     private const int BufferCount = 2;
-    
-    private readonly string devicePath;
-    private readonly bool transcodeIfYUV;
-    private readonly FrameProcessor frameProcessor;
+
     private readonly TimestampCounter counter = new();
+    private string devicePath;
+    private bool transcodeIfYUV;
+    private FrameProcessor frameProcessor;
+
     private long frameIndex;
     
     private int fd;
@@ -36,11 +37,20 @@ public sealed class V4L2Device : CaptureDevice
     private int abortrfd;
     private int abortwfd;
 
-    internal unsafe V4L2Device(
-        string devicePath, VideoCharacteristics characteristics, bool transcodeIfYUV,
-        FrameProcessor frameProcessor)
+#pragma warning disable CS8618
+    internal V4L2Device()
+#pragma warning restore CS8618
     {
-        this.devicePath = devicePath;
+    }
+
+    protected override unsafe Task OnInitializeAsync(
+        object identity,
+        VideoCharacteristics characteristics,
+        bool transcodeIfYUV,
+        FrameProcessor frameProcessor,
+        CancellationToken ct)
+    {
+        this.devicePath = (string)identity;
         this.Characteristics = characteristics;
         this.transcodeIfYUV = transcodeIfYUV;
         this.frameProcessor = frameProcessor;
@@ -181,6 +191,8 @@ public sealed class V4L2Device : CaptureDevice
             close(fd);
             throw;
         }
+
+        return TaskCompat.CompletedTask;
     }
 
     protected override void Dispose(bool disposing)

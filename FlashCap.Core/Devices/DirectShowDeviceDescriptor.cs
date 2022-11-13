@@ -7,6 +7,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FlashCap.Devices;
@@ -30,7 +31,9 @@ public sealed class DirectShowDeviceDescriptor : CaptureDeviceDescriptor
     protected override Task<CaptureDevice> OnOpenWithFrameProcessorAsync(
         VideoCharacteristics characteristics,
         bool transcodeIfYUV,
-        FrameProcessor frameProcessor) =>
-        TaskEx.FromResult((CaptureDevice)new DirectShowDevice(
-            this.devicePath, characteristics, transcodeIfYUV, frameProcessor));  // TODO:
+        FrameProcessor frameProcessor,
+        CancellationToken ct) =>
+        this.InternalOnOpenWithFrameProcessorAsync(
+            new DirectShowDevice(),
+            this.devicePath, characteristics, transcodeIfYUV, frameProcessor, ct);
 }
