@@ -19,7 +19,9 @@ namespace FlashCap.Utilities
                 new MemoryStream(segment.Array, segment.Offset, segment.Count) :
                 new MemoryStream(ArrayEx.Empty<byte>());
 
-        public static Stream AsStream(this byte[] data) =>
-            new MemoryStream(data);
+        public static Stream AsStream(this byte[]? data) =>
+            data is { } ?
+                new MemoryStream(data) :
+                new MemoryStream(ArrayEx.Empty<byte>());
     }
 }
