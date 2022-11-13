@@ -8,8 +8,10 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using Epoxy;
+using Epoxy.Synchronized;
 using SkiaSharp;
 using System;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -29,55 +31,92 @@ public sealed class MainWindowViewModel
     // Binding members.
     public Command? Opened { get; }
     public SKBitmap? Image { get; private set; }
-    public string? Device { get; private set; }
-    public string? Characteristics { get; private set; }
+
+    public ObservableCollection<CaptureDeviceDescriptor> DeviceList { get; } = new();
+    public CaptureDeviceDescriptor? Device { get; set; }
+
+    public ObservableCollection<VideoCharacteristics> CharacteristicsList { get; } = new();
+    public VideoCharacteristics? Characteristics { get; set; }
 
     public MainWindowViewModel()
     {
         // Window shown:
-        this.Opened = CommandFactory.Create(async () =>
+        this.Opened = Command.Factory.CreateSync(() =>
         {
             ////////////////////////////////////////////////
             // Initialize and start capture device
 
             // Enumerate capture devices:
             var devices = new CaptureDevices();
-            var descriptors = devices.EnumerateDescriptors().
+
+            // Store device list into the combo box.
+            this.DeviceList.Clear();
+            foreach (var descriptor in devices.EnumerateDescriptors().
                 // You could filter by device type and characteristics.
                 //Where(d => d.DeviceType == DeviceTypes.DirectShow).  // Only DirectShow device.
-                Where(d => d.Characteristics.Length >= 1).             // One or more valid video characteristics.
-                ToArray();
-
-            // Use first device.
-            if (descriptors.ElementAtOrDefault(0) is { } descriptor0)
+                Where(d => d.Characteristics.Length >= 1))             // One or more valid video characteristics.
             {
-#if false
-                // Request video characteristics strictly:
-                // Will raise exception when parameters are not accepted.
-                var characteristics = new VideoCharacteristics(
-                    PixelFormats.JPEG, 1920, 1080, 60);
-#else
-                // Or, you could choice from device descriptor:
-                // Hint: Show up video characteristics into ComboBox and like.
-                var characteristics = descriptor0.Characteristics[0];
-#endif
-                // Show status.
-                this.Device = descriptor0.ToString();
-                this.Characteristics = characteristics.ToString();
-
-                // Open capture device:
-                this.captureDevice = await descriptor0.OpenAsync(
-                    characteristics,
-                    this.OnPixelBufferArrivedAsync);
-
-                // Start capturing.
-                this.captureDevice.Start();
-            }
-            else
-            {
-                this.Device = "(Device Not found)";
+                this.DeviceList.Add(descriptor);
             }
         });
+    }
+
+    // Devices combo box was changed.
+    [PropertyChanged(nameof(Device))]
+    private ValueTask OnDeviceListChangedAsync(CaptureDeviceDescriptor? descriptor)
+    {
+        // Use first device.
+        if (descriptor is { })
+        {
+#if false
+            // Request video characteristics strictly:
+            // Will raise exception when parameters are not accepted.
+            var characteristics = new VideoCharacteristics(
+                PixelFormats.JPEG, 1920, 1080, 60);
+#else
+            // Or, you could choice from device descriptor:
+            this.CharacteristicsList.Clear();
+            foreach (var characteristics in descriptor.Characteristics)
+            {
+                this.CharacteristicsList.Add(characteristics);
+            }
+#endif
+        }
+        else
+        {
+            this.CharacteristicsList.Clear();
+        }
+
+        return default;
+    }
+
+    // Characteristics combo box was changed.
+    [PropertyChanged(nameof(Characteristics))]
+    private async ValueTask OnCharacteristicsChangedAsync(VideoCharacteristics? characteristics)
+    {
+        // Close when already opened.
+        if (this.captureDevice is { } captureDevice)
+        {
+            this.captureDevice = null;
+            captureDevice.Stop();
+            captureDevice.Dispose();
+
+            // Erase preview.
+            this.Image = null;
+        }
+
+        // Descriptor is assigned and set valid characteristics:
+        if (this.Device is { } descriptor &&
+            characteristics is { })
+        {
+            // Open capture device:
+            this.captureDevice = await descriptor.OpenAsync(
+                characteristics,
+                this.OnPixelBufferArrivedAsync);
+
+            // Start capturing.
+            this.captureDevice.Start();
+        }
     }
 
     private async Task OnPixelBufferArrivedAsync(PixelBufferScope bufferScope)

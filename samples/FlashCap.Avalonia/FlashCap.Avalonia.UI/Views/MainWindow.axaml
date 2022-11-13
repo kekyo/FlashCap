@@ -19,13 +19,17 @@
         <epoxy:Event EventName="Opened" Command="{Binding Opened}" />
     </epoxy:EventBinder.Events>
 
-    <Grid>
+    <Grid Background="Black">
         <siv:SKImageView
             Source="{Binding Image}"
             Stretch="Uniform" />
-        <StackPanel Orientation="Vertical">
-            <TextBlock Foreground="Yellow" Text="{Binding Device}" />
-            <TextBlock Foreground="Yellow" Text="{Binding Characteristics}" />
+        <StackPanel Orientation="Horizontal">
+            <ComboBox HorizontalAlignment="Stretch"
+                      Items="{Binding DeviceList}"
+                      SelectedItem="{Binding Device, Mode=OneWayToSource}" />
+            <ComboBox HorizontalAlignment="Stretch"
+                      Items="{Binding CharacteristicsList}"
+                      SelectedItem="{Binding Characteristics, Mode=OneWayToSource}" />
         </StackPanel>
     </Grid>
 </Window>
