@@ -31,6 +31,7 @@ public sealed class PixelBuffer
         long timestampMicroseconds, long frameIndex,
         bool transcodeIfYUV)
     {
+        this.FrameIndex = frameIndex;
         this.timestampMicroseconds = timestampMicroseconds;
 
         var pBih = (NativeMethods.BITMAPINFOHEADER*)pih.ToPointer();
@@ -102,7 +103,7 @@ public sealed class PixelBuffer
     public TimeSpan Timestamp =>
         TimeSpan.FromMilliseconds(this.timestampMicroseconds / 1000.0);
 
-    public long FrameIndex { get; }
+    public long FrameIndex { get; private set; }
 
     internal enum BufferStrategies
     {
