@@ -30,7 +30,7 @@ public sealed class MainWindowViewModel
     public MainWindowViewModel()
     {
         // Window shown:
-        this.Loaded = CommandFactory.Create(async () =>
+        this.Loaded = Command.Factory.Create(async () =>
         {
             ////////////////////////////////////////////////
             // Initialize and start capture device
@@ -66,7 +66,7 @@ public sealed class MainWindowViewModel
                     this.OnPixelBufferArrivedAsync);
 
                 // Start capturing.
-                this.captureDevice.Start();
+                await this.captureDevice.StartAsync();
             }
             else
             {

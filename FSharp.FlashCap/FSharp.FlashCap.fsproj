@@ -15,6 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="Internal.fs" />
     <Compile Include="Utilities\UtilitiesExtension.fs" />
     <Compile Include="PixelBufferScopeExtension.fs" />
     <Compile Include="PixelBufferExtension.fs" />

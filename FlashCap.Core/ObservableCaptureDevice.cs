@@ -9,6 +9,7 @@
 
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace FlashCap;
 
@@ -43,10 +44,10 @@ public sealed class ObservableCaptureDevice :
     public bool IsRunning =>
         this.captureDevice.IsRunning;
 
-    internal void InternalStart() =>
-        this.captureDevice.InternalStart();
-    internal void InternalStop() =>
-        this.captureDevice.InternalStop();
+    internal Task InternalStartAsync(CancellationToken ct) =>
+        this.captureDevice.InternalStartAsync(ct);
+    internal Task InternalStopAsync(CancellationToken ct) =>
+        this.captureDevice.InternalStopAsync(ct);
 
     internal IDisposable InternalSubscribe(IObserver<PixelBufferScope> observer)
     {

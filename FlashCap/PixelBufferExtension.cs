@@ -9,11 +9,15 @@
 
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace FlashCap;
 
 public static class PixelBufferExtension
 {
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
     public static byte[] ExtractImage(
         this PixelBuffer pixelBuffer)
     {
@@ -23,6 +27,9 @@ public static class PixelBufferExtension
         return image.Array;
     }
 
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
     public static byte[] CopyImage(
         this PixelBuffer pixelBuffer)
     {
@@ -32,6 +39,9 @@ public static class PixelBufferExtension
         return image.Array;
     }
 
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
     public static ArraySegment<byte> ReferImage(
         this PixelBuffer pixelBuffer) =>
         pixelBuffer.InternalExtractImage(

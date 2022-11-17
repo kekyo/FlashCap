@@ -57,6 +57,7 @@ public sealed class VideoForWindowsDevice : CaptureDevice
         }
 
         var tcs = new TaskCompletionSource<bool>();
+        ct.Register(() => tcs.TrySetCanceled());
 
         this.workingContext!.Post(_ =>
         {
@@ -141,26 +142,41 @@ public sealed class VideoForWindowsDevice : CaptureDevice
         return tcs.Task;
     }
 
-    protected override void Dispose(bool disposing)
+    protected override async Task DisposeAsync(
+        bool disposing, CancellationToken ct)
     {
         // This class will only collect when explicitly disposing.
         // Because it holds by objref pinning on running state.
 
         if (this.handle != IntPtr.Zero)
         {
-            this.workingContext!.Send(_ =>
+            var tcs = new TaskCompletionSource<bool>();
+            ct.Register(() => tcs.TrySetCanceled());
+
+            this.workingContext!.Post(_ =>
             {
-                NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
-                this.IsRunning = false;
-                NativeMethods_VideoForWindows.capSetCallbackFrame(this.handle, null);
-                NativeMethods_VideoForWindows.capDriverDisconnect(this.handle, this.deviceIndex);
-                NativeMethods_VideoForWindows.DestroyWindow(this.handle);
-                this.handle = IntPtr.Zero;
-                this.thisPin.Free();
-                this.callback = null;
-                NativeMethods.FreeMemory(this.pBih);
-                this.pBih = IntPtr.Zero;
+                try
+                {
+                    NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
+                    this.IsRunning = false;
+                    NativeMethods_VideoForWindows.capSetCallbackFrame(this.handle, null);
+                    NativeMethods_VideoForWindows.capDriverDisconnect(this.handle, this.deviceIndex);
+                    NativeMethods_VideoForWindows.DestroyWindow(this.handle);
+                    this.handle = IntPtr.Zero;
+                    this.thisPin.Free();
+                    this.callback = null;
+                    NativeMethods.FreeMemory(this.pBih);
+                    this.pBih = IntPtr.Zero;
+
+                    tcs.TrySetResult(true);
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
             }, null);
+
+            await tcs.Task.ConfigureAwait(false);
 
             this.workingContext.Dispose();
             this.workingContext = null;
@@ -190,35 +206,64 @@ public sealed class VideoForWindowsDevice : CaptureDevice
         }
     }
 
-    protected override void OnStart()
+    protected override Task OnStartAsync(CancellationToken ct)
     {
-        lock (this)
+        if (!this.IsRunning)
         {
-            if (!this.IsRunning)
+            var tcs = new TaskCompletionSource<bool>();
+            ct.Register(() => tcs.TrySetCanceled());
+
+            this.workingContext!.Post(_ =>
             {
-                this.workingContext!.Send(_ =>
+                try
                 {
                     this.frameIndex = 0;
                     this.counter.Restart();
                     NativeMethods_VideoForWindows.capShowPreview(this.handle, true);
-                }, null);
-                this.IsRunning = true;
-            }
+                    this.IsRunning = true;
+
+                    tcs.TrySetResult(true);
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+            }, null);
+
+            return tcs.Task;
+        }
+        else
+        {
+            return TaskCompat.CompletedTask;
         }
     }
 
-    protected override void OnStop()
+    protected override Task OnStopAsync(CancellationToken ct)
     {
-        lock (this)
+        if (this.IsRunning)
         {
-            if (this.IsRunning)
+            var tcs = new TaskCompletionSource<bool>();
+            ct.Register(() => tcs.TrySetCanceled());
+
+            this.workingContext!.Post(_ =>
             {
-                this.IsRunning = false;
-                this.workingContext!.Send(_ =>
+                try
                 {
+                    this.IsRunning = false;
                     NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
-                }, null);
-            }
+                    tcs.TrySetResult(true);
+                }
+                catch (Exception ex)
+                {
+                    tcs.TrySetException(ex);
+                }
+            }, null);
+
+            return tcs.Task;
+        }
+        else
+        {
+            return TaskCompat.CompletedTask;
         }
     }
 

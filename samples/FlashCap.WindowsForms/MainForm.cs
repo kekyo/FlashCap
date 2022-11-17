@@ -65,7 +65,7 @@ public partial class MainForm : Form
                 this.OnPixelBufferArrived);
 
             // Start capturing.
-            this.captureDevice.Start();
+            await this.captureDevice.StartAsync();
         }
     }
 

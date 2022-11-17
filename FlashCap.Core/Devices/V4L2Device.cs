@@ -195,25 +195,23 @@ public sealed class V4L2Device : CaptureDevice
         return TaskCompat.CompletedTask;
     }
 
-    protected override void Dispose(bool disposing)
+    protected override Task DisposeAsync(
+        bool disposing, CancellationToken ct)
     {
         if (disposing)
         {
             if (this.abortwfd != -1)
             {
-                lock (this)
+                if (this.IsRunning)
                 {
-                    if (this.IsRunning)
-                    {
-                        ioctl(
-                            this.fd, Interop.VIDIOC_STREAMOFF,
-                            (int)v4l2_buf_type.VIDEO_CAPTURE);
-                    }
+                    ioctl(
+                        this.fd, Interop.VIDIOC_STREAMOFF,
+                        (int)v4l2_buf_type.VIDEO_CAPTURE);
                 }
                 
                 write(this.abortwfd, new byte[] { 0x01 }, 1);
                 
-                this.thread.Join();
+                this.thread.Join();   // TODO: awaiting
                 close(this.abortwfd);
                 this.abortwfd = -1;
             }
@@ -227,6 +225,8 @@ public sealed class V4L2Device : CaptureDevice
                 this.abortwfd = -1;
             }
         }
+
+        return TaskCompat.CompletedTask;
     }
 
     private void ThreadEntry()
@@ -323,46 +323,44 @@ public sealed class V4L2Device : CaptureDevice
         }
     }
 
-    protected override void OnStart()
+    protected override Task OnStartAsync(CancellationToken ct)
     {
-        lock (this)
+        if (!this.IsRunning)
         {
-            if (!this.IsRunning)
-            {
-                this.frameIndex = 0;
-                this.counter.Restart();
+            this.frameIndex = 0;
+            this.counter.Restart();
 
-                if (ioctl(
-                    this.fd, Interop.VIDIOC_STREAMON,
-                    (int)v4l2_buf_type.VIDEO_CAPTURE) < 0)
-                {
-                    var code = Marshal.GetLastWin32Error();
-                    throw new ArgumentException(
-                        $"FlashCap: Couldn't start capture: Code={code}, DevicePath={this.devicePath}");
-                }
-                this.IsRunning = true;
+            if (ioctl(
+                this.fd, Interop.VIDIOC_STREAMON,
+                (int)v4l2_buf_type.VIDEO_CAPTURE) < 0)
+            {
+                var code = Marshal.GetLastWin32Error();
+                throw new ArgumentException(
+                    $"FlashCap: Couldn't start capture: Code={code}, DevicePath={this.devicePath}");
             }
+            this.IsRunning = true;
         }
+
+        return TaskCompat.CompletedTask;
     }
 
-    protected override void OnStop()
+    protected override Task OnStopAsync(CancellationToken ct)
     {
-        lock (this)
+        if (this.IsRunning)
         {
-            if (this.IsRunning)
+            this.IsRunning = false;
+            if (ioctl(
+                this.fd, Interop.VIDIOC_STREAMOFF,
+                (int)v4l2_buf_type.VIDEO_CAPTURE) < 0)
             {
-                this.IsRunning = false;
-                if (ioctl(
-                    this.fd, Interop.VIDIOC_STREAMOFF,
-                    (int)v4l2_buf_type.VIDEO_CAPTURE) < 0)
-                {
-                    var code = Marshal.GetLastWin32Error();
-                    this.IsRunning = true;
-                    throw new ArgumentException(
-                        $"FlashCap: Couldn't stop capture: Code={code}, DevicePath={this.devicePath}");
-                }
+                var code = Marshal.GetLastWin32Error();
+                this.IsRunning = true;
+                throw new ArgumentException(
+                    $"FlashCap: Couldn't stop capture: Code={code}, DevicePath={this.devicePath}");
             }
         }
+
+        return TaskCompat.CompletedTask;
     }
 
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP

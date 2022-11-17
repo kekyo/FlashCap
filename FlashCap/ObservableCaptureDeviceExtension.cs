@@ -8,17 +8,37 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using System;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace FlashCap;
 
 public static class ObservableCaptureDeviceExtension
 {
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+    public static Task StartAsync(this ObservableCaptureDevice observableCaptureDevice, CancellationToken ct = default) =>
+        observableCaptureDevice.InternalStartAsync(ct);
+
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+    public static Task StopAsync(this ObservableCaptureDevice observableCaptureDevice, CancellationToken ct = default) =>
+        observableCaptureDevice.InternalStopAsync(ct);
+
+    [Obsolete("Start method will be deprecated. Switch to use StartAsync method.")]
     public static void Start(this ObservableCaptureDevice observableCaptureDevice) =>
-        observableCaptureDevice.InternalStart();
+        _ = observableCaptureDevice.InternalStartAsync(default);
 
+    [Obsolete("Stop method will be deprecated. Switch to use StopAsync method.")]
     public static void Stop(this ObservableCaptureDevice observableCaptureDevice) =>
-        observableCaptureDevice.InternalStop();
+        _ = observableCaptureDevice.InternalStopAsync(default);
 
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
     public static IDisposable Subscribe(
         this ObservableCaptureDevice observableCaptureDevice,
         IObserver<PixelBufferScope> observer) =>

@@ -80,11 +80,14 @@ public sealed class MainWindowViewModel
             {
                 this.CharacteristicsList.Add(characteristics);
             }
+
+            this.Characteristics = descriptor.Characteristics.FirstOrDefault();
 #endif
         }
         else
         {
             this.CharacteristicsList.Clear();
+            this.Characteristics = null;
         }
 
         return default;
@@ -98,8 +101,8 @@ public sealed class MainWindowViewModel
         if (this.captureDevice is { } captureDevice)
         {
             this.captureDevice = null;
-            captureDevice.Stop();
-            captureDevice.Dispose();
+            await captureDevice.StopAsync();
+            await captureDevice.DisposeAsync();
 
             // Erase preview.
             this.Image = null;
@@ -115,7 +118,7 @@ public sealed class MainWindowViewModel
                 this.OnPixelBufferArrivedAsync);
 
             // Start capturing.
-            this.captureDevice.Start();
+            await this.captureDevice.StartAsync();
         }
     }
 

@@ -7,6 +7,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.Internal;
 using System;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -14,24 +15,51 @@ using System.Threading.Tasks;
 
 namespace FlashCap;
 
-public abstract class CaptureDevice : IDisposable
+public abstract class CaptureDevice :
+#if NETCOREAPP3_0_OR_GREATER || NETSTANDARD2_1
+    IAsyncDisposable,
+#endif
+    IDisposable
 {
+    private readonly AsyncLock locker = new();
+
     protected CaptureDevice()
     {
     }
 
     ~CaptureDevice() =>
-        this.Dispose(false);
+        this.DisposeAsync(false, default).
+        ConfigureAwait(false).
+        GetAwaiter().
+        GetResult();
 
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
     public void Dispose()
     {
-        this.Dispose(true);
+        this.DisposeAsync(true, default).
+            ConfigureAwait(false).
+            GetAwaiter().
+            GetResult();
         GC.SuppressFinalize(this);
     }
 
-    protected virtual void Dispose(bool disposing)
+#if NETCOREAPP3_0_OR_GREATER || NETSTANDARD2_1
+    ValueTask IAsyncDisposable.DisposeAsync() =>
+        new(this.DisposeAsync(true, default));
+#endif
+
+    public async Task DisposeAsync(CancellationToken ct = default)
     {
+        using var _ = await locker.LockAsync(ct).
+            ConfigureAwait(false);
+
+        await this.DisposeAsync(true, ct);
     }
+
+    protected virtual Task DisposeAsync(bool disposing, CancellationToken ct) =>
+        TaskCompat.CompletedTask;
 
     protected abstract Task OnInitializeAsync(
         object identity,
@@ -43,17 +71,14 @@ public abstract class CaptureDevice : IDisposable
     public VideoCharacteristics Characteristics { get; protected set; } = null!;
     public bool IsRunning { get; protected set; }
 
-    protected abstract void OnStart();
-    protected abstract void OnStop();
+    protected abstract Task OnStartAsync(CancellationToken ct);
+    protected abstract Task OnStopAsync(CancellationToken ct);
 
     protected abstract void OnCapture(
         IntPtr pData, int size, long timestampMicroseconds, long frameIndex, PixelBuffer buffer);
 
     //////////////////////////////////////////////////////////////////////////
 
-#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
     internal Task InternalInitializeAsync(
         object identity,
         VideoCharacteristics characteristics,
@@ -61,16 +86,23 @@ public abstract class CaptureDevice : IDisposable
         FrameProcessor frameProcessor,
         CancellationToken ct) =>
         this.OnInitializeAsync(identity, characteristics, transcodeIfYUV, frameProcessor, ct);
-#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-    internal void InternalStart() =>
-        this.OnStart();
-#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-    internal void InternalStop() =>
-        this.OnStop();
+
+    internal async Task InternalStartAsync(CancellationToken ct)
+    {
+        using var _ = await locker.LockAsync(ct).
+            ConfigureAwait(false);
+
+        await this.OnStartAsync(ct);
+    }
+
+    internal async Task InternalStopAsync(CancellationToken ct)
+    {
+        using var _ = await locker.LockAsync(ct).
+            ConfigureAwait(false);
+
+        await this.OnStopAsync(ct);
+    }
+
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif

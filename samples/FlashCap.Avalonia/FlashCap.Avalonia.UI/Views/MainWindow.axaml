@@ -26,10 +26,10 @@
         <StackPanel Orientation="Horizontal">
             <ComboBox HorizontalAlignment="Stretch"
                       Items="{Binding DeviceList}"
-                      SelectedItem="{Binding Device, Mode=OneWayToSource}" />
+                      SelectedItem="{Binding Device, Mode=TwoWay}" />
             <ComboBox HorizontalAlignment="Stretch"
                       Items="{Binding CharacteristicsList}"
-                      SelectedItem="{Binding Characteristics, Mode=OneWayToSource}" />
+                      SelectedItem="{Binding Characteristics, Mode=TwoWay}" />
         </StackPanel>
     </Grid>
 </Window>

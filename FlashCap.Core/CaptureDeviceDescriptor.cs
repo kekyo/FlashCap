@@ -7,6 +7,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.Internal;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,6 +29,8 @@ public delegate Task PixelBufferArrivedTaskDelegate(
 
 public abstract class CaptureDeviceDescriptor
 {
+    private readonly AsyncLock locker = new();
+
     protected CaptureDeviceDescriptor(
         string name, string description,
         VideoCharacteristics[] characteristics)
@@ -73,6 +76,8 @@ public abstract class CaptureDeviceDescriptor
         FrameProcessor frameProcessor,
         CancellationToken ct)
     {
+        using var _ = await this.locker.LockAsync(ct);
+
         try
         {
             await preConstructedDevice.InternalInitializeAsync(

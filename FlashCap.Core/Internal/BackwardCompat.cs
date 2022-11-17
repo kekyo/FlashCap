@@ -203,7 +203,9 @@ namespace System.Threading.Tasks
     internal static class TaskCompat
     {
         public static Task CompletedTask =>
-            Task.Factory.StartNew(() => { });  // Too bad, but only solution...
+            TaskEx.FromResult(true);
+        public static Task<T> FromResult<T>(T value) =>
+            TaskEx.FromResult(value);
     }
 }
 
