@@ -10,7 +10,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using FlashCap.Internal.V4L2;
 using FlashCap.Utilities;
@@ -158,7 +157,7 @@ internal static class NativeMethods_V4L2
 
     [DllImport("libc", CallingConvention = CallingConvention.Cdecl, SetLastError = true)]
     public static extern int poll(
-        pollfd[] fds, int nfds, int timeout);
+        [In, Out] pollfd[] fds, int nfds, int timeout);
 
     [Flags]
     public enum PROT

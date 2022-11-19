@@ -9,10 +9,12 @@
 
 using FlashCap.Internal;
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+
 using static FlashCap.Internal.NativeMethods_V4L2;
 using static FlashCap.Internal.V4L2.NativeMethods_V4L2_Interop;
 
@@ -23,16 +25,18 @@ public sealed class V4L2Device : CaptureDevice
     private const int BufferCount = 2;
 
     private readonly TimestampCounter counter = new();
+
     private string devicePath;
     private bool transcodeIfYUV;
     private FrameProcessor frameProcessor;
 
     private long frameIndex;
     
+    private readonly IntPtr[] pBuffers = new IntPtr[BufferCount];
+    private readonly int[] bufferLength = new int[BufferCount];
+    
     private int fd;
     private IntPtr pBih;
-    private IntPtr[] pBuffers = new IntPtr[BufferCount];
-    private int[] bufferLength = new int[BufferCount];
     private Thread thread;
     private int abortrfd;
     private int abortwfd;
@@ -139,8 +143,8 @@ public sealed class V4L2Device : CaptureDevice
                         $"FlashCap: Couldn't map video buffer: Code={code}, DevicePath={this.devicePath}");
                 }
 
-                pBuffers[index] = pBuffer;
-                bufferLength[index] = (int)buffer.length;
+                this.pBuffers[index] = pBuffer;
+                this.bufferLength[index] = (int)buffer.length;
 
                 if (ioctl(fd, Interop.VIDIOC_QBUF, buffer) < 0)
                 {
@@ -188,6 +192,17 @@ public sealed class V4L2Device : CaptureDevice
         }
         catch
         {
+            for (var index = 0; index < pBuffers.Length; index++)
+            {
+                if (this.pBuffers[index] != default &&
+                    this.bufferLength[index] != default)
+                {
+                    munmap(this.pBuffers[index], (ulong)this.bufferLength[index]);
+                    this.pBuffers[index] = default;
+                    this.bufferLength[index] = default;
+                }
+            }
+            
             close(fd);
             throw;
         }
@@ -210,9 +225,9 @@ public sealed class V4L2Device : CaptureDevice
                 }
                 
                 write(this.abortwfd, new byte[] { 0x01 }, 1);
+                close(this.abortwfd);
                 
                 this.thread.Join();   // TODO: awaiting
-                close(this.abortwfd);
                 this.abortwfd = -1;
             }
         }
@@ -244,12 +259,12 @@ public sealed class V4L2Device : CaptureDevice
             new pollfd
             {
                 fd = this.abortrfd,
-                events = POLLBITS.POLLIN,
+                events = POLLBITS.POLLIN | POLLBITS.POLLHUP | POLLBITS.POLLRDHUP | POLLBITS.POLLERR,
             },
             new pollfd
             {
                 fd = this.fd,
-                events = POLLBITS.POLLIN,
+                events = POLLBITS.POLLIN | POLLBITS.POLLHUP | POLLBITS.POLLRDHUP | POLLBITS.POLLERR,
             }
         };
         var buffer = Interop.Create_v4l2_buffer();
@@ -260,12 +275,8 @@ public sealed class V4L2Device : CaptureDevice
         {
             while (true)
             {
-                var result = poll(fds, fds.Length, -1);
-                if (result == 0)
-                {
-                    break;
-                }
-                if (result != 1)
+                var pr = poll(fds, fds.Length, -1);
+                if (pr < 0)
                 {
                     var code = Marshal.GetLastWin32Error();
                     if (code == EINTR)
@@ -280,43 +291,79 @@ public sealed class V4L2Device : CaptureDevice
                     throw new ArgumentException(
                         $"FlashCap: Couldn't get fd status: Code={code}, DevicePath={this.devicePath}");
                 }
-
-                if (ioctl(this.fd, Interop.VIDIOC_DQBUF, buffer) < 0)
+                if (pr >= 1)
                 {
-                    // Couldn't get, maybe discarding.
-                    if (Marshal.GetLastWin32Error() is { } code && IsIgnore(code))
+                    if ((fds[0].revents & POLLBITS.POLLIN) == POLLBITS.POLLIN)
                     {
-                        continue;
+                        break;
                     }
-                    throw new ArgumentException(
-                        $"FlashCap: Couldn't dequeue video buffer: Code={code}, DevicePath={this.devicePath}");
-                }
+                    if ((fds[1].revents & POLLBITS.POLLIN) == POLLBITS.POLLIN)
+                    {
+                        if (ioctl(this.fd, Interop.VIDIOC_DQBUF, buffer) < 0)
+                        {
+                            // Couldn't get, maybe discarding.
+                            if (Marshal.GetLastWin32Error() is { } code && IsIgnore(code))
+                            {
+                                continue;
+                            }
 
-                this.frameProcessor.OnFrameArrived(
-                    this,
-                    this.pBuffers[buffer.index],
-                    (int)buffer.bytesused,
-                    // buffer.timestamp is untrustworthy.
-                    this.counter.ElapsedMicroseconds,
-                    this.frameIndex++);
-            
-                if (ioctl(this.fd, Interop.VIDIOC_QBUF, buffer) < 0)
-                {
-                    // Couldn't get, maybe discarding.
-                    if (Marshal.GetLastWin32Error() is { } code && IsIgnore(code))
-                    {
-                        continue;
+                            throw new ArgumentException(
+                                $"FlashCap: Couldn't dequeue video buffer: Code={code}, DevicePath={this.devicePath}");
+                        }
+
+                        try
+                        {
+                            this.frameProcessor.OnFrameArrived(
+                                this,
+                                this.pBuffers[buffer.index],
+                                (int)buffer.bytesused,
+                                // buffer.timestamp is untrustworthy.
+                                this.counter.ElapsedMicroseconds,
+                                this.frameIndex++);
+                        }
+                        // DANGER: Stop leaking exception around outside of unmanaged area...
+                        catch (Exception ex)
+                        {
+                            Trace.WriteLine(ex);
+                        }
+
+                        if (ioctl(this.fd, Interop.VIDIOC_QBUF, buffer) < 0)
+                        {
+                            // Couldn't get, maybe discarding.
+                            if (Marshal.GetLastWin32Error() is { } code && IsIgnore(code))
+                            {
+                                continue;
+                            }
+
+                            throw new ArgumentException(
+                                $"FlashCap: Couldn't enqueue video buffer: Code={code}, DevicePath={this.devicePath}");
+                        }
                     }
-                    throw new ArgumentException(
-                        $"FlashCap: Couldn't enqueue video buffer: Code={code}, DevicePath={this.devicePath}");
                 }
             }
         }
+        catch (Exception ex)
+        {
+            Trace.WriteLine(ex);
+        }
         finally
         {
+            for (var index = 0; index < pBuffers.Length; index++)
+            {
+                if (this.pBuffers[index] != default &&
+                    this.bufferLength[index] != default)
+                {
+                    munmap(this.pBuffers[index], (ulong)this.bufferLength[index]);
+                    this.pBuffers[index] = default;
+                    this.bufferLength[index] = default;
+                }
+            }
+            
             close(this.abortrfd);
             close(this.fd);
+            
             NativeMethods.FreeMemory(this.pBih);
+            
             this.abortrfd = -1;
             this.fd = -1;
             this.pBih = IntPtr.Zero;
