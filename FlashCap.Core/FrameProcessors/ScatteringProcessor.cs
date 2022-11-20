@@ -7,9 +7,11 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.Internal;
 using System;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace FlashCap.FrameProcessors;
 
@@ -21,7 +23,7 @@ internal abstract class ScatteringProcessor :
 
     protected volatile int processing = 1;
     protected volatile bool aborting;
-    protected ManualResetEventSlim final = new(false);
+    protected AsyncManualResetEvent final = new();
 
     protected ScatteringProcessor(int maxQueuingFrames)
     {
@@ -29,20 +31,19 @@ internal abstract class ScatteringProcessor :
         this.pixelBufferArrivedEntry = this.PixelBufferArrivedEntry;
     }
 
-    protected override void Dispose(bool disposing)
+    protected override async Task OnDisposeAsync()
     {
-        if (disposing && this.final != null)
+        if (this.final != null)
         {
             Debug.Assert(!this.aborting);
 
             this.aborting = true;
             if (Interlocked.Decrement(ref this.processing) >= 1)
             {
-                // HACK: Avoid deadlocking when arrived event handlers stuck in disposing process.
-                this.final.Wait(TimeSpan.FromSeconds(2));
+                await AsyncManualResetEvent.WaitAnyAsync(default, this.final).
+                    ConfigureAwait(false);
             }
 
-            this.final.Dispose();
             this.final = null!;
         }
     }
@@ -89,9 +90,10 @@ internal sealed class DelegatedScatteringProcessor :
         base(maxQueuingFrames) =>
         this.pixelBufferArrived = pixelBufferArrived;
 
-    protected override void Dispose(bool disposing)
+    protected override async Task OnDisposeAsync()
     {
-        base.Dispose(disposing);
+        await base.DisposeAsync().
+            ConfigureAwait(false);
         this.pixelBufferArrived = null!;
     }
 
@@ -137,9 +139,10 @@ internal sealed class DelegatedScatteringTaskProcessor :
         base(maxQueuingFrames) =>
         this.pixelBufferArrived = pixelBufferArrived;
 
-    protected override void Dispose(bool disposing)
+    protected override async Task OnDisposeAsync()
     {
-        base.Dispose(disposing);
+        await base.DisposeAsync().
+            ConfigureAwait(false);
         this.pixelBufferArrived = null!;
     }
 

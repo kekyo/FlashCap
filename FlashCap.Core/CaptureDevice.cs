@@ -27,38 +27,30 @@ public abstract class CaptureDevice :
     {
     }
 
-    ~CaptureDevice() =>
-        this.DisposeAsync(false, default).
-        ConfigureAwait(false).
-        GetAwaiter().
-        GetResult();
-
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-    public void Dispose()
-    {
-        this.DisposeAsync(true, default).
+    public void Dispose() =>
+        this.DisposeAsync().
             ConfigureAwait(false).
             GetAwaiter().
             GetResult();
-        GC.SuppressFinalize(this);
-    }
 
 #if NETCOREAPP3_0_OR_GREATER || NETSTANDARD2_1
     ValueTask IAsyncDisposable.DisposeAsync() =>
-        new(this.DisposeAsync(true, default));
+        new(this.DisposeAsync());
 #endif
 
-    public async Task DisposeAsync(CancellationToken ct = default)
+    public async Task DisposeAsync()
     {
-        using var _ = await locker.LockAsync(ct).
+        using var _ = await locker.LockAsync(default).
             ConfigureAwait(false);
 
-        await this.DisposeAsync(true, ct);
+        await this.OnDisposeAsync().
+            ConfigureAwait(false);
     }
 
-    protected virtual Task DisposeAsync(bool disposing, CancellationToken ct) =>
+    protected virtual Task OnDisposeAsync() =>
         TaskCompat.CompletedTask;
 
     protected abstract Task OnInitializeAsync(

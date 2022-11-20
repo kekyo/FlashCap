@@ -37,7 +37,7 @@ public sealed class V4L2Device : CaptureDevice
     
     private int fd;
     private IntPtr pBih;
-    private Thread thread;
+    private Task task;
     private int abortrfd;
     private int abortwfd;
 
@@ -182,9 +182,8 @@ public sealed class V4L2Device : CaptureDevice
                     this.fd = fd;
                     this.pBih = pih;
 
-                    this.thread = new Thread(this.ThreadEntry);
-                    this.thread.IsBackground = true;
-                    this.thread.Start();
+                    this.task = Task.Factory.StartNew(
+                        this.ThreadEntry, TaskCreationOptions.LongRunning);
                 }
                 catch
                 {
@@ -211,44 +210,39 @@ public sealed class V4L2Device : CaptureDevice
         });
     }
 
-    protected override Task DisposeAsync(
-        bool disposing, CancellationToken ct)
+    ~V4L2Device()
     {
-        if (disposing)
+        if (this.abortwfd != -1)
         {
-            if (this.abortwfd != -1)
-            {
-                return Task.Factory.StartNew(() =>
-                {
-                    if (this.IsRunning)
-                    {
-                        ioctl(
-                            this.fd, Interop.VIDIOC_STREAMOFF,
-                            (int)v4l2_buf_type.VIDEO_CAPTURE);
-                    }
-                
-                    write(this.abortwfd, new byte[] { 0x01 }, 1);
-                    close(this.abortwfd);
-                
-                    this.thread.Join();   // TODO: awaiting
-                    this.abortwfd = -1;
-                });
-            }
+            write(this.abortwfd, new byte[] { 0x01 }, 1);
+            close(this.abortwfd);
+            this.abortwfd = -1;
         }
-        else
-        {
-            if (this.abortwfd != -1)
-            {
-                return Task.Factory.StartNew(() =>
-                {
-                    write(this.abortwfd, new byte[] { 0x01 }, 1);
-                    close(this.abortwfd);
-                    this.abortwfd = -1;
-                });
-            }
-        }
+    }
 
-        return TaskCompat.CompletedTask;
+    protected override async Task OnDisposeAsync()
+    {
+        if (this.abortwfd != -1)
+        {
+            await this.frameProcessor.DisposeAsync().
+                ConfigureAwait(false);
+
+            if (this.IsRunning)
+            {
+                this.IsRunning = false;
+                ioctl(
+                    this.fd, Interop.VIDIOC_STREAMOFF,
+                    (int)v4l2_buf_type.VIDEO_CAPTURE);
+            }
+                
+            write(this.abortwfd, new byte[] { 0x01 }, 1);
+
+            await this.task.
+                ConfigureAwait(false);
+
+            close(this.abortwfd);
+            this.abortwfd = -1;
+        }
     }
 
     private void ThreadEntry()

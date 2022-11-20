@@ -191,6 +191,12 @@ namespace System.Threading.Tasks
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
+        public static Task<Task> WhenAny(params Task[] tasks) =>
+            Task.WhenAny(tasks);
+
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
         public static Task<T> FromResult<T>(T value) =>
             Task.FromResult(value);
     }
@@ -206,6 +212,9 @@ namespace System.Threading.Tasks
             TaskEx.FromResult(true);
         public static Task<T> FromResult<T>(T value) =>
             TaskEx.FromResult(value);
+
+        public static Task<Task> WhenAny(params Task[] tasks) =>
+            TaskEx.WhenAny(tasks);
     }
 }
 

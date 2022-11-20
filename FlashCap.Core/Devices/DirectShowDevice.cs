@@ -94,201 +94,173 @@ public sealed class DirectShowDevice :
         this.transcodeIfYUV = transcodeIfYUV;
         this.frameProcessor = frameProcessor;
 
-        var tcs = new TaskCompletionSource<bool>();
-        ct.Register(() => tcs.TrySetCanceled());
-
-        this.workingContext!.Post(_ =>
+        return this.workingContext!.InvokeAsync(() =>
         {
-            try
+            if (NativeMethods_DirectShow.EnumerateDeviceMoniker(
+                NativeMethods_DirectShow.CLSID_VideoInputDeviceCategory).
+                Where(moniker =>
+                    moniker.GetPropertyBag() is { } pb &&
+                    pb.SafeReleaseBlock(pb =>
+                        pb.GetValue("DevicePath", default(string))?.Trim() is { } dp &&
+                        dp.Equals(devicePath))).
+                Collect(moniker =>
+                    moniker.BindToObject(null, null, in NativeMethods_DirectShow.IID_IBaseFilter, out var captureSource) == 0 ?
+                    captureSource as NativeMethods_DirectShow.IBaseFilter : null).
+                FirstOrDefault() is { } captureSource)
             {
-                if (NativeMethods_DirectShow.EnumerateDeviceMoniker(
-                    NativeMethods_DirectShow.CLSID_VideoInputDeviceCategory).
-                    Where(moniker =>
-                        moniker.GetPropertyBag() is { } pb &&
-                        pb.SafeReleaseBlock(pb =>
-                            pb.GetValue("DevicePath", default(string))?.Trim() is { } dp &&
-                            dp.Equals(devicePath))).
-                    Collect(moniker =>
-                        moniker.BindToObject(null, null, in NativeMethods_DirectShow.IID_IBaseFilter, out var captureSource) == 0 ?
-                        captureSource as NativeMethods_DirectShow.IBaseFilter : null).
-                    FirstOrDefault() is { } captureSource)
+                try
                 {
-                    try
+                    if (captureSource.EnumeratePins().
+                        Collect(pin =>
+                            pin.GetPinInfo() is { } pinInfo &&
+                            pinInfo.dir == NativeMethods_DirectShow.PIN_DIRECTION.Output ?
+                                pin : null).
+                        SelectMany(pin =>
+                            pin.EnumerateFormats().
+                            Collect(format =>
+                            {
+                                var vfc = format.CreateVideoCharacteristics();
+                                return characteristics.Equals(vfc) ?
+                                    new { pin, format, vfc } : null;
+                            })).
+                        FirstOrDefault() is { } entry)
                     {
-                        if (captureSource.EnumeratePins().
-                            Collect(pin =>
-                                pin.GetPinInfo() is { } pinInfo &&
-                                pinInfo.dir == NativeMethods_DirectShow.PIN_DIRECTION.Output ?
-                                    pin : null).
-                            SelectMany(pin =>
-                                pin.EnumerateFormats().
-                                Collect(format =>
-                                {
-                                    var vfc = format.CreateVideoCharacteristics();
-                                    return characteristics.Equals(vfc) ?
-                                        new { pin, format, vfc } : null;
-                                })).
-                            FirstOrDefault() is { } entry)
-                        {
-                            this.Characteristics = entry.vfc;
-                            entry.pin.SetFormat(entry.format);
-                        }
-                        else
-                        {
-                            throw new ArgumentException(
-                                $"FlashCap: Couldn't set video format: DevicePath={devicePath}");
-                        }
-
-                        ///////////////////////////////
-
-                        this.graphBuilder = NativeMethods_DirectShow.CreateGraphBuilder();
-                        if (this.graphBuilder.AddFilter(captureSource, "Capture source") < 0)
-                        {
-                            throw new ArgumentException(
-                                $"FlashCap: Couldn't add capture source: DevicePath={devicePath}");
-                        }
-
-                        ///////////////////////////////
-
-                        var sampleGrabber = NativeMethods_DirectShow.CreateSampleGrabber();
-                        if (this.graphBuilder.AddFilter(sampleGrabber, "Sample grabber") < 0)
-                        {
-                            throw new ArgumentException(
-                                $"FlashCap: Couldn't add sample grabber: DevicePath={devicePath}");
-                        }
-
-                        if (sampleGrabber.SetOneShot(false) < 0)
-                        {
-                            throw new ArgumentException(
-                                $"FlashCap: Couldn't set oneshot mode: DevicePath={devicePath}");
-                        }
-                        if (sampleGrabber.SetBufferSamples(true) < 0)
-                        {
-                            throw new ArgumentException(
-                                $"FlashCap: Couldn't start sampling: DevicePath={devicePath}");
-                        }
-
-                        ///////////////////////////////
-
-                        var nullRenderer = NativeMethods_DirectShow.CreateNullRenderer();
-                        if (this.graphBuilder.AddFilter(nullRenderer, "Null renderer") < 0)
-                        {
-                            throw new ArgumentException(
-                                $"FlashCap: Couldn't add null renderer: DevicePath={devicePath}");
-                        }
-
-                        ///////////////////////////////
-
-                        var captureGraphBuilder = NativeMethods_DirectShow.CreateCaptureGraphBuilder();
-                        if (captureGraphBuilder.SetFiltergraph(this.graphBuilder) < 0)
-                        {
-                            throw new ArgumentException(
-                                $"FlashCap: Couldn't set graph builder: DevicePath={devicePath}");
-                        }
-
-                        ///////////////////////////////
-
-                        if (captureGraphBuilder.RenderStream(
-                            in NativeMethods_DirectShow.PIN_CATEGORY_CAPTURE,
-                            in NativeMethods_DirectShow.MEDIATYPE_Video,
-                            captureSource,
-                            sampleGrabber,
-                            nullRenderer) < 0)
-                        {
-                            throw new ArgumentException(
-                                $"FlashCap: Couldn't set render stream: DevicePath={devicePath}");
-                        }
-
-                        ///////////////////////////////
-
-                        if (sampleGrabber.GetConnectedMediaType(out var mediaType) < 0)
-                        {
-                            throw new ArgumentException(
-                                $"FlashCap: Couldn't get media type: DevicePath={devicePath}");
-                        }
-
-                        this.pBih = mediaType.AllocateAndGetBih();
-
-                        ///////////////////////////////
-
-                        this.sampleGrabberSink =
-                            new SampleGrabberSink(this, frameProcessor);
-                        if (sampleGrabber.SetCallback(this.sampleGrabberSink, 1) < 0)
-                        {
-                            throw new ArgumentException(
-                                $"FlashCap: Couldn't get grabbing media type: DevicePath={devicePath}");
-                        }
+                        this.Characteristics = entry.vfc;
+                        entry.pin.SetFormat(entry.format);
                     }
-                    catch
+                    else
                     {
-                        if (this.graphBuilder != null)
-                        {
-                            Marshal.ReleaseComObject(this.graphBuilder);
-                        }
-                        throw;
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't set video format: DevicePath={devicePath}");
+                    }
+
+                    ///////////////////////////////
+
+                    this.graphBuilder = NativeMethods_DirectShow.CreateGraphBuilder();
+                    if (this.graphBuilder.AddFilter(captureSource, "Capture source") < 0)
+                    {
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't add capture source: DevicePath={devicePath}");
+                    }
+
+                    ///////////////////////////////
+
+                    var sampleGrabber = NativeMethods_DirectShow.CreateSampleGrabber();
+                    if (this.graphBuilder.AddFilter(sampleGrabber, "Sample grabber") < 0)
+                    {
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't add sample grabber: DevicePath={devicePath}");
+                    }
+
+                    if (sampleGrabber.SetOneShot(false) < 0)
+                    {
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't set oneshot mode: DevicePath={devicePath}");
+                    }
+                    if (sampleGrabber.SetBufferSamples(true) < 0)
+                    {
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't start sampling: DevicePath={devicePath}");
+                    }
+
+                    ///////////////////////////////
+
+                    var nullRenderer = NativeMethods_DirectShow.CreateNullRenderer();
+                    if (this.graphBuilder.AddFilter(nullRenderer, "Null renderer") < 0)
+                    {
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't add null renderer: DevicePath={devicePath}");
+                    }
+
+                    ///////////////////////////////
+
+                    var captureGraphBuilder = NativeMethods_DirectShow.CreateCaptureGraphBuilder();
+                    if (captureGraphBuilder.SetFiltergraph(this.graphBuilder) < 0)
+                    {
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't set graph builder: DevicePath={devicePath}");
+                    }
+
+                    ///////////////////////////////
+
+                    if (captureGraphBuilder.RenderStream(
+                        in NativeMethods_DirectShow.PIN_CATEGORY_CAPTURE,
+                        in NativeMethods_DirectShow.MEDIATYPE_Video,
+                        captureSource,
+                        sampleGrabber,
+                        nullRenderer) < 0)
+                    {
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't set render stream: DevicePath={devicePath}");
+                    }
+
+                    ///////////////////////////////
+
+                    if (sampleGrabber.GetConnectedMediaType(out var mediaType) < 0)
+                    {
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't get media type: DevicePath={devicePath}");
+                    }
+
+                    this.pBih = mediaType.AllocateAndGetBih();
+
+                    ///////////////////////////////
+
+                    this.sampleGrabberSink =
+                        new SampleGrabberSink(this, frameProcessor);
+                    if (sampleGrabber.SetCallback(this.sampleGrabberSink, 1) < 0)
+                    {
+                        throw new ArgumentException(
+                            $"FlashCap: Couldn't get grabbing media type: DevicePath={devicePath}");
                     }
                 }
-                else
+                catch
                 {
-                    throw new ArgumentException(
-                        $"FlashCap: Couldn't find a device: DevicePath={devicePath}");
+                    if (this.graphBuilder != null)
+                    {
+                        Marshal.ReleaseComObject(this.graphBuilder);
+                    }
+                    throw;
                 }
-
-                tcs.TrySetResult(true);
             }
-            catch (Exception ex)
+            else
             {
-                tcs.TrySetException(ex);
+                throw new ArgumentException(
+                    $"FlashCap: Couldn't find a device: DevicePath={devicePath}");
             }
-        }, null);
-
-        return tcs.Task;
+        }, ct);
     }
 
-    protected override async Task DisposeAsync(
-        bool disposing, CancellationToken ct)
+    ~DirectShowDevice()
     {
-        if (disposing)
+        if (this.pBih != IntPtr.Zero)
         {
-            if (this.graphBuilder != null)
-            {
-                await this.OnStopAsync(ct).
-                    ConfigureAwait(false);
-
-                var tcs = new TaskCompletionSource<bool>();
-                ct.Register(() => tcs.TrySetCanceled());
-
-                this.workingContext!.Post(_ =>
-                {
-                    try
-                    {
-                        this.frameProcessor.Dispose();
-
-                        Marshal.ReleaseComObject(this.graphBuilder);
-                        this.graphBuilder = null!;
-                        this.sampleGrabberSink = null!;
-                        NativeMethods.FreeMemory(this.pBih);
-                        this.pBih = IntPtr.Zero;
-
-                        tcs.TrySetResult(true);
-                    }
-                    catch (Exception ex)
-                    {
-                        tcs.TrySetException(ex);
-                    }
-                }, null);
-
-                await tcs.Task.
-                    ConfigureAwait(false);
-            }
+            NativeMethods.FreeMemory(this.pBih);
+            this.pBih = IntPtr.Zero;
         }
-        else
+    }
+
+    protected override async Task OnDisposeAsync()
+    {
+        if (this.graphBuilder != null)
         {
-            if (this.pBih != IntPtr.Zero)
+            await this.frameProcessor.DisposeAsync().
+                ConfigureAwait(false);
+
+            await this.OnStopAsync(default).
+                ConfigureAwait(false);
+
+            await this.workingContext!.InvokeAsync(() =>
             {
+                Marshal.ReleaseComObject(this.graphBuilder);
+                this.graphBuilder = null!;
+                this.sampleGrabberSink = null!;
                 NativeMethods.FreeMemory(this.pBih);
                 this.pBih = IntPtr.Zero;
-            }
+            }, default);
+
+            this.workingContext.Dispose();
+            this.workingContext = null;
         }
     }
 
@@ -296,34 +268,20 @@ public sealed class DirectShowDevice :
     {
         if (!this.IsRunning)
         {
-            var tcs = new TaskCompletionSource<bool>();
-            ct.Register(() => tcs.TrySetCanceled());
-
-            this.workingContext!.Post(_ =>
+            return this.workingContext!.InvokeAsync(() =>
             {
-                try
+                if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
                 {
-                    if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
-                    {
-                        this.sampleGrabberSink!.ResetFrameIndex();
+                    this.sampleGrabberSink!.ResetFrameIndex();
 
-                        mediaControl.Run();
-                        this.IsRunning = true;
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException();
-                    }
-
-                    tcs.TrySetResult(true);
+                    mediaControl.Run();
+                    this.IsRunning = true;
                 }
-                catch (Exception ex)
+                else
                 {
-                    tcs.TrySetException(ex);
+                    throw new InvalidOperationException();
                 }
-            }, null);
-
-            return tcs.Task;
+            }, ct);
         }
         else
         {
@@ -335,32 +293,18 @@ public sealed class DirectShowDevice :
     {
         if (this.IsRunning)
         {
-            var tcs = new TaskCompletionSource<bool>();
-            ct.Register(() => tcs.TrySetCanceled());
-
-            this.workingContext!.Post(_ =>
+            return this.workingContext!.InvokeAsync(() =>
             {
-                try
+                if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
                 {
-                    if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
-                    {
-                        this.IsRunning = false;
-                        mediaControl.Stop();
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException();
-                    }
-
-                    tcs.TrySetResult(true);
+                    this.IsRunning = false;
+                    mediaControl.Stop();
                 }
-                catch (Exception ex)
+                else
                 {
-                    tcs.TrySetException(ex);
+                    throw new InvalidOperationException();
                 }
-            }, null);
-
-            return tcs.Task;
+            }, ct);
         }
         else
         {

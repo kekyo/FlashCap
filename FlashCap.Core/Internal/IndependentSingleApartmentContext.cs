@@ -15,6 +15,7 @@ using System.Diagnostics;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace FlashCap.Internal;
 
@@ -182,6 +183,28 @@ internal sealed class IndependentSingleApartmentContext :
 
             PostThreadMessage(this.targetThreadId, WM_SC, IntPtr.Zero, handle);
         }
+    }
+
+    public async Task InvokeAsync(Action action, CancellationToken ct)
+    {
+        var tcs = new TaskCompletionSource<int>();
+        using var _ = ct.Register(() => tcs.TrySetCanceled());
+
+        this.Post(_ =>
+        {
+            try
+            {
+                action();
+                tcs.TrySetResult(0);
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
+            }
+        }, null);
+
+        await tcs.Task.
+            ConfigureAwait(false);
     }
 
     private void ThreadEntry()

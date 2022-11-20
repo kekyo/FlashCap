@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace FlashCap.FrameProcessors;
 
@@ -19,23 +20,25 @@ internal abstract class QueuingProcessor :
 {
     private readonly int maxQueuingFrames;
     private readonly Queue<PixelBuffer> queue = new();
-    private ManualResetEventSlim arrived = new(false);
-    private ManualResetEventSlim abort = new(false);
+    private readonly ManualResetEventSlim arrived = new(false);
+    private readonly ManualResetEventSlim abort = new(false);
     private volatile bool aborting;
-    private Thread thread;
+    private Task? worker;
 
     protected QueuingProcessor(int maxQueuingFrames)
     {
         this.maxQueuingFrames = maxQueuingFrames;
-        this.thread = new Thread(this.ThreadEntry);
-        this.thread.IsBackground = true;
-        this.thread.Start();
+        this.worker = Task.Factory.StartNew(
+            this.ThreadEntry,
+            TaskCreationOptions.LongRunning);
     }
 
-    protected override void Dispose(bool disposing)
+    protected override Task OnDisposeAsync()
     {
-        if (disposing && this.thread != null)
+        if (this.worker is { } worker)
         {
+            this.worker = null;
+
             this.aborting = true;
             this.abort.Set();
 
@@ -46,9 +49,11 @@ internal abstract class QueuingProcessor :
                 this.arrived.Reset();
             }
 
-            // HACK: Avoid deadlocking when arrived event handlers stuck in disposing process.
-            this.thread.Join(TimeSpan.FromSeconds(2));
-            this.thread = null!;
+            return worker;
+        }
+        else
+        {
+            return TaskCompat.CompletedTask;
         }
     }
 

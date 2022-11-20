@@ -10,10 +10,13 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
+using static FlashCap.Internal.AsyncLock;
 
 namespace FlashCap;
 
-public abstract class FrameProcessor : IDisposable
+public abstract class FrameProcessor
 {
     private readonly Stack<PixelBuffer> reserver = new();
 
@@ -21,14 +24,14 @@ public abstract class FrameProcessor : IDisposable
     {
     }
 
-    ~FrameProcessor() =>
-        this.Dispose(false);
+    protected abstract Task OnDisposeAsync();
 
-    public void Dispose()
+    public async Task DisposeAsync()
     {
         try
         {
-            this.Dispose(true);
+            await this.OnDisposeAsync().
+                ConfigureAwait(false);
         }
         finally
         {
@@ -37,11 +40,6 @@ public abstract class FrameProcessor : IDisposable
                 this.reserver.Clear();
             }
         }
-        GC.SuppressFinalize(this);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
     }
 
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP

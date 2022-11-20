@@ -56,130 +56,130 @@ public sealed class VideoForWindowsDevice : CaptureDevice
                 $"FlashCap: Couldn't set video format [1]: DeviceIndex={deviceIndex}");
         }
 
-        var tcs = new TaskCompletionSource<bool>();
-        ct.Register(() => tcs.TrySetCanceled());
-
-        this.workingContext!.Post(_ =>
+        return this.workingContext!.InvokeAsync(() =>
         {
+            this.handle = NativeMethods_VideoForWindows.CreateVideoSourceWindow(deviceIndex);
+
+            NativeMethods_VideoForWindows.capDriverConnect(this.handle, this.deviceIndex);
+
+            ///////////////////////////////////////
+
+            NativeMethods_VideoForWindows.capSetPreviewScale(this.handle, false);
+            NativeMethods_VideoForWindows.capSetPreviewFPS(this.handle, 15);
+            NativeMethods_VideoForWindows.capSetOverlay(this.handle, true);
+
+            ///////////////////////////////////////
+
+            // At first set 5fps, because can't set both fps and video format atomicity.
+            NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out var cp);
+            cp.dwRequestMicroSecPerFrame = 1_000_000 / 5;   // 5fps
+            if (!NativeMethods_VideoForWindows.capCaptureSetSetup(handle, cp))
+            {
+                throw new ArgumentException(
+                    $"FlashCap: Couldn't set video frame rate [1]: DeviceIndex={deviceIndex}");
+            }
+            NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out cp);
+
+            var pih = NativeMethods.AllocateMemory((IntPtr)sizeof(NativeMethods.BITMAPINFOHEADER));
             try
             {
-                this.handle = NativeMethods_VideoForWindows.CreateVideoSourceWindow(deviceIndex);
+                var pBih = (NativeMethods.BITMAPINFOHEADER*)pih.ToPointer();
 
-                NativeMethods_VideoForWindows.capDriverConnect(this.handle, this.deviceIndex);
+                pBih->biSize = sizeof(NativeMethods.BITMAPINFOHEADER);
+                pBih->biCompression = compression;
+                pBih->biPlanes = 1;
+                pBih->biBitCount = bitCount;
+                pBih->biWidth = characteristics.Width;
+                pBih->biHeight = characteristics.Height;
+                pBih->biSizeImage = pBih->CalculateImageSize();
 
-                ///////////////////////////////////////
+                // Try to set video format.
+                if (!NativeMethods_VideoForWindows.capSetVideoFormat(handle, pih))
+                {
+                    throw new ArgumentException(
+                        $"FlashCap: Couldn't set video format [2]: DeviceIndex={deviceIndex}");
+                }
 
-                NativeMethods_VideoForWindows.capSetPreviewScale(this.handle, false);
-                NativeMethods_VideoForWindows.capSetPreviewFPS(this.handle, 15);
-                NativeMethods_VideoForWindows.capSetOverlay(this.handle, true);
-
-                ///////////////////////////////////////
-
-                // At first set 5fps, because can't set both fps and video format atomicity.
-                NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out var cp);
-                cp.dwRequestMicroSecPerFrame = 1_000_000 / 5;   // 5fps
+                // Try to set fps, but VFW API may cause ignoring it silently...
+                cp.dwRequestMicroSecPerFrame =
+                    (int)(1_000_000 / characteristics.FramesPerSecond);
                 if (!NativeMethods_VideoForWindows.capCaptureSetSetup(handle, cp))
                 {
                     throw new ArgumentException(
-                        $"FlashCap: Couldn't set video frame rate [1]: DeviceIndex={deviceIndex}");
+                        $"FlashCap: Couldn't set video frame rate [2]: DeviceIndex={deviceIndex}");
                 }
                 NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out cp);
-
-                var pih = NativeMethods.AllocateMemory((IntPtr)sizeof(NativeMethods.BITMAPINFOHEADER));
-                try
-                {
-                    var pBih = (NativeMethods.BITMAPINFOHEADER*)pih.ToPointer();
-
-                    pBih->biSize = sizeof(NativeMethods.BITMAPINFOHEADER);
-                    pBih->biCompression = compression;
-                    pBih->biPlanes = 1;
-                    pBih->biBitCount = bitCount;
-                    pBih->biWidth = characteristics.Width;
-                    pBih->biHeight = characteristics.Height;
-                    pBih->biSizeImage = pBih->CalculateImageSize();
-
-                    // Try to set video format.
-                    if (!NativeMethods_VideoForWindows.capSetVideoFormat(handle, pih))
-                    {
-                        throw new ArgumentException(
-                            $"FlashCap: Couldn't set video format [2]: DeviceIndex={deviceIndex}");
-                    }
-
-                    // Try to set fps, but VFW API may cause ignoring it silently...
-                    cp.dwRequestMicroSecPerFrame =
-                        (int)(1_000_000 / characteristics.FramesPerSecond);
-                    if (!NativeMethods_VideoForWindows.capCaptureSetSetup(handle, cp))
-                    {
-                        throw new ArgumentException(
-                            $"FlashCap: Couldn't set video frame rate [2]: DeviceIndex={deviceIndex}");
-                    }
-                    NativeMethods_VideoForWindows.capCaptureGetSetup(handle, out cp);
-                }
-                finally
-                {
-                    NativeMethods.FreeMemory(pih);
-                }
-
-                // Get final video format.
-                NativeMethods_VideoForWindows.capGetVideoFormat(handle, out this.pBih);
-
-                ///////////////////////////////////////
-
-                // https://stackoverflow.com/questions/4097235/is-it-necessary-to-gchandle-alloc-each-callback-in-a-class
-                this.thisPin = GCHandle.Alloc(this, GCHandleType.Normal);
-                this.callback = this.CallbackEntry;
-
-                NativeMethods_VideoForWindows.capSetCallbackFrame(this.handle, this.callback);
-
-                tcs.TrySetResult(true);
             }
-            catch (Exception ex)
+            finally
             {
-                tcs.TrySetException(ex);
+                NativeMethods.FreeMemory(pih);
             }
-        }, null);
 
-        return tcs.Task;
+            // Get final video format.
+            NativeMethods_VideoForWindows.capGetVideoFormat(handle, out this.pBih);
+
+            ///////////////////////////////////////
+
+            // https://stackoverflow.com/questions/4097235/is-it-necessary-to-gchandle-alloc-each-callback-in-a-class
+            this.thisPin = GCHandle.Alloc(this, GCHandleType.Normal);
+            this.callback = this.CallbackEntry;
+
+            NativeMethods_VideoForWindows.capSetCallbackFrame(this.handle, this.callback);
+        }, ct);
     }
 
-    protected override async Task DisposeAsync(
-        bool disposing, CancellationToken ct)
+    ~VideoForWindowsDevice()
     {
-        // This class will only collect when explicitly disposing.
-        // Because it holds by objref pinning on running state.
-
         if (this.handle != IntPtr.Zero)
         {
-            var tcs = new TaskCompletionSource<bool>();
-            ct.Register(() => tcs.TrySetCanceled());
-
-            this.workingContext!.Post(_ =>
+            this.workingContext?.Send(_ =>
             {
-                try
+                NativeMethods_VideoForWindows.capSetCallbackFrame(this.handle, null);
+                NativeMethods_VideoForWindows.capDriverDisconnect(this.handle, this.deviceIndex);
+                NativeMethods_VideoForWindows.DestroyWindow(this.handle);
+            }, null);
+
+            this.handle = IntPtr.Zero;
+            this.thisPin.Free();
+            this.callback = null;
+            NativeMethods.FreeMemory(this.pBih);
+            this.pBih = IntPtr.Zero;
+
+            this.workingContext?.Dispose();
+            this.workingContext = null;
+        }
+    }
+
+    protected override async Task OnDisposeAsync()
+    {
+        if (this.handle != IntPtr.Zero)
+        {
+            try
+            {
+                await this.frameProcessor.DisposeAsync().
+                    ConfigureAwait(false);
+
+                await this.OnStopAsync(default).
+                    ConfigureAwait(false);
+
+                await this.workingContext!.InvokeAsync(() =>
                 {
-                    NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
-                    this.IsRunning = false;
                     NativeMethods_VideoForWindows.capSetCallbackFrame(this.handle, null);
                     NativeMethods_VideoForWindows.capDriverDisconnect(this.handle, this.deviceIndex);
                     NativeMethods_VideoForWindows.DestroyWindow(this.handle);
-                    this.handle = IntPtr.Zero;
-                    this.thisPin.Free();
-                    this.callback = null;
-                    NativeMethods.FreeMemory(this.pBih);
-                    this.pBih = IntPtr.Zero;
+                }, default);
+            }
+            finally
+            {
+                this.handle = IntPtr.Zero;
+                this.thisPin.Free();
+                this.callback = null;
+                NativeMethods.FreeMemory(this.pBih);
+                this.pBih = IntPtr.Zero;
 
-                    tcs.TrySetResult(true);
-                }
-                catch (Exception ex)
-                {
-                    tcs.TrySetException(ex);
-                }
-            }, null);
-
-            await tcs.Task.ConfigureAwait(false);
-
-            this.workingContext.Dispose();
-            this.workingContext = null;
+                this.workingContext!.Dispose();
+                this.workingContext = null;
+            }
         }
     }
 
@@ -210,27 +210,13 @@ public sealed class VideoForWindowsDevice : CaptureDevice
     {
         if (!this.IsRunning)
         {
-            var tcs = new TaskCompletionSource<bool>();
-            ct.Register(() => tcs.TrySetCanceled());
-
-            this.workingContext!.Post(_ =>
+            return this.workingContext!.InvokeAsync(() =>
             {
-                try
-                {
-                    this.frameIndex = 0;
-                    this.counter.Restart();
-                    NativeMethods_VideoForWindows.capShowPreview(this.handle, true);
-                    this.IsRunning = true;
-
-                    tcs.TrySetResult(true);
-                }
-                catch (Exception ex)
-                {
-                    tcs.TrySetException(ex);
-                }
-            }, null);
-
-            return tcs.Task;
+                this.frameIndex = 0;
+                this.counter.Restart();
+                NativeMethods_VideoForWindows.capShowPreview(this.handle, true);
+                this.IsRunning = true;
+            }, default);
         }
         else
         {
@@ -242,24 +228,11 @@ public sealed class VideoForWindowsDevice : CaptureDevice
     {
         if (this.IsRunning)
         {
-            var tcs = new TaskCompletionSource<bool>();
-            ct.Register(() => tcs.TrySetCanceled());
-
-            this.workingContext!.Post(_ =>
+            return this.workingContext!.InvokeAsync(() =>
             {
-                try
-                {
-                    this.IsRunning = false;
-                    NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
-                    tcs.TrySetResult(true);
-                }
-                catch (Exception ex)
-                {
-                    tcs.TrySetException(ex);
-                }
-            }, null);
-
-            return tcs.Task;
+                this.IsRunning = false;
+                NativeMethods_VideoForWindows.capShowPreview(this.handle, false);
+            }, default);
         }
         else
         {

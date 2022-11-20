@@ -9,6 +9,7 @@
 
 using Epoxy;
 using Epoxy.Synchronized;
+using Nito.AsyncEx;
 using SkiaSharp;
 using System;
 using System.Collections.ObjectModel;
@@ -25,6 +26,8 @@ namespace FlashCap.Avalonia.ViewModels;
 [ViewModel]
 public sealed class MainWindowViewModel
 {
+    private readonly AsyncLock locker = new();
+
     // Constructed capture device.
     private CaptureDevice? captureDevice;
 
@@ -63,8 +66,10 @@ public sealed class MainWindowViewModel
 
     // Devices combo box was changed.
     [PropertyChanged(nameof(Device))]
-    private ValueTask OnDeviceListChangedAsync(CaptureDeviceDescriptor? descriptor)
+    private async ValueTask OnDeviceListChangedAsync(CaptureDeviceDescriptor? descriptor)
     {
+        using var _ = await this.locker.LockAsync();
+
         // Use first device.
         if (descriptor is { })
         {
@@ -89,14 +94,14 @@ public sealed class MainWindowViewModel
             this.CharacteristicsList.Clear();
             this.Characteristics = null;
         }
-
-        return default;
     }
 
     // Characteristics combo box was changed.
     [PropertyChanged(nameof(Characteristics))]
     private async ValueTask OnCharacteristicsChangedAsync(VideoCharacteristics? characteristics)
     {
+        using var _ = await this.locker.LockAsync();
+
         // Close when already opened.
         if (this.captureDevice is { } captureDevice)
         {
