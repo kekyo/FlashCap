@@ -88,12 +88,12 @@ using var device = await descriptor0.OpenAsync(
     });
 
 // Start processing:
-device.Start();
+await device.StartAsync();
 
 // ...
 
 // Stop processing:
-device.Stop();
+await device.StopAsync();
 ```
 
 You can also use the Reactive Extension:
@@ -121,7 +121,7 @@ deviceObservable.Subscribe(bufferScope =>
 });
 
 // Start processing:
-deviceObservable.Start();
+await deviceObservable.StartAsync();
 ```
 
 Published introduction article: ["Easy to implement video image capture with FlashCap" (dev.to)](https://dev.to/kozy_kekyo/easy-to-implement-video-image-capture-with-flashcap-o5a)
@@ -561,7 +561,7 @@ using var device = await descriptor0.OpenWitFrameProcessorAsync(
     // ...
   });
 
-device.Start();
+await device.StartAsync();
 
 // ...
 ```
@@ -605,6 +605,12 @@ Apache-v2.
 
 ## History
 
+* 1.4.0:
+  * Allow `CancellationToken` to be specified in asynchronous methods.
+  * `Start` and `Stop` now support asynchronous processing.
+  * Fixed where an implicit asynchronous operation is required (Async-Over-Sync).
+  * Fixed a bug in V4L2 that caused an `ArgumentException` when reopening a capture device [#9](https://github.com/kekyo/FlashCap/issues/9).
+  * Avalonia sample code allows switching between devices and characteristics on UI elements.
 * 1.3.0:
   * Added `FSharp.FlashCap` package that exposes API set for F#.
 * 1.2.0:
