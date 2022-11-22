@@ -10,9 +10,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Threading;
 using System.Threading.Tasks;
-using static FlashCap.Internal.AsyncLock;
 
 namespace FlashCap;
 
@@ -23,6 +21,10 @@ public abstract class FrameProcessor
     protected FrameProcessor()
     {
     }
+
+    [Obsolete("Dispose method overriding is obsoleted. Switch OnDisposeAsync instead.", true)]
+    protected virtual void Dispose() =>
+        throw new InvalidOperationException();
 
     protected abstract Task OnDisposeAsync();
 
