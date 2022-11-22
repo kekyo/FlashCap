@@ -133,7 +133,7 @@ Published introduction article: ["Easy to implement video image capture with Fla
 
 .NET platforms supported are as follows (almost all!):
 
-* .NET 6, 5 (`net6.0`, `net5.0`)
+* .NET 7, 6, 5 (`net7.0` and etc)
 * .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (`netcoreapp3.1` and etc)
 * .NET Standard 2.1, 2.0, 1.3 (`netstandard2.1` and etc)
 * .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5 (`net48` and etc)
@@ -170,6 +170,7 @@ Verified computers:
 * NVIDIA Jetson TX2 evaluation board (aarch64, Linux)
 * Acer Aspire One ZA3 inside camera (i686, Linux)
 * Imagination Creator Ci20 (mipsel, Linux)
+* Radxa ROCK5B (aarch64, Linux)
 
 Couldn't detect any devices on FlashCap:
 
@@ -183,9 +184,9 @@ Couldn't detect any devices on FlashCap:
 
 Fully sample code is here:
 
-* [Windows Forms application](samples/FlashCap.WindowsForms/)
 * [Avalonia](samples/FlashCap.Avalonia/)
 * [WPF application](samples/FlashCap.Wpf/)
+* [Windows Forms application](samples/FlashCap.WindowsForms/)
 
 This is an Avalonia sample application on both Windows and Linux.
 It is performed realtime usermode capturing, decoding bitmap (from MJPEG) and render to window.

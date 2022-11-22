@@ -135,7 +135,7 @@ await deviceObservable.StartAsync();
 
 対応する.NETプラットフォームは以下の通りです（ほぼ全てです！）:
 
-* .NET 6, 5 (`net6.0`, `net5.0`)
+* .NET 7, 6, 5 (`net7.0` and etc)
 * .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (`netcoreapp3.1` and etc)
 * .NET Standard 2.1, 2.0, 1.3 (`netstandard2.1` and etc)
 * .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5 (`net48` and etc)
@@ -172,6 +172,7 @@ await deviceObservable.StartAsync();
 * NVIDIA Jetson TX2 評価ボード (aarch64, Linux)
 * Acer Aspire One ZA3 inside camera (i686, Linux)
 * Imagination Creator Ci20 (mipsel, Linux)
+* Radxa ROCK5B (aarch64, Linux)
 
 確認した、動作しない環境:
 
@@ -185,9 +186,9 @@ await deviceObservable.StartAsync();
 
 完全なサンプルコードはこちらです:
 
-* [Windowsフォームアプリケーション](samples/FlashCap.WindowsForms/)
 * [Avaloniaアプリケーション](samples/FlashCap.Avalonia/)
 * [WPFアプリケーション](samples/FlashCap.Wpf)
+* [Windowsフォームアプリケーション](samples/FlashCap.WindowsForms/)
 
 Avaloniaのサンプルコードは、単一のコードで、WindowsとLinuxの両方で動作します。ユーザーモードプロセスでリアルタイムにキャプチャを行い、（MJPEGから）ビットマップをデコードし、ウィンドウにレンダリングします。AvaloniaはSkiaを使ったレンダラーを使用しています。かなり高速です。
 
