@@ -119,6 +119,9 @@ deviceObservable.Subscribe(bufferScope =>
 await deviceObservable.StartAsync();
 ```
 
+As you can see, FlashCap does not depend on any GUI elements.
+For example, FlashCap can be applied to a console application.
+
 Published introduction article: ["Easy to implement video image capture with FlashCap" (dev.to)](https://dev.to/kozy_kekyo/easy-to-implement-video-image-capture-with-flashcap-o5a)
 
 

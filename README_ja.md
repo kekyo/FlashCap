@@ -119,6 +119,9 @@ deviceObservable.Subscribe(bufferScope =>
 await deviceObservable.StartAsync();
 ```
 
+見ての通り、FlashCapはGUI要素に一切依存していません。
+例えば、FlashCapをコンソールアプリケーションに応用したりする事が可能です。
+
 解説記事はこちら（英語）: ["Easy to implement video image capture with FlashCap" (dev.to)](https://dev.to/kozy_kekyo/easy-to-implement-video-image-capture-with-flashcap-o5a)
 
 
