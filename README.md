@@ -88,12 +88,12 @@ using var device = await descriptor0.OpenAsync(
     });
 
 // Start processing:
-device.Start();
+await device.StartAsync();
 
 // ...
 
 // Stop processing:
-device.Stop();
+await device.StopAsync();
 ```
 
 You can also use the Reactive Extension:
@@ -121,7 +121,7 @@ deviceObservable.Subscribe(bufferScope =>
 });
 
 // Start processing:
-deviceObservable.Start();
+await deviceObservable.StartAsync();
 ```
 
 Published introduction article: ["Easy to implement video image capture with FlashCap" (dev.to)](https://dev.to/kozy_kekyo/easy-to-implement-video-image-capture-with-flashcap-o5a)
@@ -133,7 +133,7 @@ Published introduction article: ["Easy to implement video image capture with Fla
 
 .NET platforms supported are as follows (almost all!):
 
-* .NET 6, 5 (`net6.0`, `net5.0`)
+* .NET 7, 6, 5 (`net7.0` and etc)
 * .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (`netcoreapp3.1` and etc)
 * .NET Standard 2.1, 2.0, 1.3 (`netstandard2.1` and etc)
 * .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5 (`net48` and etc)
@@ -170,6 +170,7 @@ Verified computers:
 * NVIDIA Jetson TX2 evaluation board (aarch64, Linux)
 * Acer Aspire One ZA3 inside camera (i686, Linux)
 * Imagination Creator Ci20 (mipsel, Linux)
+* Radxa ROCK5B (aarch64, Linux)
 
 Couldn't detect any devices on FlashCap:
 
@@ -183,9 +184,9 @@ Couldn't detect any devices on FlashCap:
 
 Fully sample code is here:
 
-* [Windows Forms application](samples/FlashCap.WindowsForms/)
 * [Avalonia](samples/FlashCap.Avalonia/)
 * [WPF application](samples/FlashCap.Wpf/)
+* [Windows Forms application](samples/FlashCap.WindowsForms/)
 
 This is an Avalonia sample application on both Windows and Linux.
 It is performed realtime usermode capturing, decoding bitmap (from MJPEG) and render to window.
@@ -561,7 +562,7 @@ using var device = await descriptor0.OpenWitFrameProcessorAsync(
     // ...
   });
 
-device.Start();
+await device.StartAsync();
 
 // ...
 ```
@@ -605,6 +606,12 @@ Apache-v2.
 
 ## History
 
+* 1.4.0:
+  * Allow `CancellationToken` to be specified in asynchronous methods.
+  * `Start` and `Stop` now support asynchronous processing.
+  * Fixed where an implicit asynchronous operation is required (Async-Over-Sync).
+  * Fixed a bug in V4L2 that caused an `ArgumentException` when reopening a capture device [#9](https://github.com/kekyo/FlashCap/issues/9).
+  * Avalonia sample code allows switching between devices and characteristics on UI elements.
 * 1.3.0:
   * Added `FSharp.FlashCap` package that exposes API set for F#.
 * 1.2.0:

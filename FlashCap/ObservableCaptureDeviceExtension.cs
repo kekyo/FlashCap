@@ -8,20 +8,39 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using System;
+using System.Runtime.CompilerServices;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace FlashCap
+namespace FlashCap;
+
+public static class ObservableCaptureDeviceExtension
 {
-    public static class ObservableCaptureDeviceExtension
-    {
-        public static void Start(this ObservableCaptureDevice observableCaptureDevice) =>
-            observableCaptureDevice.InternalStart();
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+    public static Task StartAsync(this ObservableCaptureDevice observableCaptureDevice, CancellationToken ct = default) =>
+        observableCaptureDevice.InternalStartAsync(ct);
 
-        public static void Stop(this ObservableCaptureDevice observableCaptureDevice) =>
-            observableCaptureDevice.InternalStop();
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+    public static Task StopAsync(this ObservableCaptureDevice observableCaptureDevice, CancellationToken ct = default) =>
+        observableCaptureDevice.InternalStopAsync(ct);
 
-        public static IDisposable Subscribe(
-            this ObservableCaptureDevice observableCaptureDevice,
-            IObserver<PixelBufferScope> observer) =>
-            observableCaptureDevice.InternalSubscribe(observer);
-    }
+    [Obsolete("Start method will be deprecated. Switch to use StartAsync method.")]
+    public static void Start(this ObservableCaptureDevice observableCaptureDevice) =>
+        _ = observableCaptureDevice.InternalStartAsync(default);
+
+    [Obsolete("Stop method will be deprecated. Switch to use StopAsync method.")]
+    public static void Stop(this ObservableCaptureDevice observableCaptureDevice) =>
+        _ = observableCaptureDevice.InternalStopAsync(default);
+
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+    public static IDisposable Subscribe(
+        this ObservableCaptureDevice observableCaptureDevice,
+        IObserver<PixelBufferScope> observer) =>
+        observableCaptureDevice.InternalSubscribe(observer);
 }

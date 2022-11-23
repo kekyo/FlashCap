@@ -11,10 +11,16 @@ namespace FlashCap
 
 open FlashCap.FrameProcessors
 open System.Threading.Tasks
+open System.Threading
 
 [<AutoOpen>]
 module public CaptureDeviceDescriptorExtension =
-            
+    
+    let inline private asCT (ct: CancellationToken option) =
+        match ct with
+        | Some(ct) -> ct
+        | _ -> CancellationToken()
+
     let inline private asTask (pixelBufferArrived: PixelBufferScope -> Async<unit>) =
         fun pixelBufferScope -> pixelBufferArrived(pixelBufferScope) |> Async.StartImmediateAsTask :> Task
 
@@ -22,80 +28,94 @@ module public CaptureDeviceDescriptorExtension =
 
         member self.openAsync(
             characteristics: VideoCharacteristics,
-            pixelBufferArrived: PixelBufferScope -> unit) : Async<CaptureDevice> =
+            pixelBufferArrived: PixelBufferScope -> unit,
+            ?ct: CancellationToken) : Async<CaptureDevice> =
             self.InternalOpenWithFrameProcessorAsync(
                 characteristics, true,
-                new DelegatedQueuingProcessor(pixelBufferArrived, 1)) |> Async.AwaitTask
+                new DelegatedQueuingProcessor(pixelBufferArrived, 1),
+                asCT ct) |> Async.AwaitTask
 
         member self.openAsync(
             characteristics: VideoCharacteristics,
             transcodeIfYUV: bool,
-            pixelBufferArrived: PixelBufferScope -> unit) : Async<CaptureDevice> =
+            pixelBufferArrived: PixelBufferScope -> unit,
+            ?ct: CancellationToken) : Async<CaptureDevice> =
             self.InternalOpenWithFrameProcessorAsync(
                 characteristics, transcodeIfYUV,
-                new DelegatedQueuingProcessor(pixelBufferArrived, 1)) |> Async.AwaitTask
+                new DelegatedQueuingProcessor(pixelBufferArrived, 1),
+                asCT ct) |> Async.AwaitTask
 
         member self.openAsync(
             characteristics: VideoCharacteristics,
             transcodeIfYUV: bool,
             isScattering: bool,
             maxQueuingFrames: int,
-            pixelBufferArrived: PixelBufferScope -> unit) : Async<CaptureDevice> =
+            pixelBufferArrived: PixelBufferScope -> unit,
+            ?ct: CancellationToken) : Async<CaptureDevice> =
             self.InternalOpenWithFrameProcessorAsync(
                 characteristics, transcodeIfYUV,
-                match isScattering with
-                | true -> (new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)
-                | false -> (new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)) |> Async.AwaitTask
+                (match isScattering with
+                 | true -> (new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)
+                 | false -> (new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)),
+                asCT ct) |> Async.AwaitTask
 
         //////////////////////////////////////////////////////////////////////////////////
 
         member self.openAsync(
             characteristics: VideoCharacteristics,
-            pixelBufferArrived: PixelBufferScope -> Async<unit>) : Async<CaptureDevice> =
+            pixelBufferArrived: PixelBufferScope -> Async<unit>,
+            ?ct: CancellationToken) : Async<CaptureDevice> =
             self.InternalOpenWithFrameProcessorAsync(
                 characteristics, true,
-                new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, 1)) |> Async.AwaitTask
+                new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, 1),
+                asCT ct) |> Async.AwaitTask
         
         member self.openAsync(
             characteristics: VideoCharacteristics,
             transcodeIfYUV: bool,
-            pixelBufferArrived: PixelBufferScope -> Async<unit>) : Async<CaptureDevice> =
+            pixelBufferArrived: PixelBufferScope -> Async<unit>,
+            ?ct: CancellationToken) : Async<CaptureDevice> =
             self.InternalOpenWithFrameProcessorAsync(
                 characteristics, transcodeIfYUV,
-                new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, 1)) |> Async.AwaitTask
+                new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, 1),
+                asCT ct) |> Async.AwaitTask
 
         member self.openAsync(
             characteristics: VideoCharacteristics,
             transcodeIfYUV: bool,
             isScattering: bool,
             maxQueuingFrames: int,
-            pixelBufferArrived: PixelBufferScope -> Async<unit>) : Async<CaptureDevice> =
+            pixelBufferArrived: PixelBufferScope -> Async<unit>,
+            ?ct: CancellationToken) : Async<CaptureDevice> =
             self.InternalOpenWithFrameProcessorAsync(
                 characteristics, transcodeIfYUV,
-                match isScattering with
-                | true -> (new DelegatedScatteringTaskProcessor(asTask pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)
-                | false -> (new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)) |> Async.AwaitTask
+                (match isScattering with
+                 | true -> (new DelegatedScatteringTaskProcessor(asTask pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)
+                 | false -> (new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)),
+                asCT ct) |> Async.AwaitTask
 
         //////////////////////////////////////////////////////////////////////////////////
         
         member self.asObservableAsync(
-            characteristics: VideoCharacteristics) : Async<ObservableCaptureDevice> = async {
+            characteristics: VideoCharacteristics,
+            ?ct: CancellationToken) : Async<ObservableCaptureDevice> = async {
                 let observerProxy = new ObservableCaptureDevice.ObserverProxy()
                 let! captureDevice = self.InternalOpenWithFrameProcessorAsync(
                     characteristics, true,
-                    new DelegatedQueuingProcessor(
-                        new PixelBufferArrivedDelegate(observerProxy.OnPixelBufferArrived), 1)) |> Async.AwaitTask
+                    (new DelegatedQueuingProcessor(
+                        new PixelBufferArrivedDelegate(observerProxy.OnPixelBufferArrived), 1)), asCT ct) |> Async.AwaitTask
                 return new ObservableCaptureDevice(captureDevice, observerProxy)
             }
 
         member self.asObservableAsync(
             characteristics: VideoCharacteristics,
-            transcodeIfYUV: bool) : Async<ObservableCaptureDevice> = async {
+            transcodeIfYUV: bool,
+            ?ct: CancellationToken) : Async<ObservableCaptureDevice> = async {
                 let observerProxy = new ObservableCaptureDevice.ObserverProxy()
                 let! captureDevice = self.InternalOpenWithFrameProcessorAsync(
                     characteristics, transcodeIfYUV,
-                    new DelegatedQueuingProcessor(
-                        new PixelBufferArrivedDelegate(observerProxy.OnPixelBufferArrived), 1)) |> Async.AwaitTask
+                    (new DelegatedQueuingProcessor(
+                        new PixelBufferArrivedDelegate(observerProxy.OnPixelBufferArrived), 1)), asCT ct) |> Async.AwaitTask
                 return new ObservableCaptureDevice(captureDevice, observerProxy)
             }
  
@@ -103,13 +123,14 @@ module public CaptureDeviceDescriptorExtension =
             characteristics: VideoCharacteristics,
             transcodeIfYUV: bool,
             isScattering: bool,
-            maxQueuingFrames: int) : Async<ObservableCaptureDevice> = async {
+            maxQueuingFrames: int,
+            ?ct: CancellationToken) : Async<ObservableCaptureDevice> = async {
                 let observerProxy = new ObservableCaptureDevice.ObserverProxy()
                 let pixelBufferArrived = new PixelBufferArrivedDelegate(observerProxy.OnPixelBufferArrived)
                 let! captureDevice = self.InternalOpenWithFrameProcessorAsync(
                     characteristics, transcodeIfYUV,
-                    match isScattering with
-                    | true -> (new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)
-                    | false -> (new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)) |> Async.AwaitTask
+                    (match isScattering with
+                     | true -> (new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)
+                     | false -> (new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)), asCT ct) |> Async.AwaitTask
                 return new ObservableCaptureDevice(captureDevice, observerProxy)
             }

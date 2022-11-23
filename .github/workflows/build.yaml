@@ -4,16 +4,35 @@ on: [push]
 
 jobs:
   build:
-    runs-on: [self-hosted, linux, x64]
+    runs-on: windows-latest
     steps:
+
+    #-----------------------------------------------------------------------
+    # Checkout
+
     - uses: actions/checkout@v2
       with:
         fetch-depth: 0
-    - name: Setup .NET Core 2.2
+    #   lfs: true
+    #- name: Checkout LFS objects
+    #  run: git lfs checkout
+
+    - name: Extract branch name
+      id: extract_branch_name
+    #  if: startsWith( github.ref, 'refs/tags/' )
+      run: |
+        $branch_name=$(git name-rev --name-only --exclude=tags/* HEAD)
+        echo "Detected current branch: ${branch_name}"
+        echo "::set-output name=branch_name::${branch_name}"
+
+    #-----------------------------------------------------------------------
+    # Setup environments
+
+    - name: Setup .NET 2.2
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 2.2.*
-    - name: Setup .NET Core 3.1
+    - name: Setup .NET 3.1
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 3.1.*
@@ -25,16 +44,49 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 6.0.*
-    - name: Install dependencies
+    - name: Setup .NET 7
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 7.0.*
+
+    - name: Setup NuGet package reference
       run: |
-        dotnet restore FlashCap.Core/FlashCap.Core.csproj
-        dotnet restore FlashCap/FlashCap.csproj
-        dotnet restore FSharp.FlashCap/FSharp.FlashCap.fsproj
+        dotnet nuget add source ${{secrets.GH_LOCAL_NUGET_URL}} -n ref1 -u ${{secrets.GH_LOCAL_NUGET_USER}} -p ${{secrets.GH_LOCAL_NUGET_PASSWORD}} --store-password-in-clear-text --configfile nuget.config
+#        dotnet nuget add source ${{secrets.GH_NUGET_URL}} -n ref2 -u ${{secrets.GH_NUGET_USER}} -p ${{secrets.GH_NUGET_PASSWORD}} --store-password-in-clear-text --configfile nuget.config
+
+    #-----------------------------------------------------------------------
+    # Build
+    
+    - name: NuGet restore
+      run: dotnet restore -p:Configuration=Release FlashCap.sln
+
     - name: Build
+      run: dotnet build -p:Configuration=Release -p:BuildIdentifier=${GITHUB_RUN_NUMBER} FlashCap.sln
+
+    - name: Build NuGet packages
+      run: dotnet pack -p:Configuration=Release -p:BuildIdentifier=${GITHUB_RUN_NUMBER} -o artifacts FlashCap\FlashCap.csproj
+
+    #-----------------------------------------------------------------------
+    # Test
+
+    #- name: Test
+    #  run: dotnet test --no-restore --verbosity normal -p:CITest=True FlashCap.sln
+    #  timeout-minutes: 10
+
+    #-----------------------------------------------------------------------
+    # Deploy packages (develop)
+
+    - name: Deploy NuGet package (develop/ref1)
+      if: startsWith( github.ref, 'refs/tags/' )
       run: |
-        dotnet build --configuration Release --no-restore FlashCap.Core/FlashCap.Core.csproj
-        dotnet build --configuration Release --no-restore FlashCap/FlashCap.csproj
-        dotnet build --configuration Release --no-restore FSharp.FlashCap/FSharp.FlashCap.fsproj
-#    - name: Test
-#      run: dotnet test --no-restore --verbosity normal -p:CITest=True
-#      timeout-minutes: 10
+        dotnet nuget push artifacts\FlashCap.*.nupkg --source ref1
+        dotnet nuget push artifacts\FSharp.FlashCap.*.nupkg --source ref1
+
+    #-----------------------------------------------------------------------
+    # Deploy packages (main)
+
+    #- name: Deploy NuGet package (main/ref2)
+    #  if: (startsWith( github.ref, 'refs/tags/' )) && (endsWith(steps.extract_branch_name.outputs.branch_name, 'main'))
+    #  run: |
+    #    dotnet nuget push artifacts\FlashCap.*.nupkg --source ref1
+    #    dotnet nuget push artifacts\FSharp.FlashCap.*.nupkg --source ref1

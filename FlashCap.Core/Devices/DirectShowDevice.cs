@@ -13,74 +13,89 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace FlashCap.Devices
+namespace FlashCap.Devices;
+
+public sealed class DirectShowDevice :
+    CaptureDevice
 {
-    public sealed class DirectShowDevice :
-        CaptureDevice
+    private sealed class SampleGrabberSink :
+        NativeMethods_DirectShow.ISampleGrabberCB
     {
-        private sealed class SampleGrabberSink :
-            NativeMethods_DirectShow.ISampleGrabberCB
-        {
-            private DirectShowDevice parent;
-            private FrameProcessor frameProcessor;
-            private long frameIndex;
+        private DirectShowDevice parent;
+        private FrameProcessor frameProcessor;
+        private long frameIndex;
 
-            public SampleGrabberSink(
-                DirectShowDevice parent,
-                FrameProcessor frameProcessor)
-            {
-                this.parent = parent;
-                this.frameProcessor = frameProcessor;
-            }
-
-            public void ResetFrameIndex() =>
-                this.frameIndex = 0;
-
-            // whichMethodToCallback: 0
-            [PreserveSig] public int SampleCB(
-                double sampleTime, NativeMethods_DirectShow.IMediaSample sample) =>
-                unchecked((int)0x80004001);  // E_NOTIMPL
-
-            // whichMethodToCallback: 1
-            [PreserveSig] public int BufferCB(
-                double sampleTime, IntPtr pBuffer, int bufferLen)
-            {
-                // HACK: Avoid stupid camera devices...
-                if (bufferLen >= 64)
-                {
-                    try
-                    {
-                        this.frameProcessor.OnFrameArrived(
-                            this.parent, pBuffer, bufferLen,
-                            (long)(sampleTime * 1_000_000),
-                            this.frameIndex++);
-                    }
-                    // DANGER: Stop leaking exception around outside of unmanaged area...
-                    catch (Exception ex)
-                    {
-                        Trace.WriteLine(ex);
-                    }
-                }
-                return 0;
-            }
-        }
-
-        private readonly bool transcodeIfYUV;
-        private readonly FrameProcessor frameProcessor;
-        private NativeMethods_DirectShow.IGraphBuilder? graphBuilder;
-        private SampleGrabberSink? sampleGrabberSink;
-        private IntPtr pBih;
-
-        internal DirectShowDevice(
-            string devicePath,
-            VideoCharacteristics characteristics,
-            bool transcodeIfYUV,
+        public SampleGrabberSink(
+            DirectShowDevice parent,
             FrameProcessor frameProcessor)
         {
-            this.transcodeIfYUV = transcodeIfYUV;
+            this.parent = parent;
             this.frameProcessor = frameProcessor;
+        }
 
+        public void ResetFrameIndex() =>
+            this.frameIndex = 0;
+
+        // whichMethodToCallback: 0
+        [PreserveSig] public int SampleCB(
+            double sampleTime, NativeMethods_DirectShow.IMediaSample sample) =>
+            unchecked((int)0x80004001);  // E_NOTIMPL
+
+        // whichMethodToCallback: 1
+        [PreserveSig] public int BufferCB(
+            double sampleTime, IntPtr pBuffer, int bufferLen)
+        {
+            // HACK: Avoid stupid camera devices...
+            if (bufferLen >= 64)
+            {
+                try
+                {
+                    this.frameProcessor.OnFrameArrived(
+                        this.parent, pBuffer, bufferLen,
+                        (long)(sampleTime * 1_000_000),
+                        this.frameIndex++);
+                }
+                // DANGER: Stop leaking exception around outside of unmanaged area...
+                catch (Exception ex)
+                {
+                    Trace.WriteLine(ex);
+                }
+            }
+            return 0;
+        }
+    }
+
+    // DirectShow objects are sandboxed in the working context.
+    private IndependentSingleApartmentContext? workingContext = new();
+    private bool transcodeIfYUV;
+    private FrameProcessor frameProcessor;
+    private NativeMethods_DirectShow.IGraphBuilder? graphBuilder;
+    private SampleGrabberSink? sampleGrabberSink;
+    private IntPtr pBih;
+
+#pragma warning disable CS8618
+    internal DirectShowDevice(object identity, string name) :
+        base(identity, name)
+#pragma warning restore CS8618
+    {
+    }
+
+    protected override Task OnInitializeAsync(
+        VideoCharacteristics characteristics,
+        bool transcodeIfYUV,
+        FrameProcessor frameProcessor,
+        CancellationToken ct)
+    {
+        var devicePath = (string)this.Identity;
+
+        this.transcodeIfYUV = transcodeIfYUV;
+        this.frameProcessor = frameProcessor;
+
+        return this.workingContext!.InvokeAsync(() =>
+        {
             if (NativeMethods_DirectShow.EnumerateDeviceMoniker(
                 NativeMethods_DirectShow.CLSID_VideoInputDeviceCategory).
                 Where(moniker =>
@@ -213,85 +228,96 @@ namespace FlashCap.Devices
                 throw new ArgumentException(
                     $"FlashCap: Couldn't find a device: DevicePath={devicePath}");
             }
-        }
+        }, ct);
+    }
 
-        protected override void Dispose(bool disposing)
+    ~DirectShowDevice()
+    {
+        if (this.pBih != IntPtr.Zero)
         {
-            if (disposing)
-            {
-                lock (this)
-                {
-                    if (this.graphBuilder != null)
-                    {
-                        this.OnStop();
-
-                        this.frameProcessor.Dispose();
-
-                        Marshal.ReleaseComObject(this.graphBuilder);
-                        this.graphBuilder = null!;
-                        this.sampleGrabberSink = null!;
-                        NativeMethods.FreeMemory(this.pBih);
-                        this.pBih = IntPtr.Zero;
-                    }
-                }
-            }
-            else
-            {
-                if (this.pBih != IntPtr.Zero)
-                {
-                    NativeMethods.FreeMemory(this.pBih);
-                    this.pBih = IntPtr.Zero;
-                }
-            }
+            NativeMethods.FreeMemory(this.pBih);
+            this.pBih = IntPtr.Zero;
         }
+    }
 
-        protected override void OnStart()
+    protected override async Task OnDisposeAsync()
+    {
+        if (this.graphBuilder != null)
         {
-            lock (this)
+            await this.frameProcessor.DisposeAsync().
+                ConfigureAwait(false);
+
+            await this.OnStopAsync(default).
+                ConfigureAwait(false);
+
+            await this.workingContext!.InvokeAsync(() =>
             {
-                if (!this.IsRunning)
-                {
-                    if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
-                    {
-                        this.sampleGrabberSink!.ResetFrameIndex();
+                Marshal.ReleaseComObject(this.graphBuilder);
+                this.graphBuilder = null!;
+                this.sampleGrabberSink = null!;
+                NativeMethods.FreeMemory(this.pBih);
+                this.pBih = IntPtr.Zero;
+            }, default);
 
-                        mediaControl.Run();
-                        this.IsRunning = true;
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException();
-                    }
-                }
-            }
+            this.workingContext.Dispose();
+            this.workingContext = null;
         }
+    }
 
-        protected override void OnStop()
+    protected override Task OnStartAsync(CancellationToken ct)
+    {
+        if (!this.IsRunning)
         {
-            lock (this)
+            return this.workingContext!.InvokeAsync(() =>
             {
-                if (this.IsRunning)
+                if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
                 {
-                    if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
-                    {
-                        this.IsRunning = false;
-                        mediaControl.Stop();
-                    }
-                    else
-                    {
-                        throw new InvalidOperationException();
-                    }
+                    this.sampleGrabberSink!.ResetFrameIndex();
+
+                    mediaControl.Run();
+                    this.IsRunning = true;
                 }
-            }
+                else
+                {
+                    throw new InvalidOperationException();
+                }
+            }, ct);
         }
+        else
+        {
+            return TaskCompat.CompletedTask;
+        }
+    }
+
+    protected override Task OnStopAsync(CancellationToken ct)
+    {
+        if (this.IsRunning)
+        {
+            return this.workingContext!.InvokeAsync(() =>
+            {
+                if (this.graphBuilder is NativeMethods_DirectShow.IMediaControl mediaControl)
+                {
+                    this.IsRunning = false;
+                    mediaControl.Stop();
+                }
+                else
+                {
+                    throw new InvalidOperationException();
+                }
+            }, ct);
+        }
+        else
+        {
+            return TaskCompat.CompletedTask;
+        }
+    }
 
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-        protected override void OnCapture(
-            IntPtr pData, int size,
-            long timestampMicroseconds, long frameIndex,
-            PixelBuffer buffer) =>
-            buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeIfYUV);
-    }
+    protected override void OnCapture(
+        IntPtr pData, int size,
+        long timestampMicroseconds, long frameIndex,
+        PixelBuffer buffer) =>
+        buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeIfYUV);
 }

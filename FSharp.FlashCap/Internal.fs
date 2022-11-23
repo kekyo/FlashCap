@@ -7,12 +7,14 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-using System.Windows;
+namespace FlashCap
 
-namespace FlashCap.Wpf.Views;
+open System.Threading
 
-public sealed partial class MainWindow : Window
-{
-    public MainWindow() =>
-        InitializeComponent();
-}
+[<AutoOpen>]
+module internal Internal =
+    
+    let inline public asCT (ct: CancellationToken option) =
+        match ct with
+        | Some(ct) -> ct
+        | _ -> CancellationToken()

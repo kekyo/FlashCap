@@ -9,33 +9,32 @@
 
 using System.Diagnostics;
 
-namespace FlashCap.Internal
+namespace FlashCap.Internal;
+
+internal sealed class TimestampCounter
 {
-    internal sealed class TimestampCounter
+    private readonly Stopwatch stopwatch = new();
+
+    public long ElapsedMicroseconds
     {
-        private readonly Stopwatch stopwatch = new();
-
-        public long ElapsedMicroseconds
+        get
         {
-            get
-            {
-                // https://stackoverflow.com/questions/6664538/is-stopwatch-elapsedticks-threadsafe
-                long tick;
-                lock (this.stopwatch)
-                {
-                    tick = this.stopwatch.ElapsedTicks;
-                }
-                return tick * 1_000_000 / Stopwatch.Frequency;
-            }
-        }
-
-        public void Restart()
-        {
+            // https://stackoverflow.com/questions/6664538/is-stopwatch-elapsedticks-threadsafe
+            long tick;
             lock (this.stopwatch)
             {
-                this.stopwatch.Reset();
-                this.stopwatch.Start();
+                tick = this.stopwatch.ElapsedTicks;
             }
+            return tick * 1_000_000 / Stopwatch.Frequency;
+        }
+    }
+
+    public void Restart()
+    {
+        lock (this.stopwatch)
+        {
+            this.stopwatch.Reset();
+            this.stopwatch.Start();
         }
     }
 }

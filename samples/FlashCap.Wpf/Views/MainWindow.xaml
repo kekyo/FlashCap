@@ -5,8 +5,8 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:epoxy="https://github.com/kekyo/Epoxy"
+    xmlns:siv="https://github.com/kekyo/SkiaImageView"
     xmlns:viewmodels="clr-namespace:FlashCap.Wpf.ViewModels"
-    xmlns:siv="https://github.com/kekyo/SkiaImageView.Wpf"
     mc:Ignorable="d"
     Title="FlashCap.Wpf" Height="450" Width="800"
     Background="Black">
@@ -20,7 +20,9 @@
     </epoxy:EventBinder.Events>
 
     <Grid>
-        <siv:SKImageView RenderMode="Asynchronously" Source="{Binding Image}" />
+        <siv:SKImageView
+            Source="{Binding Image}"
+            Stretch="Uniform" />
         <StackPanel Orientation="Vertical">
             <TextBlock Foreground="Yellow" Text="{Binding Device}" />
             <TextBlock Foreground="Yellow" Text="{Binding Characteristics}" />

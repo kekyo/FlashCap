@@ -7,52 +7,86 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.Internal;
+using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 
-namespace FlashCap
+namespace FlashCap;
+
+public enum DeviceTypes
 {
-    public enum DeviceTypes
+    VideoForWindows,
+    DirectShow,
+    V4L2,
+}
+
+public delegate void PixelBufferArrivedDelegate(
+    PixelBufferScope bufferScope);
+
+public delegate Task PixelBufferArrivedTaskDelegate(
+    PixelBufferScope bufferScope);
+
+public abstract class CaptureDeviceDescriptor
+{
+    private readonly AsyncLock locker = new();
+
+    protected CaptureDeviceDescriptor(
+        string name, string description,
+        VideoCharacteristics[] characteristics)
     {
-        VideoForWindows,
-        DirectShow,
-        V4L2,
+        this.Name = name;
+        this.Description = description;
+        this.Characteristics = characteristics;
     }
 
-    public delegate void PixelBufferArrivedDelegate(
-        PixelBufferScope bufferScope);
+    public abstract object Identity { get; }
+    public abstract DeviceTypes DeviceType { get; }
+    public string Name { get; }
+    public string Description { get; }
+    public VideoCharacteristics[] Characteristics { get; }
 
-    public delegate Task PixelBufferArrivedTaskDelegate(
-        PixelBufferScope bufferScope);
+    protected abstract Task<CaptureDevice> OnOpenWithFrameProcessorAsync(
+        VideoCharacteristics characteristics,
+        bool transcodeIfYUV,
+        FrameProcessor frameProcessor,
+        CancellationToken ct);
 
-    public abstract class CaptureDeviceDescriptor
+    public override string ToString() =>
+        $"{this.Name}: {this.Description}, Characteristics={this.Characteristics.Length}";
+
+
+    //////////////////////////////////////////////////////////////////////////
+
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+    internal Task<CaptureDevice> InternalOpenWithFrameProcessorAsync(
+        VideoCharacteristics characteristics,
+        bool transcodeIfYUV,
+        FrameProcessor frameProcessor,
+        CancellationToken ct) =>
+        this.OnOpenWithFrameProcessorAsync(characteristics, transcodeIfYUV, frameProcessor, ct);
+
+    internal async Task<CaptureDevice> InternalOnOpenWithFrameProcessorAsync(
+        CaptureDevice preConstructedDevice,
+        VideoCharacteristics characteristics,
+        bool transcodeIfYUV,
+        FrameProcessor frameProcessor,
+        CancellationToken ct)
     {
-        protected CaptureDeviceDescriptor(
-            string name, string description,
-            VideoCharacteristics[] characteristics)
+        using var _ = await this.locker.LockAsync(ct);
+
+        try
         {
-            this.Name = name;
-            this.Description = description;
-            this.Characteristics = characteristics;
+            await preConstructedDevice.InternalInitializeAsync(
+                characteristics, transcodeIfYUV, frameProcessor, ct);
         }
-
-        public abstract object Identity { get; }
-        public abstract DeviceTypes DeviceType { get; }
-        public string Name { get; }
-        public string Description { get; }
-        public VideoCharacteristics[] Characteristics { get; }
-
-        protected abstract Task<CaptureDevice> OnOpenWithFrameProcessorAsync(
-            VideoCharacteristics characteristics,
-            bool transcodeIfYUV,
-            FrameProcessor frameProcessor);
-
-        internal Task<CaptureDevice> InternalOpenWithFrameProcessorAsync(
-            VideoCharacteristics characteristics,
-            bool transcodeIfYUV,
-            FrameProcessor frameProcessor) =>
-            this.OnOpenWithFrameProcessorAsync(characteristics, transcodeIfYUV, frameProcessor);
-
-        public override string ToString() =>
-            $"{this.Name}: {this.Description}, Characteristics={this.Characteristics.Length}";
+        catch
+        {
+            preConstructedDevice.Dispose();
+            throw;
+        }
+        return preConstructedDevice;
     }
 }

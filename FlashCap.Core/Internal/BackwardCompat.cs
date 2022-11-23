@@ -178,8 +178,22 @@ namespace System.Threading
 #if !(NET35 || NET40)
 namespace System.Threading.Tasks
 {
-    internal static class TaskEx
+    internal static class TaskCompat
     {
+#if NET45
+        public static Task CompletedTask =>
+            Task.FromResult(0);
+#else
+        public static Task CompletedTask =>
+            Task.CompletedTask;
+#endif
+
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+        public static Task<Task> WhenAny(params Task[] tasks) =>
+            Task.WhenAny(tasks);
+
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
@@ -190,6 +204,20 @@ namespace System.Threading.Tasks
 #endif
 
 #if NET35 || NET40
+namespace System.Threading.Tasks
+{
+    internal static class TaskCompat
+    {
+        public static Task CompletedTask =>
+            TaskEx.FromResult(true);
+        public static Task<T> FromResult<T>(T value) =>
+            TaskEx.FromResult(value);
+
+        public static Task<Task> WhenAny(params Task[] tasks) =>
+            TaskEx.WhenAny(tasks);
+    }
+}
+
 namespace System.Runtime.ExceptionServices
 {
     internal sealed class ExceptionDispatchInfo

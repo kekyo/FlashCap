@@ -9,90 +9,90 @@
 
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 
-namespace FlashCap
+namespace FlashCap;
+
+public sealed class ObservableCaptureDevice :
+    IObservable<PixelBufferScope>, IDisposable
 {
-    public sealed class ObservableCaptureDevice :
-        IObservable<PixelBufferScope>, IDisposable
+    private CaptureDevice captureDevice;
+    private ObserverProxy proxy;
+
+    internal ObservableCaptureDevice(CaptureDevice captureDevice, ObserverProxy proxy)
     {
-        private CaptureDevice captureDevice;
-        private ObserverProxy proxy;
+        this.captureDevice = captureDevice;
+        this.proxy = proxy;
+    }
 
-        internal ObservableCaptureDevice(CaptureDevice captureDevice, ObserverProxy proxy)
+    public void Dispose()
+    {
+        if (this.captureDevice is { } captureDevice)
         {
-            this.captureDevice = captureDevice;
-            this.proxy = proxy;
+            captureDevice.Dispose();
+            this.captureDevice = null!;
         }
-
-        public void Dispose()
+        if (this.proxy is { } proxy)
         {
-            if (this.captureDevice is { } captureDevice)
+            proxy.InternalDispose();
+            this.proxy = null!;
+        }
+    }
+
+    public VideoCharacteristics Characteristics =>
+        this.captureDevice.Characteristics;
+    public bool IsRunning =>
+        this.captureDevice.IsRunning;
+
+    internal Task InternalStartAsync(CancellationToken ct) =>
+        this.captureDevice.InternalStartAsync(ct);
+    internal Task InternalStopAsync(CancellationToken ct) =>
+        this.captureDevice.InternalStopAsync(ct);
+
+    internal IDisposable InternalSubscribe(IObserver<PixelBufferScope> observer)
+    {
+        this.proxy.Subscribe(observer);
+        return this.proxy;
+    }
+
+    IDisposable IObservable<PixelBufferScope>.Subscribe(IObserver<PixelBufferScope> observer) =>
+        this.InternalSubscribe(observer);
+
+    internal sealed class ObserverProxy : IDisposable
+    {
+        private volatile IObserver<PixelBufferScope>? observer;
+        private volatile bool isShutdown;
+
+        public void Subscribe(IObserver<PixelBufferScope> observer)
+        {
+            if (Interlocked.CompareExchange(ref this.observer, observer, null) != null)
             {
-                captureDevice.Dispose();
-                this.captureDevice = null!;
+                throw new InvalidOperationException();
             }
-            if (this.proxy is { } proxy)
-            {
-                proxy.InternalDispose();
-                this.proxy = null!;
-            }
         }
 
-        public VideoCharacteristics Characteristics =>
-            this.captureDevice.Characteristics;
-        public bool IsRunning =>
-            this.captureDevice.IsRunning;
-
-        internal void InternalStart() =>
-            this.captureDevice.InternalStart();
-        internal void InternalStop() =>
-            this.captureDevice.InternalStop();
-
-        internal IDisposable InternalSubscribe(IObserver<PixelBufferScope> observer)
+        internal void InternalDispose()
         {
-            this.proxy.Subscribe(observer);
-            return this.proxy;
+            this.isShutdown = true;
+            Interlocked.Exchange(ref this.observer, null)?.OnCompleted();
         }
 
-        IDisposable IObservable<PixelBufferScope>.Subscribe(IObserver<PixelBufferScope> observer) =>
-            this.InternalSubscribe(observer);
+        public void Dispose() =>
+            Interlocked.Exchange(ref this.observer, null);
 
-        internal sealed class ObserverProxy : IDisposable
+        public void OnPixelBufferArrived(PixelBufferScope bufferScope)
         {
-            private volatile IObserver<PixelBufferScope>? observer;
-            private volatile bool isShutdown;
-
-            public void Subscribe(IObserver<PixelBufferScope> observer)
+            if (this.observer is { } observer)
             {
-                if (Interlocked.CompareExchange(ref this.observer, observer, null) != null)
+                try
                 {
-                    throw new InvalidOperationException();
+                    observer.OnNext(bufferScope);
                 }
-            }
-
-            internal void InternalDispose()
-            {
-                this.isShutdown = true;
-                Interlocked.Exchange(ref this.observer, null)?.OnCompleted();
-            }
-
-            public void Dispose() =>
-                Interlocked.Exchange(ref this.observer, null);
-
-            public void OnPixelBufferArrived(PixelBufferScope bufferScope)
-            {
-                if (this.observer is { } observer)
+                finally
                 {
-                    try
+                    if (this.isShutdown)
                     {
-                        observer.OnNext(bufferScope);
-                    }
-                    finally
-                    {
-                        if (this.isShutdown)
-                        {
-                            Interlocked.Exchange(ref this.observer, null)?.OnCompleted();
-                        }
+                        Interlocked.Exchange(ref this.observer, null)?.OnCompleted();
                     }
                 }
             }

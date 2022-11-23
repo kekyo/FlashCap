@@ -49,7 +49,7 @@
             this.deviceLabel.Location = new System.Drawing.Point(0, 0);
             this.deviceLabel.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.deviceLabel.Name = "deviceLabel";
-            this.deviceLabel.Size = new System.Drawing.Size(65, 12);
+            this.deviceLabel.Size = new System.Drawing.Size(65, 13);
             this.deviceLabel.TabIndex = 0;
             this.deviceLabel.Text = "deviceLabel";
             // 
@@ -59,20 +59,20 @@
             this.characteristicsLabel.BackColor = System.Drawing.Color.Transparent;
             this.characteristicsLabel.Dock = System.Windows.Forms.DockStyle.Top;
             this.characteristicsLabel.ForeColor = System.Drawing.Color.Yellow;
-            this.characteristicsLabel.Location = new System.Drawing.Point(0, 12);
+            this.characteristicsLabel.Location = new System.Drawing.Point(0, 13);
             this.characteristicsLabel.Margin = new System.Windows.Forms.Padding(2, 0, 2, 0);
             this.characteristicsLabel.Name = "characteristicsLabel";
-            this.characteristicsLabel.Size = new System.Drawing.Size(108, 12);
+            this.characteristicsLabel.Size = new System.Drawing.Size(101, 13);
             this.characteristicsLabel.TabIndex = 1;
             this.characteristicsLabel.Text = "characteristicsLabel";
             // 
             // MainForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.Color.Black;
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
-            this.ClientSize = new System.Drawing.Size(800, 450);
+            this.ClientSize = new System.Drawing.Size(800, 488);
             this.Controls.Add(this.characteristicsLabel);
             this.Controls.Add(this.deviceLabel);
             this.DoubleBuffered = true;

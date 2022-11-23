@@ -89,12 +89,12 @@ using var device = await descriptor0.OpenAsync(
     });
 
 // 処理を開始:
-device.Start();
+await device.StartAsync();
 
 // ...
 
 // 処理を停止:
-device.Stop();
+await device.StopAsync();
 ```
 
 Reactive Extensionを使う事も出来ます:
@@ -122,7 +122,7 @@ deviceObservable.Subscribe(bufferScope =>
 });
 
 // 処理を開始:
-deviceObservable.Start();
+await deviceObservable.StartAsync();
 ```
 
 解説記事はこちら（英語）: ["Easy to implement video image capture with FlashCap" (dev.to)](https://dev.to/kozy_kekyo/easy-to-implement-video-image-capture-with-flashcap-o5a)
@@ -135,7 +135,7 @@ deviceObservable.Start();
 
 対応する.NETプラットフォームは以下の通りです（ほぼ全てです！）:
 
-* .NET 6, 5 (`net6.0`, `net5.0`)
+* .NET 7, 6, 5 (`net7.0` and etc)
 * .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (`netcoreapp3.1` and etc)
 * .NET Standard 2.1, 2.0, 1.3 (`netstandard2.1` and etc)
 * .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5 (`net48` and etc)
@@ -172,6 +172,7 @@ deviceObservable.Start();
 * NVIDIA Jetson TX2 評価ボード (aarch64, Linux)
 * Acer Aspire One ZA3 inside camera (i686, Linux)
 * Imagination Creator Ci20 (mipsel, Linux)
+* Radxa ROCK5B (aarch64, Linux)
 
 確認した、動作しない環境:
 
@@ -185,9 +186,9 @@ deviceObservable.Start();
 
 完全なサンプルコードはこちらです:
 
-* [Windowsフォームアプリケーション](samples/FlashCap.WindowsForms/)
 * [Avaloniaアプリケーション](samples/FlashCap.Avalonia/)
 * [WPFアプリケーション](samples/FlashCap.Wpf)
+* [Windowsフォームアプリケーション](samples/FlashCap.WindowsForms/)
 
 Avaloniaのサンプルコードは、単一のコードで、WindowsとLinuxの両方で動作します。ユーザーモードプロセスでリアルタイムにキャプチャを行い、（MJPEGから）ビットマップをデコードし、ウィンドウにレンダリングします。AvaloniaはSkiaを使ったレンダラーを使用しています。かなり高速です。
 
@@ -416,12 +417,11 @@ deviceObservable.
 
 ```csharp
 // (細かい定義は省きます)
-public abstract class FrameProcessor : IDisposable
+public abstract class FrameProcessor
 {
   // 必要なら実装する
-  public virtual void Dispose()
-  {
-  }
+  public virtual Task DisposeAsync()
+  { /* ... */ }
 
   // ピクセルバッファを取得する
   protected PixelBuffer GetPixelBuffer()
@@ -509,7 +509,7 @@ using var device = await descriptor0.OpenWitFrameProcessorAsync(
     // ...
   });
 
-device.Start();
+await device.StartAsync();
 
 // ...
 ```
@@ -547,6 +547,12 @@ Apache-v2.
 
 ## 履歴
 
+* 1.4.0:
+  * 非同期メソッドにおいて、`CancellationToken`を指定できるようにしました。
+  * `Start`と`Stop`を非同期処理に対応させました。
+  * 暗黙に非同期操作が要求される箇所 (Async-Over-Sync) を修正しました。
+  * V4L2において、キャプチャデバイスを再度開くと`ArgumentException`が発生する不具合を修正しました [#9](https://github.com/kekyo/FlashCap/issues/9)
+  * Avaloniaサンプルコードで、デバイスと特性の切り替えが出来るようにしました。
 * 1.3.0:
   * F#向けのAPIを公開する `FSharp.FlashCap` パッケージを追加。
 * 1.2.0:
