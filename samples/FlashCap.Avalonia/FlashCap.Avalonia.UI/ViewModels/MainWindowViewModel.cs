@@ -9,13 +9,11 @@
 
 using Epoxy;
 using Epoxy.Synchronized;
-using Nito.AsyncEx;
 using SkiaSharp;
 using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
-using System.Reflection.PortableExecutable;
 using System.Threading.Tasks;
 
 // NOTE: This sample application may crash when exit on .NET Framework (net48) configruation.
@@ -28,8 +26,6 @@ namespace FlashCap.Avalonia.ViewModels;
 [ViewModel]
 public sealed class MainWindowViewModel
 {
-    private readonly AsyncLock locker = new();
-
     // Constructed capture device.
     private CaptureDevice? captureDevice;
 
@@ -112,8 +108,6 @@ public sealed class MainWindowViewModel
     private async ValueTask OnCharacteristicsChangedAsync(VideoCharacteristics? characteristics)
     {
         Debug.WriteLine($"OnCharacteristicsChangedAsync: Enter: {characteristics?.ToString() ?? "(null)"}");
-
-        using var _ = await this.locker.LockAsync();
 
         this.IsEnbaled = false;
         try
