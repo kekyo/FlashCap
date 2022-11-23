@@ -23,18 +23,17 @@ public abstract class CaptureDevice :
 {
     private readonly AsyncLock locker = new();
 
-    protected CaptureDevice()
+    protected CaptureDevice(object identity, string name)
     {
+        this.Identity = identity;
+        this.Name = name;
     }
 
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
     public void Dispose() =>
-        this.DisposeAsync().
-            ConfigureAwait(false).
-            GetAwaiter().
-            GetResult();
+        _ = this.DisposeAsync().ConfigureAwait(false);
 
 #if NETCOREAPP3_0_OR_GREATER || NETSTANDARD2_1
     ValueTask IAsyncDisposable.DisposeAsync() =>
@@ -54,11 +53,13 @@ public abstract class CaptureDevice :
         TaskCompat.CompletedTask;
 
     protected abstract Task OnInitializeAsync(
-        object identity,
         VideoCharacteristics characteristics,
         bool transcodeIfYUV,
         FrameProcessor frameProcessor,
         CancellationToken ct);
+
+    public object Identity { get; }
+    public string Name { get; }
 
     public VideoCharacteristics Characteristics { get; protected set; } = null!;
     public bool IsRunning { get; protected set; }
@@ -72,12 +73,11 @@ public abstract class CaptureDevice :
     //////////////////////////////////////////////////////////////////////////
 
     internal Task InternalInitializeAsync(
-        object identity,
         VideoCharacteristics characteristics,
         bool transcodeIfYUV,
         FrameProcessor frameProcessor,
         CancellationToken ct) =>
-        this.OnInitializeAsync(identity, characteristics, transcodeIfYUV, frameProcessor, ct);
+        this.OnInitializeAsync(characteristics, transcodeIfYUV, frameProcessor, ct);
 
     internal async Task InternalStartAsync(CancellationToken ct)
     {

@@ -13,7 +13,9 @@ using Nito.AsyncEx;
 using SkiaSharp;
 using System;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
+using System.Reflection.PortableExecutable;
 using System.Threading.Tasks;
 
 // NOTE: This sample application may crash when exit on .NET Framework (net48) configruation.
@@ -34,8 +36,9 @@ public sealed class MainWindowViewModel
     // Binding members.
     public Command? Opened { get; }
     public SKBitmap? Image { get; private set; }
+    public bool IsEnbaled { get; private set; }
 
-    public ObservableCollection<CaptureDeviceDescriptor> DeviceList { get; } = new();
+    public ObservableCollection<CaptureDeviceDescriptor?> DeviceList { get; } = new();
     public CaptureDeviceDescriptor? Device { get; set; }
 
     public ObservableCollection<VideoCharacteristics> CharacteristicsList { get; } = new();
@@ -54,6 +57,8 @@ public sealed class MainWindowViewModel
 
             // Store device list into the combo box.
             this.DeviceList.Clear();
+            this.DeviceList.Add(null);
+
             foreach (var descriptor in devices.EnumerateDescriptors().
                 // You could filter by device type and characteristics.
                 //Where(d => d.DeviceType == DeviceTypes.DirectShow).  // Only DirectShow device.
@@ -61,14 +66,16 @@ public sealed class MainWindowViewModel
             {
                 this.DeviceList.Add(descriptor);
             }
+
+            this.IsEnbaled = true;
         });
     }
 
     // Devices combo box was changed.
     [PropertyChanged(nameof(Device))]
-    private async ValueTask OnDeviceListChangedAsync(CaptureDeviceDescriptor? descriptor)
+    private ValueTask OnDeviceListChangedAsync(CaptureDeviceDescriptor? descriptor)
     {
-        using var _ = await this.locker.LockAsync();
+        Debug.WriteLine($"OnDeviceListChangedAsync: Enter: {descriptor?.ToString() ?? "(null)"}");
 
         // Use first device.
         if (descriptor is { })
@@ -94,36 +101,58 @@ public sealed class MainWindowViewModel
             this.CharacteristicsList.Clear();
             this.Characteristics = null;
         }
+
+        Debug.WriteLine($"OnDeviceListChangedAsync: Leave: {descriptor?.ToString() ?? "(null)"}");
+
+        return default;
     }
 
     // Characteristics combo box was changed.
     [PropertyChanged(nameof(Characteristics))]
     private async ValueTask OnCharacteristicsChangedAsync(VideoCharacteristics? characteristics)
     {
+        Debug.WriteLine($"OnCharacteristicsChangedAsync: Enter: {characteristics?.ToString() ?? "(null)"}");
+
         using var _ = await this.locker.LockAsync();
 
-        // Close when already opened.
-        if (this.captureDevice is { } captureDevice)
+        this.IsEnbaled = false;
+        try
         {
-            this.captureDevice = null;
-            await captureDevice.StopAsync();
-            await captureDevice.DisposeAsync();
+            // Close when already opened.
+            if (this.captureDevice is { } captureDevice)
+            {
+                this.captureDevice = null;
+
+                Debug.WriteLine($"OnCharacteristicsChangedAsync: Stopping: {captureDevice.Name}");
+                await captureDevice.StopAsync();
+
+                Debug.WriteLine($"OnCharacteristicsChangedAsync: Disposing: {captureDevice.Name}");
+                await captureDevice.DisposeAsync();
+            }
 
             // Erase preview.
             this.Image = null;
+
+            // Descriptor is assigned and set valid characteristics:
+            if (this.Device is { } descriptor &&
+                characteristics is { })
+            {
+                // Open capture device:
+                Debug.WriteLine($"OnCharacteristicsChangedAsync: Opening: {descriptor.Name}");
+                this.captureDevice = await descriptor.OpenAsync(
+                    characteristics,
+                    this.OnPixelBufferArrivedAsync);
+
+                // Start capturing.
+                Debug.WriteLine($"OnCharacteristicsChangedAsync: Starting: {descriptor.Name}");
+                await this.captureDevice.StartAsync();
+            }
         }
-
-        // Descriptor is assigned and set valid characteristics:
-        if (this.Device is { } descriptor &&
-            characteristics is { })
+        finally
         {
-            // Open capture device:
-            this.captureDevice = await descriptor.OpenAsync(
-                characteristics,
-                this.OnPixelBufferArrivedAsync);
+            this.IsEnbaled = true;
 
-            // Start capturing.
-            await this.captureDevice.StartAsync();
+            Debug.WriteLine($"OnCharacteristicsChangedAsync: Leave: {characteristics?.ToString() ?? "(null)"}");
         }
     }
 

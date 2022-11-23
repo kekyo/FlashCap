@@ -34,6 +34,6 @@ public sealed class VideoForWindowsDeviceDescriptor : CaptureDeviceDescriptor
         FrameProcessor frameProcessor,
         CancellationToken ct) =>
         this.InternalOnOpenWithFrameProcessorAsync(
-            new VideoForWindowsDevice(),
-            this.deviceIndex, characteristics, transcodeIfYUV, frameProcessor, ct);
+            new VideoForWindowsDevice(this.deviceIndex, this.Name),
+            characteristics, transcodeIfYUV, frameProcessor, ct);
 }

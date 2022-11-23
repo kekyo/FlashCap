@@ -77,19 +77,19 @@ public sealed class DirectShowDevice :
     private IntPtr pBih;
 
 #pragma warning disable CS8618
-    internal DirectShowDevice()
+    internal DirectShowDevice(object identity, string name) :
+        base(identity, name)
 #pragma warning restore CS8618
     {
     }
 
     protected override Task OnInitializeAsync(
-        object identity,
         VideoCharacteristics characteristics,
         bool transcodeIfYUV,
         FrameProcessor frameProcessor,
         CancellationToken ct)
     {
-        var devicePath = (string)identity;
+        var devicePath = (string)this.Identity;
 
         this.transcodeIfYUV = transcodeIfYUV;
         this.frameProcessor = frameProcessor;

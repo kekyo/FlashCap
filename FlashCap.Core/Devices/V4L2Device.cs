@@ -42,19 +42,19 @@ public sealed class V4L2Device : CaptureDevice
     private int abortwfd;
 
 #pragma warning disable CS8618
-    internal V4L2Device()
+    internal V4L2Device(object identity, string name) :
+        base(identity, name)
 #pragma warning restore CS8618
     {
     }
 
     protected override unsafe Task OnInitializeAsync(
-        object identity,
         VideoCharacteristics characteristics,
         bool transcodeIfYUV,
         FrameProcessor frameProcessor,
         CancellationToken ct)
     {
-        this.devicePath = (string)identity;
+        this.devicePath = (string)this.Identity;
         this.Characteristics = characteristics;
         this.transcodeIfYUV = transcodeIfYUV;
         this.frameProcessor = frameProcessor;

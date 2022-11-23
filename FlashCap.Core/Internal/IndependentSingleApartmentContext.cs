@@ -24,6 +24,7 @@ internal sealed class IndependentSingleApartmentContext :
 {
     #region Interops for Win32
     private static readonly int WM_QUIT = 0x0012;
+    private static readonly int PM_NOREMOVE = 0x0000;
 
     private struct MSG
     {
@@ -36,6 +37,9 @@ internal sealed class IndependentSingleApartmentContext :
 
     [DllImport("user32", SetLastError = true)]
     private static extern bool PostThreadMessage(int threadId, int msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32", SetLastError = true)]
+    private static extern int PeekMessage(out MSG lpMsg, IntPtr hWnd, int wMsgFilterMin, int wMsgFilterMax, int wRemoveMsg);
 
     [DllImport("user32", SetLastError = true)]
     private static extern int GetMessage(out MSG lpMsg, IntPtr hWnd, int wMsgFilterMin, int wMsgFilterMax);
@@ -102,8 +106,8 @@ internal sealed class IndependentSingleApartmentContext :
     private static readonly int WM_SC =
         RegisterWindowMessage("IndependentSingleApartmentContext_" + Guid.NewGuid().ToString("N"));
 
-    private Thread? thread;
-    private ManualResetEventSlim? ready = new(false);
+    private ManualResetEventSlim? ready = new();
+    private Thread thread;
     private int targetThreadId;
     private int recursiveCount;
 
@@ -111,24 +115,23 @@ internal sealed class IndependentSingleApartmentContext :
     {
         Debug.Assert(NativeMethods.CurrentPlatform == NativeMethods.Platforms.Windows);
 
-        this.thread = new Thread(this.ThreadEntry);
+        this.thread = new(this.ThreadEntry);
         this.thread.IsBackground = true;
         this.thread.SetApartmentState(ApartmentState.STA);   // Improved compatibility
         this.thread.Start();
 
-        this.ready!.Wait();
+        this.ready.Wait();
         this.ready.Dispose();
         this.ready = null;
     }
 
+    ~IndependentSingleApartmentContext() =>
+        PostThreadMessage(this.targetThreadId, WM_QUIT, IntPtr.Zero, IntPtr.Zero);
+
     public void Dispose()
     {
-        if (this.thread != null)
-        {
-            PostThreadMessage(this.targetThreadId, WM_QUIT, IntPtr.Zero, IntPtr.Zero);
-            this.thread.Join();
-            this.thread = null;
-        }
+        PostThreadMessage(this.targetThreadId, WM_QUIT, IntPtr.Zero, IntPtr.Zero);
+        GC.SuppressFinalize(this);
     }
 
     public override SynchronizationContext CreateCopy() =>
@@ -161,18 +164,8 @@ internal sealed class IndependentSingleApartmentContext :
         return false;
     }
 
-    public override void Send(SendOrPostCallback continuation, object? state)
-    {
-        if (!this.SendCore(continuation, state))
-        {
-            using var message = new Message(continuation, state, true);
-            var handle = GCHandle.ToIntPtr(GCHandle.Alloc(message));
-
-            PostThreadMessage(this.targetThreadId, WM_SC, IntPtr.Zero, handle);
-
-            message.Wait();
-        }
-    }
+    public override void Send(SendOrPostCallback continuation, object? state) =>
+        throw new InvalidOperationException();
 
     public override void Post(SendOrPostCallback continuation, object? state)
     {
@@ -209,8 +202,12 @@ internal sealed class IndependentSingleApartmentContext :
 
     private void ThreadEntry()
     {
+        PeekMessage(out var _, IntPtr.Zero, 0, 0, PM_NOREMOVE);
+
         this.targetThreadId = GetCurrentThreadId();
         SetSynchronizationContext(this);
+
+        Debug.WriteLine($"FlashCap: Started IndependentSingleApartmentContext: Id={this.targetThreadId}");
 
         this.ready!.Set();
 
@@ -254,5 +251,7 @@ internal sealed class IndependentSingleApartmentContext :
             TranslateMessage(ref msg);
             DispatchMessage(ref msg);
         }
+
+        Debug.WriteLine($"FlashCap: Exited IndependentSingleApartmentContext: Id={this.targetThreadId}");
     }
 }

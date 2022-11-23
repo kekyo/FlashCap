@@ -70,7 +70,6 @@ public abstract class CaptureDeviceDescriptor
 
     internal async Task<CaptureDevice> InternalOnOpenWithFrameProcessorAsync(
         CaptureDevice preConstructedDevice,
-        object identity,
         VideoCharacteristics characteristics,
         bool transcodeIfYUV,
         FrameProcessor frameProcessor,
@@ -81,7 +80,7 @@ public abstract class CaptureDeviceDescriptor
         try
         {
             await preConstructedDevice.InternalInitializeAsync(
-                identity, characteristics, transcodeIfYUV, frameProcessor, ct);
+                characteristics, transcodeIfYUV, frameProcessor, ct);
         }
         catch
         {

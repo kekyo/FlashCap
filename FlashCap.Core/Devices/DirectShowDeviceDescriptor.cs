@@ -34,6 +34,6 @@ public sealed class DirectShowDeviceDescriptor : CaptureDeviceDescriptor
         FrameProcessor frameProcessor,
         CancellationToken ct) =>
         this.InternalOnOpenWithFrameProcessorAsync(
-            new DirectShowDevice(),
-            this.devicePath, characteristics, transcodeIfYUV, frameProcessor, ct);
+            new DirectShowDevice(this.devicePath, this.Name),
+            characteristics, transcodeIfYUV, frameProcessor, ct);
 }

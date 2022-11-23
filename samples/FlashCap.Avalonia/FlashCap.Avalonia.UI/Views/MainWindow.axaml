@@ -25,9 +25,11 @@
             Stretch="Uniform" />
         <StackPanel Orientation="Horizontal">
             <ComboBox HorizontalAlignment="Stretch"
+                      IsEnabled="{Binding IsEnbaled}"
                       Items="{Binding DeviceList}"
                       SelectedItem="{Binding Device, Mode=TwoWay}" />
             <ComboBox HorizontalAlignment="Stretch"
+                      IsEnabled="{Binding IsEnbaled}"
                       Items="{Binding CharacteristicsList}"
                       SelectedItem="{Binding Characteristics, Mode=TwoWay}" />
         </StackPanel>
