@@ -45,6 +45,7 @@ public sealed class MainWindowViewModel
 
     public string? Statistics1 { get; private set; }
     public string? Statistics2 { get; private set; }
+    public string? Statistics3 { get; private set; }
 
     public MainWindowViewModel()
     {
@@ -193,6 +194,7 @@ public sealed class MainWindowViewModel
             var fpsByIndex = frameIndex / timestamp.TotalSeconds;
             this.Statistics1 = $"Frame={countFrames}/{frameIndex}";
             this.Statistics2 = $"FPS={realFps:F3}/{fpsByIndex:F3}";
+            this.Statistics3 = $"SKBitmap={bitmap.Width}x{bitmap.Height} [{bitmap.ColorType}]";
         }
     }
 }

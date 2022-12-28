@@ -38,6 +38,8 @@
                        Text="{Binding Statistics1}" />
             <TextBlock Foreground="Yellow"
                        Text="{Binding Statistics2}" />
+            <TextBlock Foreground="Yellow"
+                       Text="{Binding Statistics3}" />
         </StackPanel>
     </Grid>
 </Window>
