@@ -14,6 +14,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 // NOTE: This sample application may crash when exit on .NET Framework (net48) configruation.
@@ -26,6 +27,8 @@ namespace FlashCap.Avalonia.ViewModels;
 [ViewModel]
 public sealed class MainWindowViewModel
 {
+    private long countFrames;
+
     // Constructed capture device.
     private CaptureDevice? captureDevice;
 
@@ -39,6 +42,9 @@ public sealed class MainWindowViewModel
 
     public ObservableCollection<VideoCharacteristics> CharacteristicsList { get; } = new();
     public VideoCharacteristics? Characteristics { get; set; }
+
+    public string? Statistics1 { get; private set; }
+    public string? Statistics2 { get; private set; }
 
     public MainWindowViewModel()
     {
@@ -73,7 +79,7 @@ public sealed class MainWindowViewModel
     {
         Debug.WriteLine($"OnDeviceListChangedAsync: Enter: {descriptor?.ToString() ?? "(null)"}");
 
-        // Use first device.
+        // Use selected device.
         if (descriptor is { })
         {
 #if false
@@ -126,6 +132,9 @@ public sealed class MainWindowViewModel
 
             // Erase preview.
             this.Image = null;
+            this.Statistics1 = null;
+            this.Statistics2 = null;
+            this.countFrames = 0;
 
             // Descriptor is assigned and set valid characteristics:
             if (this.Device is { } descriptor &&
@@ -165,6 +174,11 @@ public sealed class MainWindowViewModel
         // Decode image data to a bitmap:
         var bitmap = SKBitmap.Decode(image);
 
+        // Capture statistics variables.
+        var countFrames = Interlocked.Increment(ref this.countFrames);
+        var frameIndex = bufferScope.Buffer.FrameIndex;
+        var timestamp = bufferScope.Buffer.Timestamp;
+
         // `bitmap` is copied, so we can release pixel buffer now.
         bufferScope.ReleaseNow();
 
@@ -173,6 +187,12 @@ public sealed class MainWindowViewModel
         {
             // Update a bitmap.
             this.Image = bitmap;
+
+            // Update statistics.
+            var realFps = countFrames / timestamp.TotalSeconds;
+            var fpsByIndex = frameIndex / timestamp.TotalSeconds;
+            this.Statistics1 = $"Frame={countFrames}/{frameIndex}";
+            this.Statistics2 = $"FPS={realFps:F3}/{fpsByIndex:F3}";
         }
     }
 }
