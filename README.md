@@ -185,6 +185,7 @@ Fully sample code is here:
 * [Avalonia](samples/FlashCap.Avalonia/)
 * [WPF application](samples/FlashCap.Wpf/)
 * [Windows Forms application](samples/FlashCap.WindowsForms/)
+* [Console application](samples/FlashCap.OneShot/)
 
 This is an Avalonia sample application on both Windows and Linux.
 It is performed realtime usermode capturing, decoding bitmap (from MJPEG) and render to window.

@@ -186,6 +186,7 @@ await deviceObservable.StartAsync();
 * [Avaloniaアプリケーション](samples/FlashCap.Avalonia/)
 * [WPFアプリケーション](samples/FlashCap.Wpf)
 * [Windowsフォームアプリケーション](samples/FlashCap.WindowsForms/)
+* [コンソールアプリケーション](samples/FlashCap.OneShot/)
 
 Avaloniaのサンプルコードは、単一のコードで、WindowsとLinuxの両方で動作します。ユーザーモードプロセスでリアルタイムにキャプチャを行い、（MJPEGから）ビットマップをデコードし、ウィンドウにレンダリングします。AvaloniaはSkiaを使ったレンダラーを使用しています。かなり高速です。
 
