@@ -23,15 +23,23 @@
         <siv:SKImageView
             Source="{Binding Image}"
             Stretch="Uniform" />
-        <StackPanel Orientation="Horizontal">
-            <ComboBox HorizontalAlignment="Stretch"
-                      IsEnabled="{Binding IsEnbaled}"
-                      Items="{Binding DeviceList}"
-                      SelectedItem="{Binding Device, Mode=TwoWay}" />
-            <ComboBox HorizontalAlignment="Stretch"
-                      IsEnabled="{Binding IsEnbaled}"
-                      Items="{Binding CharacteristicsList}"
-                      SelectedItem="{Binding Characteristics, Mode=TwoWay}" />
+        <StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <ComboBox HorizontalAlignment="Stretch"
+                          IsEnabled="{Binding IsEnbaled}"
+                          Items="{Binding DeviceList}"
+                          SelectedItem="{Binding Device, Mode=TwoWay}" />
+                <ComboBox HorizontalAlignment="Stretch"
+                          IsEnabled="{Binding IsEnbaled}"
+                          Items="{Binding CharacteristicsList}"
+                          SelectedItem="{Binding Characteristics, Mode=TwoWay}" />
+            </StackPanel>
+            <TextBlock Foreground="Yellow"
+                       Text="{Binding Statistics1}" />
+            <TextBlock Foreground="Yellow"
+                       Text="{Binding Statistics2}" />
+            <TextBlock Foreground="Yellow"
+                       Text="{Binding Statistics3}" />
         </StackPanel>
     </Grid>
 </Window>

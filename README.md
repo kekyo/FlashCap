@@ -185,15 +185,33 @@ Fully sample code is here:
 * [Avalonia](samples/FlashCap.Avalonia/)
 * [WPF application](samples/FlashCap.Wpf/)
 * [Windows Forms application](samples/FlashCap.WindowsForms/)
+* [Console application](samples/FlashCap.OneShot/)
 
 This is an Avalonia sample application on both Windows and Linux.
 It is performed realtime usermode capturing, decoding bitmap (from MJPEG) and render to window.
-Avalonia is using renderer with Skia.
+Avalonia is using renderer with Skia [(SkiaImageView)](https://github.com/kekyo/SkiaImageView).
 It is pretty fast.
 
 ![FlashCap.Avalonia](Images/FlashCap.Avalonia_Windows.png)
 
 ![FlashCap.Avalonia](Images/FlashCap.Avalonia_Linux.png)
+
+### Want to take just one image
+
+If you want to take only one image, there is a very simple method:
+
+```csharp
+// Take only one image, given the image characteristics:
+var descriptor0 = devices.EnumerateDescriptors().ElementAt(0);
+
+byte[] imageData = await descriptor0.TakeOneShotAsync(
+    descriptor0.Characteristics[0]);
+
+// Save to file
+await File.WriteAllBytesAsync("oneshot", imageData);
+```
+
+See [sample code](samples/FlashCap.OneShot/) for a complete implementation.
 
 
 ----
@@ -604,6 +622,9 @@ Apache-v2.
 
 ## History
 
+* 1.5.0:
+  * Added `TakeOneShotAsync()` method to easily take a single image, and added corresponding sample project.
+  * Avalonia sample code now displays FPS and taken image information in real time.
 * 1.4.0:
   * Allow `CancellationToken` to be specified in asynchronous methods.
   * `Start` and `Stop` now support asynchronous processing.

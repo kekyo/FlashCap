@@ -186,12 +186,30 @@ await deviceObservable.StartAsync();
 * [Avaloniaアプリケーション](samples/FlashCap.Avalonia/)
 * [WPFアプリケーション](samples/FlashCap.Wpf)
 * [Windowsフォームアプリケーション](samples/FlashCap.WindowsForms/)
+* [コンソールアプリケーション](samples/FlashCap.OneShot/)
 
-Avaloniaのサンプルコードは、単一のコードで、WindowsとLinuxの両方で動作します。ユーザーモードプロセスでリアルタイムにキャプチャを行い、（MJPEGから）ビットマップをデコードし、ウィンドウにレンダリングします。AvaloniaはSkiaを使ったレンダラーを使用しています。かなり高速です。
+Avaloniaのサンプルコードは、単一のコードで、WindowsとLinuxの両方で動作します。ユーザーモードプロセスでリアルタイムにキャプチャを行い、（MJPEGから）ビットマップをデコードし、ウィンドウにレンダリングします。AvaloniaはSkiaを使ったレンダラー [SkiaImageView](https://github.com/kekyo/SkiaImageView) を使用しています。かなり高速です。
 
 ![FlashCap.Avalonia](Images/FlashCap.Avalonia_Windows.png)
 
 ![FlashCap.Avalonia](Images/FlashCap.Avalonia_Linux.png)
+
+### 一枚だけ撮りたい
+
+イメージを一枚だけ撮りたい場合に、非常に簡単なメソッドがあります:
+
+```csharp
+// 映像特性を指定して、イメージを一枚だけ撮ります:
+var descriptor0 = devices.EnumerateDescriptors().ElementAt(0);
+
+byte[] imageData = await descriptor0.TakeOneShotAsync(
+    descriptor0.Characteristics[0]);
+
+// ファイルに保存します
+await File.WriteAllBytesAsync("oneshot", imageData);
+```
+
+完全な実装は、[サンプルコード](samples/FlashCap.OneShot/)を参照して下さい。
 
 
 ----
@@ -544,6 +562,9 @@ Apache-v2.
 
 ## 履歴
 
+* 1.5.0:
+  * 簡単にイメージを一枚だけ撮影する、 `TakeOneShotAsync()` メソッドを追加し、対応するサンプルプロジェクトを追加しました。
+  * Avaloniaサンプルコードで、FPSと撮影したイメージの情報をリアルタイムに表示するようにしました。
 * 1.4.0:
   * 非同期メソッドにおいて、`CancellationToken`を指定できるようにしました。
   * `Start`と`Stop`を非同期処理に対応させました。
