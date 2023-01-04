@@ -189,17 +189,14 @@ Fully sample code is here:
 
 This is an Avalonia sample application on both Windows and Linux.
 It is performed realtime usermode capturing, decoding bitmap (from MJPEG) and render to window.
-Avalonia is using renderer with Skia.
+Avalonia is using renderer with Skia [(SkiaImageView)](https://github.com/kekyo/SkiaImageView).
 It is pretty fast.
 
 ![FlashCap.Avalonia](Images/FlashCap.Avalonia_Windows.png)
 
 ![FlashCap.Avalonia](Images/FlashCap.Avalonia_Linux.png)
 
-
-----
-
-## Want to take just one image
+### Want to take just one image
 
 If you want to take only one image, there is a very simple method:
 
@@ -625,6 +622,9 @@ Apache-v2.
 
 ## History
 
+* 1.5.0:
+  * Added `TakeOneShotAsync()` method to easily take a single image, and added corresponding sample project.
+  * Avalonia sample code now displays FPS and taken image information in real time.
 * 1.4.0:
   * Allow `CancellationToken` to be specified in asynchronous methods.
   * `Start` and `Stop` now support asynchronous processing.
