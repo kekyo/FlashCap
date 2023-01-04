@@ -197,6 +197,26 @@ Avaloniaのサンプルコードは、単一のコードで、WindowsとLinuxの
 
 ----
 
+## 一枚だけ撮りたい
+
+イメージを一枚だけ撮りたい場合に、非常に簡単なメソッドがあります:
+
+```csharp
+// 映像特性を指定して、イメージを一枚だけ撮ります:
+var descriptor0 = devices.EnumerateDescriptors().ElementAt(0);
+
+byte[] imageData = await descriptor0.TakeOneShotAsync(
+    descriptor0.Characteristics[0]);
+
+// ファイルに保存します
+await File.WriteAllBytesAsync("oneshot", imageData);
+```
+
+完全な実装は、[サンプルコード](samples/FlashCap.OneShot/)を参照して下さい。
+
+
+----
+
 ## 実装ガイドライン
 
 以降では、FlashCapを使って、大容量の画像データを処理するための様々な手法を解説します。これは応用例なので、必ず読む必要はありませんが、実装のヒントにはなると思います。

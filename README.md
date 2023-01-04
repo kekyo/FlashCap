@@ -199,6 +199,26 @@ It is pretty fast.
 
 ----
 
+## Want to take just one image
+
+If you want to take only one image, there is a very simple method:
+
+```csharp
+// Take only one image, given the image characteristics:
+var descriptor0 = devices.EnumerateDescriptors().ElementAt(0);
+
+byte[] imageData = await descriptor0.TakeOneShotAsync(
+    descriptor0.Characteristics[0]);
+
+// Save to file
+await File.WriteAllBytesAsync("oneshot", imageData);
+```
+
+See [sample code](samples/FlashCap.OneShot/) for a complete implementation.
+
+
+----
+
 ## Implementation Guidelines
 
 In the following sections, we will explain various techniques for processing large amounts of image data using FlashCap.
