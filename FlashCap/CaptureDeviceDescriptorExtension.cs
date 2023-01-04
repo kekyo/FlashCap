@@ -152,4 +152,19 @@ public static class CaptureDeviceDescriptorExtension
 
         return new ObservableCaptureDevice(captureDevice, observerProxy);
     }
+
+    //////////////////////////////////////////////////////////////////////////////////
+
+    public static Task<byte[]> TakeOneShotAsync(
+        this CaptureDeviceDescriptor descriptor,
+        VideoCharacteristics characteristics,
+        CancellationToken ct = default) =>
+        descriptor.InternalTakeOneShotAsync(characteristics, true, ct);
+
+    public static Task<byte[]> TakeOneShotAsync(
+        this CaptureDeviceDescriptor descriptor,
+        VideoCharacteristics characteristics,
+        bool transcodeIfYUV,
+        CancellationToken ct = default) =>
+        descriptor.InternalTakeOneShotAsync(characteristics, transcodeIfYUV, ct);
 }

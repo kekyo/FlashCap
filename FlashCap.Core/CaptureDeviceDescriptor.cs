@@ -7,7 +7,10 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.FrameProcessors;
 using FlashCap.Internal;
+using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -88,5 +91,33 @@ public abstract class CaptureDeviceDescriptor
             throw;
         }
         return preConstructedDevice;
+    }
+
+    internal async Task<byte[]> InternalTakeOneShotAsync(
+        VideoCharacteristics characteristics,
+        bool transcodeIfYUV,
+        CancellationToken ct)
+    {
+        var tcs = new TaskCompletionSource<byte[]>();
+
+        using var device = await this.OnOpenWithFrameProcessorAsync(
+            characteristics, transcodeIfYUV,
+            new DelegatedQueuingProcessor(pixelBuffer =>
+            {
+                var image = pixelBuffer.Buffer.InternalExtractImage(
+                    PixelBuffer.BufferStrategies.ForceCopy);
+                Debug.Assert(image.Array!.Length == image.Count);
+
+                pixelBuffer.InternalReleaseNow();
+
+                tcs.TrySetResult(image.Array);
+            }, 1),
+            ct);
+
+        await device.InternalStartAsync(ct);
+        var image = await tcs.Task;
+        await device.InternalStopAsync(ct);
+
+        return image;
     }
 }
