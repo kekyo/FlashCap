@@ -134,3 +134,20 @@ module public CaptureDeviceDescriptorExtension =
                      | false -> (new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)), asCT ct) |> Async.AwaitTask
                 return new ObservableCaptureDevice(captureDevice, observerProxy)
             }
+
+        //////////////////////////////////////////////////////////////////////////////////
+
+        member self.takeOneShotAsync(
+            characteristics: VideoCharacteristics,
+            ?ct: CancellationToken) : Async<byte[]> =
+            self.InternalTakeOneShotAsync(
+                characteristics, true,
+                asCT ct) |> Async.AwaitTask
+
+        member self.takeOneShotAsync(
+            characteristics: VideoCharacteristics,
+            transcodeIfYUV: bool,
+            ?ct: CancellationToken) : Async<byte[]> =
+            self.InternalTakeOneShotAsync(
+                characteristics, transcodeIfYUV,
+                asCT ct) |> Async.AwaitTask

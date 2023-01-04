@@ -58,6 +58,15 @@ public static class Program
         ///////////////////////////////////////////////////////////////
         // Start capture and get one image.
 
+#if true
+        // Step 3: New interface: Simple take one shot.
+        var image = await descriptor0.TakeOneShotAsync(
+            characteristics0, ct);
+
+        Console.WriteLine($"Captured {image.Length} bytes.");
+#else
+        // Equivalent implementation
+
         // Step 3-1: Open the capture device with specific characteristics:
         var tcs = new TaskCompletionSource<byte[]>();
         using var captureDevice = await descriptor0.OpenAsync(
@@ -73,7 +82,7 @@ public static class Program
                 Console.WriteLine($"Captured {image.Length} bytes.");
 
                 // Step 3-3: Relay to outside continuation.
-                tcs.SetResult(image);
+                tcs.TrySetResult(image);
 
                 // If you output to each files from continuous image data,
                 // it would be easier to output directly to file here.
@@ -88,7 +97,7 @@ public static class Program
         // Step 4: Start capturing:
         await captureDevice.StartAsync(ct);
 
-        Console.WriteLine($"Device {descriptor0} opened.");
+        Console.WriteLine($"Device opened.");
 
         // Step 5: Waiting to continue:
         var image = await tcs.Task;
@@ -96,7 +105,8 @@ public static class Program
         // Step 6: Stop capturing:
         await captureDevice.StopAsync(ct);
 
-        Console.WriteLine($"Device {descriptor0} stopped.");
+        Console.WriteLine($"Device stopped.");
+#endif
 
         ///////////////////////////////////////////////////////////////
         // Save image data to file.
