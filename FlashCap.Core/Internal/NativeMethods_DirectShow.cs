@@ -297,6 +297,54 @@ internal static class NativeMethods_DirectShow
         public IFilterGraph graph;
     }
 
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct DsCAUUID
+    {
+        public int cElems;
+        public IntPtr pElems;
+
+        public Guid[] ToGuidArray()
+        {
+            Guid[] retval = new Guid[cElems];
+
+            for (int i = 0; i < cElems; i++)
+            {
+#pragma warning disable CS0618
+                IntPtr ptr = new(pElems.ToInt64() + (Marshal.SizeOf(typeof(Guid)) * i));
+                Guid? guid = (Guid?)Marshal.PtrToStructure(ptr, typeof(Guid));
+                retval[i] = guid.GetValueOrDefault();
+#pragma warning restore CS0618
+            }
+
+            return retval;
+        }
+    }
+
+    [DllImport("oleaut32.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
+    public static extern int OleCreatePropertyFrame(
+        IntPtr hwndOwner,
+        int x,
+        int y,
+        [MarshalAs(UnmanagedType.LPWStr)] string lpszCaption,
+        int cObjects,
+        [MarshalAs(UnmanagedType.Interface, ArraySubType = UnmanagedType.IUnknown)]
+        ref object ppUnk,
+        int cPages,
+        IntPtr lpPageClsID,
+        int lcid,
+        int dwReserved,
+        IntPtr lpvReserved);
+
+    [SuppressUnmanagedCodeSecurity,
+    Guid("B196B28B-BAB4-101A-B69C-00AA00341D07"),
+    InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface ISpecifyPropertyPages
+    {
+        [PreserveSig]
+        int GetPages(out DsCAUUID pPages);
+    }
+
     [SuppressUnmanagedCodeSecurity]
     [Guid("56a86895-0ad4-11ce-b03a-0020af0ba770")]
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
