@@ -312,6 +312,59 @@ public sealed class DirectShowDevice :
         }
     }
 
+
+    public void DisplayPropertyPage_CaptureFilter(IntPtr hwndOwner)
+    {
+        if (graphBuilder != null)
+        {
+            graphBuilder.FindFilterByName("Capture source", out NativeMethods_DirectShow.IBaseFilter? captureSourceFilter);
+            DisplayPropertyPage(captureSourceFilter, hwndOwner);
+        }
+    }
+
+    private void DisplayPropertyPage(object? filterOrPin, IntPtr hwndOwner)
+    {
+        if (filterOrPin == null)
+            return;
+
+        if (filterOrPin is not NativeMethods_DirectShow.ISpecifyPropertyPages pProp)
+            return;
+
+        string caption = string.Empty;
+        if (filterOrPin is NativeMethods_DirectShow.IBaseFilter)
+        {
+            if (filterOrPin is not NativeMethods_DirectShow.IBaseFilter filter)
+                return;
+
+            filter.QueryFilterInfo(out NativeMethods_DirectShow.FILTER_INFO filterInfo);
+
+            caption = filterInfo.chName;
+
+            if (filterInfo.graph != null)
+            {
+                Marshal.ReleaseComObject(filterInfo.graph);
+            }
+        }
+        else if (filterOrPin is NativeMethods_DirectShow.IPin)
+        {
+            if (filterOrPin is not NativeMethods_DirectShow.IPin pin)
+                return;
+
+            pin.QueryPinInfo(out NativeMethods_DirectShow.PIN_INFO pinInfo);
+
+            caption = pinInfo.name;
+        }
+
+
+        pProp.GetPages(out NativeMethods_DirectShow.DsCAUUID caGUID);
+
+        object oDevice = filterOrPin;
+        NativeMethods_DirectShow.OleCreatePropertyFrame(hwndOwner, 0, 0, caption, 1, ref oDevice, caGUID.cElems, caGUID.pElems, 0, 0, IntPtr.Zero);
+
+        Marshal.FreeCoTaskMem(caGUID.pElems);
+        Marshal.ReleaseComObject(pProp);
+    }
+
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
