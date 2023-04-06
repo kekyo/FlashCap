@@ -318,51 +318,46 @@ public sealed class DirectShowDevice :
         if (graphBuilder != null)
         {
             graphBuilder.FindFilterByName("Capture source", out NativeMethods_DirectShow.IBaseFilter? captureSourceFilter);
-            DisplayPropertyPage(captureSourceFilter, hwndOwner);
+            DisplayPropertyPage_Filter(captureSourceFilter, hwndOwner);
         }
     }
 
-    private void DisplayPropertyPage(object? filterOrPin, IntPtr hwndOwner)
+    private void DisplayPropertyPage_Filter(object? obj, IntPtr hwndOwner)
     {
-        if (filterOrPin == null)
+        if (obj == null)
             return;
 
-        if (filterOrPin is not NativeMethods_DirectShow.ISpecifyPropertyPages pProp)
+        if (obj is not NativeMethods_DirectShow.ISpecifyPropertyPages pProp)
             return;
 
-        string caption = string.Empty;
-        if (filterOrPin is NativeMethods_DirectShow.IBaseFilter)
+        if (obj is not NativeMethods_DirectShow.IBaseFilter filter)
+            return;
+
+        if (filter.QueryFilterInfo(out NativeMethods_DirectShow.FILTER_INFO filterInfo) < 0)
         {
-            if (filterOrPin is not NativeMethods_DirectShow.IBaseFilter filter)
-                return;
-
-            filter.QueryFilterInfo(out NativeMethods_DirectShow.FILTER_INFO filterInfo);
-
-            caption = filterInfo.chName;
-
-            if (filterInfo.graph != null)
-            {
-                Marshal.ReleaseComObject(filterInfo.graph);
-            }
-        }
-        else if (filterOrPin is NativeMethods_DirectShow.IPin)
-        {
-            if (filterOrPin is not NativeMethods_DirectShow.IPin pin)
-                return;
-
-            pin.QueryPinInfo(out NativeMethods_DirectShow.PIN_INFO pinInfo);
-
-            caption = pinInfo.name;
+            throw new ArgumentException(
+                $"FlashCap: Couldn't query filter info");
         }
 
+        if (pProp.GetPages(out NativeMethods_DirectShow.DsCAUUID caGUID) < 0)
+        {
+            throw new ArgumentException(
+                $"FlashCap: Couldn't get pages");
+        }
 
-        pProp.GetPages(out NativeMethods_DirectShow.DsCAUUID caGUID);
-
-        object oDevice = filterOrPin;
-        NativeMethods_DirectShow.OleCreatePropertyFrame(hwndOwner, 0, 0, caption, 1, ref oDevice, caGUID.cElems, caGUID.pElems, 0, 0, IntPtr.Zero);
+        object oDevice = obj;
+        if (NativeMethods_DirectShow.OleCreatePropertyFrame(hwndOwner, 0, 0, filterInfo.chName, 1, ref oDevice, caGUID.cElems, caGUID.pElems, 0, 0, IntPtr.Zero) < 0)
+        {
+            throw new ArgumentException(
+                $"FlashCap: Couldn't create property frame");
+        }
 
         Marshal.FreeCoTaskMem(caGUID.pElems);
         Marshal.ReleaseComObject(pProp);
+        if (filterInfo.graph != null)
+        {
+            Marshal.ReleaseComObject(filterInfo.graph);
+        }
     }
 
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
