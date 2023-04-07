@@ -281,17 +281,17 @@ public sealed class VideoForWindowsDevice : CaptureDevice
 
     public override int GetPropertyValue(VideoProcessingAmplifierProperty property)
     {
-        throw new Exception("not supported for V4l2Device");
+        throw new Exception("not supported for VideoForWindows");
     }
 
     public override void SetPropertyValue(VideoProcessingAmplifierProperty property, object? obj)
     {
-        throw new Exception("not supported for V4l2Device");
+        throw new Exception("not supported for VideoForWindows");
     }
 
     public override void DisplayPropertyPage_CaptureFilter(IntPtr hwndOwner)
     {
-        throw new Exception("not supported for V4l2Device");
+        throw new Exception("not supported for VideoForWindows");
     }
 
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
