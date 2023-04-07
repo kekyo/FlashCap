@@ -31,10 +31,10 @@ public sealed class V4L2Device : CaptureDevice
     private FrameProcessor frameProcessor;
 
     private long frameIndex;
-    
+
     private readonly IntPtr[] pBuffers = new IntPtr[BufferCount];
     private readonly int[] bufferLength = new int[BufferCount];
-    
+
     private int fd;
     private IntPtr pBih;
     private Task task;
@@ -93,11 +93,11 @@ public sealed class V4L2Device : CaptureDevice
                     fmt_pix.height = (uint)characteristics.Height;
                     fmt_pix.pixelformat = pix_fmt;
                     fmt_pix.field = (uint)v4l2_field.ANY;
-                    
+
                     var format = Interop.Create_v4l2_format();
                     format.type = (uint)v4l2_buf_type.VIDEO_CAPTURE;
                     format.fmt_pix = fmt_pix;
-                    
+
                     if (ioctl(fd, Interop.VIDIOC_S_FMT, format) == 0)
                     {
                         applied = true;
@@ -128,14 +128,14 @@ public sealed class V4L2Device : CaptureDevice
                     buffer.type = (uint)v4l2_buf_type.VIDEO_CAPTURE;
                     buffer.memory = (uint)v4l2_memory.MMAP;
                     buffer.index = (uint)index;
-                    
+
                     if (ioctl(fd, Interop.VIDIOC_QUERYBUF, buffer) < 0)
                     {
                         var code = Marshal.GetLastWin32Error();
                         throw new ArgumentException(
                             $"FlashCap: Couldn't assign video buffer: Code={code}, DevicePath={this.devicePath}");
                     }
-                    
+
                     if (mmap(IntPtr.Zero, buffer.length, PROT.READ, MAP.SHARED,
                         fd, buffer.m_offset) is { } pBuffer &&
                         pBuffer == MAP_FAILED)
@@ -178,7 +178,7 @@ public sealed class V4L2Device : CaptureDevice
                     pBih->biWidth = characteristics.Width;
                     pBih->biHeight = characteristics.Height;
                     pBih->biSizeImage = pBih->CalculateImageSize();
-                    
+
                     this.fd = fd;
                     this.pBih = pih;
 
@@ -203,7 +203,7 @@ public sealed class V4L2Device : CaptureDevice
                         this.bufferLength[index] = default;
                     }
                 }
-                
+
                 close(fd);
                 throw;
             }
@@ -234,7 +234,7 @@ public sealed class V4L2Device : CaptureDevice
                     this.fd, Interop.VIDIOC_STREAMOFF,
                     (int)v4l2_buf_type.VIDEO_CAPTURE);
             }
-                
+
             write(this.abortwfd, new byte[] { 0x01 }, 1);
 
             await this.task.
@@ -254,7 +254,7 @@ public sealed class V4L2Device : CaptureDevice
                 EINVAL => true,
                 _ => false,
             };
-        
+
         var fds = new[]
         {
             new pollfd
@@ -361,12 +361,12 @@ public sealed class V4L2Device : CaptureDevice
                     this.bufferLength[index] = default;
                 }
             }
-            
+
             close(this.abortrfd);
             close(this.fd);
-            
+
             NativeMethods.FreeMemory(this.pBih);
-            
+
             this.abortrfd = -1;
             this.fd = -1;
             this.pBih = IntPtr.Zero;
@@ -417,6 +417,21 @@ public sealed class V4L2Device : CaptureDevice
         }
 
         return TaskCompat.CompletedTask;
+    }
+
+    public override int GetPropertyValue(VideoProcessingAmplifierProperty property)
+    {
+        throw new Exception("not supported for V4l2Device");
+    }
+
+    public override void SetPropertyValue(VideoProcessingAmplifierProperty property, object? obj)
+    {
+        throw new Exception("not supported for V4l2Device");
+    }
+
+    public override void DisplayPropertyPage_CaptureFilter(IntPtr hwndOwner)
+    {
+        throw new Exception("not supported for V4l2Device");
     }
 
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP

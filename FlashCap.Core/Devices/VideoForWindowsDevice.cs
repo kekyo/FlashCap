@@ -135,15 +135,15 @@ public sealed class VideoForWindowsDevice : CaptureDevice
                 throw;
             }
 
-                    ///////////////////////////////////////
+            ///////////////////////////////////////
 
-                    this.handle = handle;
+            this.handle = handle;
 
-                    // https://stackoverflow.com/questions/4097235/is-it-necessary-to-gchandle-alloc-each-callback-in-a-class
-                    this.thisPin = GCHandle.Alloc(this, GCHandleType.Normal);
-                    this.callback = this.CallbackEntry;
+            // https://stackoverflow.com/questions/4097235/is-it-necessary-to-gchandle-alloc-each-callback-in-a-class
+            this.thisPin = GCHandle.Alloc(this, GCHandleType.Normal);
+            this.callback = this.CallbackEntry;
 
-                    NativeMethods_VideoForWindows.capSetCallbackFrame(handle, this.callback);
+            NativeMethods_VideoForWindows.capSetCallbackFrame(handle, this.callback);
         }, ct);
     }
 
@@ -277,6 +277,21 @@ public sealed class VideoForWindowsDevice : CaptureDevice
         {
             return TaskCompat.CompletedTask;
         }
+    }
+
+    public override int GetPropertyValue(VideoProcessingAmplifierProperty property)
+    {
+        throw new Exception("not supported for V4l2Device");
+    }
+
+    public override void SetPropertyValue(VideoProcessingAmplifierProperty property, object? obj)
+    {
+        throw new Exception("not supported for V4l2Device");
+    }
+
+    public override void DisplayPropertyPage_CaptureFilter(IntPtr hwndOwner)
+    {
+        throw new Exception("not supported for V4l2Device");
     }
 
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP

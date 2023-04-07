@@ -622,6 +622,66 @@ internal static class NativeMethods_DirectShow
 
     ////////////////////////////////////////////////////////////////////////
 
+    public static class IAMVideoProcAmpHelper
+    {
+        public static Guid GUID = new("C6E13360-30AC-11d0-A18C-00A0C9118956");
+    }
+
+    [ComImport, System.Security.SuppressUnmanagedCodeSecurity]
+    [Guid("C6E13360-30AC-11d0-A18C-00A0C9118956")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface IAMVideoProcAmp
+    {
+        [PreserveSig]
+        int GetRange(
+            [In] VideoProcAmpProperty Property,
+            [Out] out int pMin,
+            [Out] out int pMax,
+            [Out] out int pSteppingDelta,
+            [Out] out int pDefault,
+            [Out] out VideoProcAmpFlags pCapsFlags
+            );
+
+        [PreserveSig]
+        int Set(
+            [In] VideoProcAmpProperty Property,
+            [In] int lValue,
+            [In] VideoProcAmpFlags Flags
+            );
+
+        [PreserveSig]
+        int Get(
+            [In] VideoProcAmpProperty Property,
+            [Out] out int lValue,
+            [Out] out VideoProcAmpFlags Flags
+            );
+    }
+
+
+    [Flags]
+    public enum VideoProcAmpFlags
+    {
+        None = 0,
+        Auto = 0x0001,
+        Manual = 0x0002
+    }
+
+    public enum VideoProcAmpProperty
+    {
+        Brightness,
+        Contrast,
+        Hue,
+        Saturation,
+        Sharpness,
+        Gamma,
+        ColorEnable,
+        WhiteBalance,
+        BacklightCompensation,
+        Gain
+    }
+
+    ////////////////////////////////////////////////////////////////////////
+
     public static readonly Guid CLSID_SystemDeviceEnum =
         new Guid("62BE5D10-60EB-11d0-BD3B-00A0C911CE86");
     public static readonly Guid CLSID_VideoInputDeviceCategory =
