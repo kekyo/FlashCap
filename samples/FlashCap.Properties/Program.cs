@@ -60,8 +60,6 @@ public static class Program
             },
             ct);
 
-        captureDevice.DisplayPropertyPage_CaptureFilter(IntPtr.Zero);
-
         foreach (var property in captureDevice.Properties)
         {
             Console.WriteLine($"Supported proprety {property.Key} - min value {property.Value.Min} - max value {property.Value.Max} - step {property.Value.Step}");
