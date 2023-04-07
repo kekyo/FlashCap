@@ -35,7 +35,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.Core", "FlashCap.C
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "FSharp.FlashCap", "FSharp.FlashCap\FSharp.FlashCap.fsproj", "{AAD7F2E9-C6F7-4BDA-9D49-08469C2C7A1D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlashCap.OneShot", "samples\FlashCap.OneShot\FlashCap.OneShot.csproj", "{2914E44E-F6F4-4BF0-B0BB-962DE4D505AE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.OneShot", "samples\FlashCap.OneShot\FlashCap.OneShot.csproj", "{2914E44E-F6F4-4BF0-B0BB-962DE4D505AE}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.Properties", "samples\FlashCap.Properties\FlashCap.Properties.csproj", "{273C64E6-BFDA-4ECE-9FAE-37A50FFFE08D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -79,6 +81,10 @@ Global
 		{2914E44E-F6F4-4BF0-B0BB-962DE4D505AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2914E44E-F6F4-4BF0-B0BB-962DE4D505AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2914E44E-F6F4-4BF0-B0BB-962DE4D505AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{273C64E6-BFDA-4ECE-9FAE-37A50FFFE08D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{273C64E6-BFDA-4ECE-9FAE-37A50FFFE08D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{273C64E6-BFDA-4ECE-9FAE-37A50FFFE08D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{273C64E6-BFDA-4ECE-9FAE-37A50FFFE08D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -90,6 +96,7 @@ Global
 		{B8B4CFA8-4360-4503-A316-03EAD02AD96E} = {A1BDFB2A-48C0-4D65-AE03-4DBFC12B4BA8}
 		{583903DC-9D94-4A63-AFCB-2FB88CE14C95} = {655486CC-57A5-494E-97D0-9850B6D55BBA}
 		{2914E44E-F6F4-4BF0-B0BB-962DE4D505AE} = {655486CC-57A5-494E-97D0-9850B6D55BBA}
+		{273C64E6-BFDA-4ECE-9FAE-37A50FFFE08D} = {655486CC-57A5-494E-97D0-9850B6D55BBA}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {53E3C2D2-05FD-4396-ABF1-6B313F8F82A9}
