@@ -73,6 +73,7 @@ public sealed class DirectShowDevice :
     private bool transcodeIfYUV;
     private FrameProcessor frameProcessor;
     private NativeMethods_DirectShow.IGraphBuilder? graphBuilder;
+    private NativeMethods_DirectShow.ICaptureGraphBuilder2? captureGraphBuilder;
     private SampleGrabberSink? sampleGrabberSink;
     private IntPtr pBih;
 
@@ -174,7 +175,7 @@ public sealed class DirectShowDevice :
 
                     ///////////////////////////////
 
-                    var captureGraphBuilder = NativeMethods_DirectShow.CreateCaptureGraphBuilder();
+                    captureGraphBuilder = NativeMethods_DirectShow.CreateCaptureGraphBuilder();
                     if (captureGraphBuilder.SetFiltergraph(this.graphBuilder) < 0)
                     {
                         throw new ArgumentException(
@@ -312,12 +313,64 @@ public sealed class DirectShowDevice :
         }
     }
 
-
-    public void DisplayPropertyPage_CaptureFilter(IntPtr hwndOwner)
+    public override int GetPropertyValue(VideoProcessingAmplifierProperty property)
     {
-        if (graphBuilder != null)
+        if (Properties.TryGetValue(property, out CaptureDeviceProperty _)
+            && graphBuilder != null
+            && captureGraphBuilder != null)
         {
             graphBuilder.FindFilterByName("Capture source", out NativeMethods_DirectShow.IBaseFilter? captureSourceFilter);
+            if (captureSourceFilter != null)
+            {
+                captureGraphBuilder.FindInterface(Guid.Empty, Guid.Empty, captureSourceFilter, NativeMethods_DirectShow.IAMVideoProcAmpHelper.GUID, out object? videoProcAmpObject);
+                if (videoProcAmpObject != null)
+                {
+                    var videoProcAmp = (NativeMethods_DirectShow.IAMVideoProcAmp)videoProcAmpObject;
+                    videoProcAmp.Get(DirectShowProperty.FromVideoProcessingAmplifierProperty(property), out int value, out NativeMethods_DirectShow.VideoProcAmpFlags _);
+                    Marshal.ReleaseComObject(videoProcAmpObject);
+                    return value;
+                }
+                Marshal.ReleaseComObject(captureGraphBuilder);
+            }
+        }
+
+        throw new ArgumentException(
+            $"FlashCap: Property is not supported by device: Property={property}");
+    }
+
+    public override void SetPropertyValue(VideoProcessingAmplifierProperty property, object? obj)
+    {
+        if (Properties.TryGetValue(property, out CaptureDeviceProperty? captureDeviceProperty)
+            && obj != null
+            && captureDeviceProperty != null
+            && captureDeviceProperty.IsPropertyValueValid(obj)
+            && graphBuilder != null
+            && captureGraphBuilder != null)
+        {
+            graphBuilder.FindFilterByName("Capture source", out NativeMethods_DirectShow.IBaseFilter? captureSourceFilter);
+            if (captureSourceFilter != null)
+            {
+                captureGraphBuilder.FindInterface(Guid.Empty, Guid.Empty, captureSourceFilter, NativeMethods_DirectShow.IAMVideoProcAmpHelper.GUID, out object? videoProcAmpObject);
+                if (videoProcAmpObject != null)
+                {
+                    var videoProcAmp = (NativeMethods_DirectShow.IAMVideoProcAmp)videoProcAmpObject;
+                    videoProcAmp.Get(DirectShowProperty.FromVideoProcessingAmplifierProperty(property), out int _, out NativeMethods_DirectShow.VideoProcAmpFlags videoProcAmpFlags);
+                    videoProcAmp.Set(DirectShowProperty.FromVideoProcessingAmplifierProperty(property), (int)obj, videoProcAmpFlags);
+                    Marshal.ReleaseComObject(videoProcAmpObject);
+                }
+                Marshal.ReleaseComObject(captureGraphBuilder);
+            }
+        }
+
+        throw new ArgumentException(
+            $"FlashCap: Property is not supported by device: Property={property}");
+    }
+
+    public override void DisplayPropertyPage_CaptureFilter(IntPtr hwndOwner)
+    {
+        if (graphBuilder != null
+            && graphBuilder.FindFilterByName("Capture source", out NativeMethods_DirectShow.IBaseFilter? captureSourceFilter) >= 0)
+        {
             DisplayPropertyPage_Filter(captureSourceFilter, hwndOwner);
         }
     }
@@ -335,20 +388,20 @@ public sealed class DirectShowDevice :
 
         if (filter.QueryFilterInfo(out NativeMethods_DirectShow.FILTER_INFO filterInfo) < 0)
         {
-            throw new ArgumentException(
+            throw new Exception(
                 $"FlashCap: Couldn't query filter info");
         }
 
         if (pProp.GetPages(out NativeMethods_DirectShow.DsCAUUID caGUID) < 0)
         {
-            throw new ArgumentException(
+            throw new Exception(
                 $"FlashCap: Couldn't get pages");
         }
 
         object oDevice = obj;
         if (NativeMethods_DirectShow.OleCreatePropertyFrame(hwndOwner, 0, 0, filterInfo.chName, 1, ref oDevice, caGUID.cElems, caGUID.pElems, 0, 0, IntPtr.Zero) < 0)
         {
-            throw new ArgumentException(
+            throw new Exception(
                 $"FlashCap: Couldn't create property frame");
         }
 
