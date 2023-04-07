@@ -341,7 +341,6 @@ public sealed class DirectShowDevice :
                     Marshal.ReleaseComObject(videoProcAmpObject);
                     return value;
                 }
-                Marshal.ReleaseComObject(captureGraphBuilder);
             }
         }
 
@@ -369,7 +368,6 @@ public sealed class DirectShowDevice :
                     videoProcAmp.Set(DirectShowProperty.FromVideoProcessingAmplifierProperty(property), (int)obj, videoProcAmpFlags);
                     Marshal.ReleaseComObject(videoProcAmpObject);
                 }
-                Marshal.ReleaseComObject(captureGraphBuilder);
             }
         }
 
