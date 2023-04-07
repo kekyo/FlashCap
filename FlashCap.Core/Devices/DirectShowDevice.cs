@@ -183,6 +183,17 @@ public sealed class DirectShowDevice :
                     }
 
                     ///////////////////////////////
+                    
+                    captureGraphBuilder.FindInterface(Guid.Empty, Guid.Empty, captureSource, NativeMethods_DirectShow.IAMVideoProcAmpHelper.GUID, out object? videoProcAmpObject);
+                    if (videoProcAmpObject != null)
+                    {
+                        var videoProcAmp = (NativeMethods_DirectShow.IAMVideoProcAmp)videoProcAmpObject;
+                        videoProcAmp.GetRange(NativeMethods_DirectShow.VideoProcAmpProperty.Brightness, out int brightnessMin, out int brightnessMax, out int steppingDelta, out int def, out NativeMethods_DirectShow.VideoProcAmpFlags videoProcAmpFlags);
+                        Properties.Add(VideoProcessingAmplifierProperty.Brightness, new DirectShowProperty(VideoProcessingAmplifierProperty.Brightness, brightnessMin, brightnessMax, steppingDelta));
+                        Marshal.ReleaseComObject(videoProcAmpObject);
+                    }
+
+                    ///////////////////////////////
 
                     if (captureGraphBuilder.RenderStream(
                         in NativeMethods_DirectShow.PIN_CATEGORY_CAPTURE,
