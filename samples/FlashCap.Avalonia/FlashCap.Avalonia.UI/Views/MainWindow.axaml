@@ -4,20 +4,17 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:epoxy="clr-namespace:Epoxy;assembly=Epoxy.Core"
+    xmlns:e="clr-namespace:EventBinder;assembly=EventBinder.Avalonia"
     xmlns:siv="clr-namespace:SkiaImageView;assembly=SkiaImageView"
     xmlns:viewmodels="clr-namespace:FlashCap.Avalonia.ViewModels"
     mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
     Title="FlashCap.Avalonia" Height="450" Width="800"
-    TransparencyBackgroundFallback="Black">
+    TransparencyBackgroundFallback="Black"
+    Opened="{e:EventBinding Open}">
 
     <Window.DataContext>
         <viewmodels:MainWindowViewModel />
     </Window.DataContext>
-
-    <epoxy:EventBinder.Events>
-        <epoxy:Event EventName="Opened" Command="{Binding Opened}" />
-    </epoxy:EventBinder.Events>
 
     <Grid Background="Black">
         <siv:SKImageView

@@ -7,11 +7,13 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-using Epoxy;
-using Epoxy.Synchronized;
+using Avalonia.Threading;
+using ReactiveUI;
+using ReactiveUI.Fody.Helpers;
 using SkiaSharp;
 using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -24,58 +26,73 @@ using System.Threading.Tasks;
 
 namespace FlashCap.Avalonia.ViewModels;
 
-[ViewModel]
-public sealed class MainWindowViewModel
+public sealed class MainWindowViewModel:ReactiveObject
 {
     private long countFrames;
 
     // Constructed capture device.
     private CaptureDevice? captureDevice;
 
-    // Binding members.
-    public Command? Opened { get; }
+    [Reactive]
     public SKBitmap? Image { get; private set; }
+    [Reactive]
     public bool IsEnbaled { get; private set; }
 
-    public ObservableCollection<CaptureDeviceDescriptor?> DeviceList { get; } = new();
+    [Reactive]
+    public ObservableCollection<CaptureDeviceDescriptor?> DeviceList { get; private set; } = new();
+    [Reactive]
     public CaptureDeviceDescriptor? Device { get; set; }
 
-    public ObservableCollection<VideoCharacteristics> CharacteristicsList { get; } = new();
+    [Reactive]
+    public ObservableCollection<VideoCharacteristics> CharacteristicsList { get; private set; } = new();
+    [Reactive]
     public VideoCharacteristics? Characteristics { get; set; }
 
+    [Reactive]
     public string? Statistics1 { get; private set; }
+    [Reactive]
     public string? Statistics2 { get; private set; }
+    [Reactive]
     public string? Statistics3 { get; private set; }
 
     public MainWindowViewModel()
     {
-        // Window shown:
-        this.Opened = Command.Factory.CreateSync(() =>
+        this.PropertyChanged += MainWindowViewModel_PropertyChanged;
+    }
+
+
+    private async void MainWindowViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(Device))
         {
-            ////////////////////////////////////////////////
-            // Initialize and start capture device
+           await OnDeviceListChangedAsync(Device);
+        }
+        else if (e.PropertyName == nameof(Characteristics))
+        {
+            await OnCharacteristicsChangedAsync(Characteristics);
+        }
+    }
 
-            // Enumerate capture devices:
-            var devices = new CaptureDevices();
+    public void Open()
+    {
+        var devices = new CaptureDevices();
 
-            // Store device list into the combo box.
-            this.DeviceList.Clear();
-            this.DeviceList.Add(null);
+        // Store device list into the combo box.
+        this.DeviceList.Clear();
+        this.DeviceList.Add(null);
 
-            foreach (var descriptor in devices.EnumerateDescriptors().
-                // You could filter by device type and characteristics.
-                //Where(d => d.DeviceType == DeviceTypes.DirectShow).  // Only DirectShow device.
-                Where(d => d.Characteristics.Length >= 1))             // One or more valid video characteristics.
-            {
-                this.DeviceList.Add(descriptor);
-            }
+        foreach (var descriptor in devices.EnumerateDescriptors().
+            // You could filter by device type and characteristics.
+            //Where(d => d.DeviceType == DeviceTypes.DirectShow).  // Only DirectShow device.
+            Where(d => d.Characteristics.Length >= 1))             // One or more valid video characteristics.
+        {
+            this.DeviceList.Add(descriptor);
+        }
 
-            this.IsEnbaled = true;
-        });
+        this.IsEnbaled = true;
     }
 
     // Devices combo box was changed.
-    [PropertyChanged(nameof(Device))]
     private ValueTask OnDeviceListChangedAsync(CaptureDeviceDescriptor? descriptor)
     {
         Debug.WriteLine($"OnDeviceListChangedAsync: Enter: {descriptor?.ToString() ?? "(null)"}");
@@ -111,7 +128,6 @@ public sealed class MainWindowViewModel
     }
 
     // Characteristics combo box was changed.
-    [PropertyChanged(nameof(Characteristics))]
     private async ValueTask OnCharacteristicsChangedAsync(VideoCharacteristics? characteristics)
     {
         Debug.WriteLine($"OnCharacteristicsChangedAsync: Enter: {characteristics?.ToString() ?? "(null)"}");
@@ -160,7 +176,8 @@ public sealed class MainWindowViewModel
         }
     }
 
-    private async Task OnPixelBufferArrivedAsync(PixelBufferScope bufferScope)
+    //private async Task OnPixelBufferArrivedAsync(PixelBufferScope bufferScope)
+    private void OnPixelBufferArrivedAsync(PixelBufferScope bufferScope)
     {
         ////////////////////////////////////////////////
         // Pixel buffer has arrived.
@@ -184,17 +201,16 @@ public sealed class MainWindowViewModel
         bufferScope.ReleaseNow();
 
         // Switch to UI thread:
-        if (await UIThread.TryBind())
+         // Update a bitmap.
+        Dispatcher.UIThread.Post(() =>
         {
-            // Update a bitmap.
             this.Image = bitmap;
-
             // Update statistics.
             var realFps = countFrames / timestamp.TotalSeconds;
             var fpsByIndex = frameIndex / timestamp.TotalSeconds;
             this.Statistics1 = $"Frame={countFrames}/{frameIndex}";
             this.Statistics2 = $"FPS={realFps:F3}/{fpsByIndex:F3}";
             this.Statistics3 = $"SKBitmap={bitmap.Width}x{bitmap.Height} [{bitmap.ColorType}]";
-        }
+        }, DispatcherPriority.MaxValue);
     }
 }
