@@ -419,17 +419,20 @@ public sealed class V4L2Device : CaptureDevice
         return TaskCompat.CompletedTask;
     }
 
-    public override int GetPropertyValue(VideoProcessingAmplifierProperty property)
+    public override Task<int> GetPropertyValueAsync(
+        VideoProcessingAmplifierProperty property, CancellationToken ct = default)
     {
         throw new Exception("not supported for V4l2Device");
     }
 
-    public override void SetPropertyValue(VideoProcessingAmplifierProperty property, object? obj)
+    public override Task SetPropertyValueAsync(
+        VideoProcessingAmplifierProperty property, object? obj, CancellationToken ct = default)
     {
         throw new Exception("not supported for V4l2Device");
     }
 
-    public override void DisplayPropertyPage_CaptureFilter(IntPtr hwndOwner)
+    public override Task ShowPropertyPageAsync(
+        IntPtr hwndOwner, CancellationToken ct = default)
     {
         throw new Exception("not supported for V4l2Device");
     }

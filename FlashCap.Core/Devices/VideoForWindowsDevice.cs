@@ -279,17 +279,20 @@ public sealed class VideoForWindowsDevice : CaptureDevice
         }
     }
 
-    public override int GetPropertyValue(VideoProcessingAmplifierProperty property)
+    public override Task<int> GetPropertyValueAsync(
+        VideoProcessingAmplifierProperty property, CancellationToken ct = default)
     {
         throw new Exception("not supported for VideoForWindows");
     }
 
-    public override void SetPropertyValue(VideoProcessingAmplifierProperty property, object? obj)
+    public override Task SetPropertyValueAsync(
+        VideoProcessingAmplifierProperty property, object? obj, CancellationToken ct = default)
     {
         throw new Exception("not supported for VideoForWindows");
     }
 
-    public override void DisplayPropertyPage_CaptureFilter(IntPtr hwndOwner)
+    public override Task ShowPropertyPageAsync(
+        IntPtr hwndOwner, CancellationToken ct = default)
     {
         throw new Exception("not supported for VideoForWindows");
     }
