@@ -74,6 +74,7 @@ public sealed class DirectShowDevice :
     private FrameProcessor frameProcessor;
     private NativeMethods_DirectShow.IGraphBuilder? graphBuilder;
     private NativeMethods_DirectShow.ICaptureGraphBuilder2? captureGraphBuilder;
+    private NativeMethods_DirectShow.IBaseFilter? captureSource;
     private SampleGrabberSink? sampleGrabberSink;
     private IntPtr pBih;
 
@@ -175,7 +176,7 @@ public sealed class DirectShowDevice :
 
                     ///////////////////////////////
 
-                    captureGraphBuilder = NativeMethods_DirectShow.CreateCaptureGraphBuilder();
+                    this.captureGraphBuilder = NativeMethods_DirectShow.CreateCaptureGraphBuilder();
                     if (captureGraphBuilder.SetFiltergraph(this.graphBuilder) < 0)
                     {
                         throw new ArgumentException(
@@ -184,7 +185,7 @@ public sealed class DirectShowDevice :
 
                     ///////////////////////////////
 
-                    if (captureGraphBuilder.RenderStream(
+                    if (this.captureGraphBuilder.RenderStream(
                         in NativeMethods_DirectShow.PIN_CATEGORY_CAPTURE,
                         in NativeMethods_DirectShow.MEDIATYPE_Video,
                         captureSource,
@@ -214,6 +215,8 @@ public sealed class DirectShowDevice :
                         throw new ArgumentException(
                             $"FlashCap: Couldn't get grabbing media type: DevicePath={devicePath}");
                     }
+
+                    this.captureSource = captureSource;
                 }
                 catch
                 {
@@ -313,16 +316,18 @@ public sealed class DirectShowDevice :
         }
     }
 
-    public override int GetPropertyValue(VideoProcessingAmplifierProperty property)
-    {
-        if (Properties.TryGetValue(property, out CaptureDeviceProperty _)
-            && graphBuilder != null
-            && captureGraphBuilder != null)
+    public override Task<int> GetPropertyValueAsync(
+        VideoProcessingAmplifierProperty property, CancellationToken ct = default) =>
+        this.workingContext!.InvokeAsync(() =>
         {
-            graphBuilder.FindFilterByName("Capture source", out NativeMethods_DirectShow.IBaseFilter? captureSourceFilter);
-            if (captureSourceFilter != null)
+            if (this.Properties.TryGetValue(property, out var _) &&
+                this.captureGraphBuilder != null &&
+                this.captureSource != null)
             {
-                captureGraphBuilder.FindInterface(Guid.Empty, Guid.Empty, captureSourceFilter, NativeMethods_DirectShow.IAMVideoProcAmpHelper.GUID, out object? videoProcAmpObject);
+                this.captureGraphBuilder.FindInterface(
+                    Guid.Empty, Guid.Empty, this.captureSource,
+                    NativeMethods_DirectShow.IAMVideoProcAmpHelper.GUID,
+                    out object? videoProcAmpObject);
                 if (videoProcAmpObject != null)
                 {
                     var videoProcAmp = (NativeMethods_DirectShow.IAMVideoProcAmp)videoProcAmpObject;
@@ -332,25 +337,26 @@ public sealed class DirectShowDevice :
                 }
                 Marshal.ReleaseComObject(captureGraphBuilder);
             }
-        }
 
-        throw new ArgumentException(
-            $"FlashCap: Property is not supported by device: Property={property}");
-    }
+            throw new ArgumentException(
+                $"FlashCap: Property is not supported by device: Property={property}");
+        }, ct);
 
-    public override void SetPropertyValue(VideoProcessingAmplifierProperty property, object? obj)
-    {
-        if (Properties.TryGetValue(property, out CaptureDeviceProperty? captureDeviceProperty)
-            && obj != null
-            && captureDeviceProperty != null
-            && captureDeviceProperty.IsPropertyValueValid(obj)
-            && graphBuilder != null
-            && captureGraphBuilder != null)
+    public override Task SetPropertyValueAsync(
+        VideoProcessingAmplifierProperty property, object? obj, CancellationToken ct = default) =>
+        this.workingContext!.InvokeAsync(() =>
         {
-            graphBuilder.FindFilterByName("Capture source", out NativeMethods_DirectShow.IBaseFilter? captureSourceFilter);
-            if (captureSourceFilter != null)
+            if (this.Properties.TryGetValue(property, out var captureDeviceProperty) &&
+                obj != null &&
+                captureDeviceProperty != null &&
+                captureDeviceProperty.IsPropertyValueValid(obj) &&
+                captureGraphBuilder != null &&
+                this.captureSource != null)
             {
-                captureGraphBuilder.FindInterface(Guid.Empty, Guid.Empty, captureSourceFilter, NativeMethods_DirectShow.IAMVideoProcAmpHelper.GUID, out object? videoProcAmpObject);
+                this.captureGraphBuilder.FindInterface(
+                    Guid.Empty, Guid.Empty, this.captureSource,
+                    NativeMethods_DirectShow.IAMVideoProcAmpHelper.GUID,
+                    out object? videoProcAmpObject);
                 if (videoProcAmpObject != null)
                 {
                     var videoProcAmp = (NativeMethods_DirectShow.IAMVideoProcAmp)videoProcAmpObject;
@@ -360,56 +366,73 @@ public sealed class DirectShowDevice :
                 }
                 Marshal.ReleaseComObject(captureGraphBuilder);
             }
-        }
 
-        throw new ArgumentException(
-            $"FlashCap: Property is not supported by device: Property={property}");
-    }
+            throw new ArgumentException(
+                $"FlashCap: Property is not supported by device: Property={property}");
+        }, ct);
 
-    public override void DisplayPropertyPage_CaptureFilter(IntPtr hwndOwner)
+    public override Task ShowPropertyPageAsync(
+        IntPtr hwndOwner, CancellationToken ct = default) =>
+        this.workingContext!.InvokeAsync(() =>
+        {
+            if (this.captureSource != null)
+            {
+                InternalShowPropertyPage(hwndOwner, ct);
+            }
+        }, ct);
+
+    private void InternalShowPropertyPage(
+        IntPtr hwndOwner, CancellationToken ct)
     {
-        if (graphBuilder != null
-            && graphBuilder.FindFilterByName("Capture source", out NativeMethods_DirectShow.IBaseFilter? captureSourceFilter) >= 0)
-        {
-            DisplayPropertyPage_Filter(captureSourceFilter, hwndOwner);
-        }
-    }
-
-    private void DisplayPropertyPage_Filter(object? obj, IntPtr hwndOwner)
-    {
-        if (obj == null)
+        if (this.captureSource is not NativeMethods_DirectShow.ISpecifyPropertyPages pProp)
             return;
 
-        if (obj is not NativeMethods_DirectShow.ISpecifyPropertyPages pProp)
-            return;
-
-        if (obj is not NativeMethods_DirectShow.IBaseFilter filter)
-            return;
-
-        if (filter.QueryFilterInfo(out NativeMethods_DirectShow.FILTER_INFO filterInfo) < 0)
+        try
         {
-            throw new Exception(
-                $"FlashCap: Couldn't query filter info");
+            if (this.captureSource.QueryFilterInfo(
+                out NativeMethods_DirectShow.FILTER_INFO filterInfo) < 0)
+            {
+                throw new Exception(
+                    $"FlashCap: Couldn't query filter info");
+            }
+
+            try
+            {
+                if (pProp.GetPages(out NativeMethods_DirectShow.DsCAUUID caGUID) < 0)
+                {
+                    throw new Exception(
+                        $"FlashCap: Couldn't get pages");
+                }
+
+                try
+                {
+                    // TODO: Hook and will be aborted by CancellationToken.
+
+                    object oDevice = this.captureSource;
+                    if (NativeMethods_DirectShow.OleCreatePropertyFrame(
+                        hwndOwner, 0, 0, filterInfo.chName, 1,
+                        ref oDevice, caGUID.cElems, caGUID.pElems, 0, 0, IntPtr.Zero) < 0)
+                    {
+                        throw new Exception(
+                            $"FlashCap: Couldn't create property frame");
+                    }
+                }
+                finally
+                {
+                    Marshal.FreeCoTaskMem(caGUID.pElems);
+                }
+            }
+            finally
+            {
+                if (filterInfo.graph != null)
+                {
+                    Marshal.ReleaseComObject(filterInfo.graph);
+                }
+            }
         }
-
-        if (pProp.GetPages(out NativeMethods_DirectShow.DsCAUUID caGUID) < 0)
+        finally
         {
-            throw new Exception(
-                $"FlashCap: Couldn't get pages");
-        }
-
-        object oDevice = obj;
-        if (NativeMethods_DirectShow.OleCreatePropertyFrame(hwndOwner, 0, 0, filterInfo.chName, 1, ref oDevice, caGUID.cElems, caGUID.pElems, 0, 0, IntPtr.Zero) < 0)
-        {
-            throw new Exception(
-                $"FlashCap: Couldn't create property frame");
-        }
-
-        Marshal.FreeCoTaskMem(caGUID.pElems);
-        Marshal.ReleaseComObject(pProp);
-        if (filterInfo.graph != null)
-        {
-            Marshal.ReleaseComObject(filterInfo.graph);
+            Marshal.ReleaseComObject(pProp);
         }
     }
 

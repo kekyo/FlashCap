@@ -66,9 +66,13 @@ public abstract class CaptureDevice :
 
     protected abstract Task OnStartAsync(CancellationToken ct);
     protected abstract Task OnStopAsync(CancellationToken ct);
-    public abstract void DisplayPropertyPage_CaptureFilter(IntPtr hwndOwner);
-    public abstract int GetPropertyValue(VideoProcessingAmplifierProperty property);
-    public abstract void SetPropertyValue(VideoProcessingAmplifierProperty property, object? value);
+
+    public abstract Task ShowPropertyPageAsync(
+        IntPtr hwndOwner, CancellationToken ct = default);
+    public abstract Task<int> GetPropertyValueAsync(
+        VideoProcessingAmplifierProperty property, CancellationToken ct = default);
+    public abstract Task SetPropertyValueAsync(
+        VideoProcessingAmplifierProperty property, object? value, CancellationToken ct = default);
 
     public CaptureDeviceProperties Properties { get; protected set; } = new CaptureDeviceProperties();
 

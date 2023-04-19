@@ -48,6 +48,7 @@ public static class Program
         Console.WriteLine($"Selected capture device: {descriptor0}, {characteristics0}");
 
         ///////////////////////////////////////////////////////////////
+
         var captureDevice = await descriptor0.OpenAsync(
             characteristics0,
             bufferScope =>
@@ -60,7 +61,7 @@ public static class Program
             },
             ct);
 
-        captureDevice.DisplayPropertyPage_CaptureFilter(IntPtr.Zero);
+        await captureDevice.ShowPropertyPageAsync(IntPtr.Zero);
 
         foreach (var property in captureDevice.Properties)
         {
@@ -69,11 +70,13 @@ public static class Program
 
         var brightnessProperty = captureDevice.Properties.Where(x => x.Key == VideoProcessingAmplifierProperty.Brightness).Select(x => x.Value).FirstOrDefault() ?? throw new Exception("Brightness is not supported with current device");
 
-
-        captureDevice.SetPropertyValue(VideoProcessingAmplifierProperty.Brightness, brightnessProperty.Min);
+        await captureDevice.SetPropertyValueAsync(
+            VideoProcessingAmplifierProperty.Brightness,
+            brightnessProperty.Min);
         Console.WriteLine($"Brightness property value updated with {brightnessProperty.Min}");
 
-        var brightness = captureDevice.GetPropertyValue(VideoProcessingAmplifierProperty.Brightness);
+        var brightness = await captureDevice.GetPropertyValueAsync(
+            VideoProcessingAmplifierProperty.Brightness);
         Console.WriteLine($"Brightness property value is {brightness}");
 
         return 0;

@@ -282,7 +282,7 @@ internal static class NativeMethods_DirectShow
         [PreserveSig] int EnumFilters(out IEnumFilters? ppEnum);
         [PreserveSig] int FindFilterByName(
             [MarshalAs(UnmanagedType.LPWStr)] string name,
-            out IBaseFilter? filter);
+            [MarshalAs(UnmanagedType.IUnknown)] out object? filter);
         [PreserveSig] int ConnectDirect(
             IPin pinOut, IPin pinIn, in AM_MEDIA_TYPE mt);
         [PreserveSig] int Reconnect(IPin pin);
@@ -444,7 +444,7 @@ internal static class NativeMethods_DirectShow
         [PreserveSig] new int EnumFilters(out IEnumFilters? ppEnum);
         [PreserveSig] new int FindFilterByName(
             [MarshalAs(UnmanagedType.LPWStr)] string name,
-            out IBaseFilter? filter);
+            [MarshalAs(UnmanagedType.IUnknown)] out object? filter);
         [PreserveSig] new int ConnectDirect(
             IPin pinOut, IPin pinIn, in AM_MEDIA_TYPE mt);
         [PreserveSig] new int Reconnect(IPin pin);

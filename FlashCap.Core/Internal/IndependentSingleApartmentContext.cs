@@ -200,6 +200,27 @@ internal sealed class IndependentSingleApartmentContext :
             ConfigureAwait(false);
     }
 
+    public async Task<T> InvokeAsync<T>(Func<T> action, CancellationToken ct)
+    {
+        var tcs = new TaskCompletionSource<T>();
+        using var _ = ct.Register(() => tcs.TrySetCanceled());
+
+        this.Post(_ =>
+        {
+            try
+            {
+                tcs.TrySetResult(action());
+            }
+            catch (Exception ex)
+            {
+                tcs.TrySetException(ex);
+            }
+        }, null);
+
+        return await tcs.Task.
+            ConfigureAwait(false);
+    }
+
     private void ThreadEntry()
     {
         PeekMessage(out var _, IntPtr.Zero, 0, 0, PM_NOREMOVE);
