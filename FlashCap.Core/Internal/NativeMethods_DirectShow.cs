@@ -263,7 +263,7 @@ internal static class NativeMethods_DirectShow
     {
         [PreserveSig] int Next(
             int request,
-            [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex=0)] IPin?[] filters,
+            [Out, MarshalAs(UnmanagedType.LPArray, SizeParamIndex=0)] IBaseFilter?[] filters,
             out int fetched);
         [PreserveSig] int Skip(int count);
         [PreserveSig] int Reset();
@@ -621,6 +621,45 @@ internal static class NativeMethods_DirectShow
     }
 
     ////////////////////////////////////////////////////////////////////////
+
+    public static IBaseFilter? FindFilterByName(IGraphBuilder graphBuilder, string filterName)
+    {
+        int hr = 0;
+        IBaseFilter? filter = null;
+        IEnumFilters? enumFilters = null;
+
+        if (graphBuilder == null)
+            throw new ArgumentNullException("graphBuilder");
+
+        hr = graphBuilder.EnumFilters(out enumFilters);
+        if (hr == 0 && enumFilters != null)
+        {
+            IBaseFilter[] filters = new IBaseFilter[1];
+
+            while (enumFilters.Next(filters.Length, filters, out int val) == 0)
+            {
+                FILTER_INFO filterInfo;
+
+                hr = filters[0].QueryFilterInfo(out filterInfo);
+                if (hr == 0)
+                {
+                    if (filterInfo.graph != null)
+                        Marshal.ReleaseComObject(filterInfo.graph);
+
+                    if (filterInfo.chName.Equals(filterName))
+                    {
+                        filter = filters[0];
+                        break;
+                    }
+                }
+
+                Marshal.ReleaseComObject(filters[0]);
+            }
+            Marshal.ReleaseComObject(enumFilters);
+        }
+
+        return filter;
+    }
 
     public static class IAMVideoProcAmpHelper
     {
