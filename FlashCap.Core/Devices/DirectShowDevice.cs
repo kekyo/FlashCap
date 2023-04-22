@@ -360,7 +360,7 @@ public sealed class DirectShowDevice :
                 obj != null &&
                 captureDeviceProperty != null &&
                 captureDeviceProperty.IsPropertyValueValid(obj) &&
-                captureGraphBuilder != null &&
+                this.captureGraphBuilder != null &&
                 this.captureSource != null)
             {
                 this.captureGraphBuilder.FindInterface(
@@ -373,6 +373,7 @@ public sealed class DirectShowDevice :
                     videoProcAmp.Get(DirectShowProperty.FromVideoProcessingAmplifierProperty(property), out int _, out NativeMethods_DirectShow.VideoProcAmpFlags videoProcAmpFlags);
                     videoProcAmp.Set(DirectShowProperty.FromVideoProcessingAmplifierProperty(property), (int)obj, videoProcAmpFlags);
                     Marshal.ReleaseComObject(videoProcAmpObject);
+                    return;
                 }
             }
 

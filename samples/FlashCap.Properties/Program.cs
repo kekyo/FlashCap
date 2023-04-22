@@ -70,14 +70,23 @@ public static class Program
 
         var brightnessProperty = captureDevice.Properties.Where(x => x.Key == VideoProcessingAmplifierProperty.Brightness).Select(x => x.Value).FirstOrDefault() ?? throw new Exception("Brightness is not supported with current device");
 
+        var originalBrightnessValue = await captureDevice.GetPropertyValueAsync(
+            VideoProcessingAmplifierProperty.Brightness);
+        Console.WriteLine($"Current brightness property value is {originalBrightnessValue}");
+
         await captureDevice.SetPropertyValueAsync(
             VideoProcessingAmplifierProperty.Brightness,
             brightnessProperty.Min);
-        Console.WriteLine($"Brightness property value updated with {brightnessProperty.Min}");
+        Console.WriteLine($"Brightness property value updated to {brightnessProperty.Min}");
 
         var brightness = await captureDevice.GetPropertyValueAsync(
             VideoProcessingAmplifierProperty.Brightness);
         Console.WriteLine($"Brightness property value is {brightness}");
+
+        await captureDevice.SetPropertyValueAsync(
+            VideoProcessingAmplifierProperty.Brightness,
+            originalBrightnessValue);
+        Console.WriteLine($"Brightness property value restored to {originalBrightnessValue}");
 
         return 0;
     }
