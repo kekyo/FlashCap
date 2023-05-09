@@ -160,7 +160,7 @@ public sealed class MainWindowViewModel:ReactiveObject
                 // Open capture device:
                 Debug.WriteLine($"OnCharacteristicsChangedAsync: Opening: {descriptor.Name}");
                 this.captureDevice = await descriptor.OpenAsync(
-                    characteristics,
+                    characteristics,false,
                     this.OnPixelBufferArrivedAsync);
 
                 // Start capturing.
@@ -210,7 +210,7 @@ public sealed class MainWindowViewModel:ReactiveObject
             var fpsByIndex = frameIndex / timestamp.TotalSeconds;
             this.Statistics1 = $"Frame={countFrames}/{frameIndex}";
             this.Statistics2 = $"FPS={realFps:F3}/{fpsByIndex:F3}";
-            this.Statistics3 = $"SKBitmap={bitmap.Width}x{bitmap.Height} [{bitmap.ColorType}]";
+            this.Statistics3 = $"{bitmap.GetType()}={bitmap.Width}x{bitmap.Height} [{bitmap.ColorType}]";
         }, DispatcherPriority.MaxValue);
     }
 }
