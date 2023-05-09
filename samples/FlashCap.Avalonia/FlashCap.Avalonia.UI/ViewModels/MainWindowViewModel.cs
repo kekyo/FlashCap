@@ -160,7 +160,7 @@ public sealed class MainWindowViewModel:ReactiveObject
                 // Open capture device:
                 Debug.WriteLine($"OnCharacteristicsChangedAsync: Opening: {descriptor.Name}");
                 this.captureDevice = await descriptor.OpenAsync(
-                    characteristics,false,
+                    characteristics,true,
                     this.OnPixelBufferArrivedAsync);
 
                 // Start capturing.
@@ -192,25 +192,24 @@ public sealed class MainWindowViewModel:ReactiveObject
         // Decode image data to a bitmap:
         //var bitmap = SKBitmap.Decode(image);
         var bitmap = SKImage.FromEncodedData(image);
-
         // Capture statistics variables.
         var countFrames = Interlocked.Increment(ref this.countFrames);
         var frameIndex = bufferScope.Buffer.FrameIndex;
         var timestamp = bufferScope.Buffer.Timestamp;
 
-        // `bitmap` is copied, so we can release pixel buffer now.
-        bufferScope.ReleaseNow();
+        //// `bitmap` is copied, so we can release pixel buffer now.
+        //bufferScope.ReleaseNow();
         // Switch to UI thread:
-         // Update a bitmap.
         Dispatcher.UIThread.Post(() =>
         {
+            // Update a bitmap.
             this.Image = bitmap;
             // Update statistics.
             var realFps = countFrames / timestamp.TotalSeconds;
             var fpsByIndex = frameIndex / timestamp.TotalSeconds;
             this.Statistics1 = $"Frame={countFrames}/{frameIndex}";
             this.Statistics2 = $"FPS={realFps:F3}/{fpsByIndex:F3}";
-            this.Statistics3 = $"{bitmap.GetType()}={bitmap.Width}x{bitmap.Height} [{bitmap.ColorType}]";
+            this.Statistics3 = $"{bitmap?.GetType()}={bitmap?.Width}x{bitmap?.Height} [{bitmap?.ColorType}]";
         }, DispatcherPriority.MaxValue);
     }
 }
