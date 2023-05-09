@@ -34,7 +34,7 @@ public sealed class MainWindowViewModel:ReactiveObject
     private CaptureDevice? captureDevice;
 
     [Reactive]
-    public SKBitmap? Image { get; private set; }
+    public SKObject? Image { get; private set; }
     [Reactive]
     public bool IsEnbaled { get; private set; }
 
@@ -190,7 +190,8 @@ public sealed class MainWindowViewModel:ReactiveObject
         ArraySegment<byte> image = bufferScope.Buffer.ReferImage();
 #endif
         // Decode image data to a bitmap:
-        var bitmap = SKBitmap.Decode(image);
+        //var bitmap = SKBitmap.Decode(image);
+        var bitmap = SKImage.FromEncodedData(image);
 
         // Capture statistics variables.
         var countFrames = Interlocked.Increment(ref this.countFrames);
@@ -199,7 +200,6 @@ public sealed class MainWindowViewModel:ReactiveObject
 
         // `bitmap` is copied, so we can release pixel buffer now.
         bufferScope.ReleaseNow();
-
         // Switch to UI thread:
          // Update a bitmap.
         Dispatcher.UIThread.Post(() =>
