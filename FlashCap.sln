@@ -35,7 +35,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.Core", "FlashCap.C
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "FSharp.FlashCap", "FSharp.FlashCap\FSharp.FlashCap.fsproj", "{AAD7F2E9-C6F7-4BDA-9D49-08469C2C7A1D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlashCap.OneShot", "samples\FlashCap.OneShot\FlashCap.OneShot.csproj", "{2914E44E-F6F4-4BF0-B0BB-962DE4D505AE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.OneShot", "samples\FlashCap.OneShot\FlashCap.OneShot.csproj", "{2914E44E-F6F4-4BF0-B0BB-962DE4D505AE}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SkiaImageView.Avalonia", "..\SkiaImageView\SkiaImageView.Avalonia\SkiaImageView.Avalonia.csproj", "{9E7B0E85-F53A-48CE-9C2A-CC046AC2A81B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -79,6 +81,10 @@ Global
 		{2914E44E-F6F4-4BF0-B0BB-962DE4D505AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2914E44E-F6F4-4BF0-B0BB-962DE4D505AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2914E44E-F6F4-4BF0-B0BB-962DE4D505AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E7B0E85-F53A-48CE-9C2A-CC046AC2A81B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E7B0E85-F53A-48CE-9C2A-CC046AC2A81B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E7B0E85-F53A-48CE-9C2A-CC046AC2A81B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E7B0E85-F53A-48CE-9C2A-CC046AC2A81B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
