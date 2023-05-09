@@ -1,8 +1,9 @@
 <Application
+    x:Class="FlashCap.Avalonia.App"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    x:Class="FlashCap.Avalonia.App">
+    RequestedThemeVariant="Light">
     <Application.Styles>
-        <FluentTheme Mode="Light"/>
+        <StyleInclude Source="avares://Semi.Avalonia/Themes/Index.axaml" />
     </Application.Styles>
 </Application>

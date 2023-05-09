@@ -6,7 +6,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
 
     <DebugSymbols>true</DebugSymbols>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>

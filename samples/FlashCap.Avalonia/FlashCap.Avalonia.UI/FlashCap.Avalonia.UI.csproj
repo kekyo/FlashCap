@@ -1,20 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-    
-  <PropertyGroup>
-    <TargetFrameworks>net6.0</TargetFrameworks>
-  </PropertyGroup>
-    
-  <ItemGroup>
-    <PackageReference Include="Avalonia.Desktop" Version="0.10.19" />
-    <PackageReference Include="Avalonia.Diagnostics" Version="0.10.18" />
-    <PackageReference Include="Avalonia.ReactiveUI" Version="0.10.19" />
-    <PackageReference Include="EventBinder.Avalonia" Version="2.5.2" />
-    <PackageReference Include="ReactiveUI.Fody" Version="18.4.26" />
-    <PackageReference Include="SkiaImageView.Avalonia" Version="1.4.0" />
-  </ItemGroup>
-    
-  <ItemGroup>
-    <ProjectReference Include="..\..\..\FlashCap\FlashCap.csproj" />
-  </ItemGroup>
-    
+
+    <PropertyGroup>
+        <TargetFrameworks>net6.0</TargetFrameworks>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Avalonia.Desktop" Version="11.0.0-preview6" />
+        <PackageReference Include="Avalonia.Diagnostics" Version="11.0.0-preview6" />
+        <PackageReference Include="Avalonia.ReactiveUI" Version="11.0.0-preview6" />
+        <PackageReference Include="EventBinder.Avalonia" Version="2.5.2-11.0.0-preview6" />
+        <PackageReference Include="Semi.Avalonia" Version="0.1.0-preview6" />
+        <PackageReference Include="ReactiveUI.Fody" Version="18.4.26" />
+        <PackageReference Include="SkiaImageView.Avalonia" Version="11.0.1-preview6" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\FlashCap\FlashCap.csproj" />
+    </ItemGroup>
+
 </Project>
