@@ -24,11 +24,11 @@
             <StackPanel Orientation="Horizontal">
                 <ComboBox HorizontalAlignment="Stretch"
                           IsEnabled="{Binding IsEnbaled}"
-                          Items="{Binding DeviceList}"
+                          ItemsSource="{Binding DeviceList}"
                           SelectedItem="{Binding Device, Mode=TwoWay}" />
                 <ComboBox HorizontalAlignment="Stretch"
                           IsEnabled="{Binding IsEnbaled}"
-                          Items="{Binding CharacteristicsList}"
+                          ItemsSource="{Binding CharacteristicsList}"
                           SelectedItem="{Binding Characteristics, Mode=TwoWay}" />
             </StackPanel>
             <TextBlock Foreground="Yellow"

@@ -5,13 +5,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Avalonia.Desktop" Version="11.0.0-preview6" />
-        <PackageReference Include="Avalonia.Diagnostics" Version="11.0.0-preview6" />
-        <PackageReference Include="Avalonia.ReactiveUI" Version="11.0.0-preview6" />
-        <PackageReference Include="EventBinder.Avalonia" Version="2.5.2-11.0.0-preview6" />
-        <PackageReference Include="Semi.Avalonia" Version="0.1.0-preview6" />
-        <PackageReference Include="ReactiveUI.Fody" Version="18.4.26" />
-        <PackageReference Include="SkiaImageView.Avalonia" Version="11.0.3-preview6" />
+        <PackageReference Include="Avalonia.Desktop" Version="11.0.0-preview8" />
+        <PackageReference Include="Avalonia.Diagnostics" Version="11.0.0-preview8" />
+        <PackageReference Include="Avalonia.ReactiveUI" Version="11.0.0-preview8" />
+        <PackageReference Include="EventBinder.Avalonia" Version="2.5.2-11.0.0-preview8" />
+        <PackageReference Include="Semi.Avalonia" Version="0.1.0-preview8" />
+        <PackageReference Include="ReactiveUI.Fody" Version="18.4.34" />
+        <PackageReference Include="SkiaImageView.Avalonia" Version="11.0.0-preview8" />
     </ItemGroup>
 
     <ItemGroup>
