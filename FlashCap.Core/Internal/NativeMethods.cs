@@ -470,7 +470,7 @@ internal static class NativeMethods
         bool isDiscrete = true,
         string? rawPixelFormat = null)
     {
-        static PixelFormats? GetRGBPixelFormat(int clrBits) =>
+        static PixelFormats GetRGBPixelFormat(int clrBits) =>
             clrBits switch
             {
                 8 => PixelFormats.RGB8,
@@ -479,10 +479,10 @@ internal static class NativeMethods
                 16 => PixelFormats.RGB15,
                 24 => PixelFormats.RGB24,
                 32 => PixelFormats.ARGB32,
-                _ => null,
+                _ => PixelFormats.Unknown,
             };
-        
-        if (compression switch
+
+        var pixelFormat = compression switch
         {
             Compression.BI_RGB => GetRGBPixelFormat(clrBits),
             Compression.RGB2 => GetRGBPixelFormat(clrBits),
@@ -498,21 +498,15 @@ internal static class NativeMethods
             Compression.UYVY => PixelFormats.UYVY,
             Compression.YUYV => PixelFormats.YUYV,
             Compression.YUY2 => PixelFormats.YUYV,
-            _ => null,
-        } is { } pixelFormat)
-        {
-            return new VideoCharacteristics(
-                pixelFormat, width, height,
-                framesPerSecond,
-                compression.ToString(),
-                isDiscrete,
-                rawPixelFormat ?? GetFourCCString((int)compression));
-        }
-        else
-        {
-            Trace.WriteLine($"FlashCap: Unknown format: Compression={compression}, [{width},{height}], {framesPerSecond}");
-            return null;
-        }
+            _ => PixelFormats.Unknown,
+        };
+
+        return new VideoCharacteristics(
+            pixelFormat, width, height,
+            framesPerSecond,
+            compression.ToString(),
+            isDiscrete,
+            rawPixelFormat ?? GetFourCCString((int)compression));
     }
     
     public static unsafe VideoCharacteristics? CreateVideoCharacteristics(

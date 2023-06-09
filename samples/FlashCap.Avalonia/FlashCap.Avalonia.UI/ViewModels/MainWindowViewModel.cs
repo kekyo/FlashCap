@@ -93,10 +93,13 @@ public sealed class MainWindowViewModel
             this.CharacteristicsList.Clear();
             foreach (var characteristics in descriptor.Characteristics)
             {
-                this.CharacteristicsList.Add(characteristics);
+                if (characteristics.PixelFormat != PixelFormats.Unknown)
+                {
+                    this.CharacteristicsList.Add(characteristics);
+                }
             }
 
-            this.Characteristics = descriptor.Characteristics.FirstOrDefault();
+            this.Characteristics = this.CharacteristicsList.FirstOrDefault();
 #endif
         }
         else

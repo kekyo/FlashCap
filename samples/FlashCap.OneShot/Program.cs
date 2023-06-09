@@ -45,7 +45,7 @@ public static class Program
         // Step 2-2: Or, you could choice from device descriptor:
         var characteristics0 = descriptor0.Characteristics.
             //Where(c => c.PixelFormat == PixelFormats.JPEG).  // Only MJPEG characteristics.
-            FirstOrDefault();
+            FirstOrDefault(c => c.PixelFormat != PixelFormats.Unknown);
         if (characteristics0 == null)
         {
             Console.WriteLine($"Could not select primary characteristics.");

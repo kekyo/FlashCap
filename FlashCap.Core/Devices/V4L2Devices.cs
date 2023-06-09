@@ -32,11 +32,9 @@ public sealed class V4L2Devices : CaptureDevices
             fmtdesc.type = (uint)v4l2_buf_type.VIDEO_CAPTURE;
             
             return
-                ioctl(fd, Interop.VIDIOC_ENUM_FMT, fmtdesc) == 0 &&
-                IsKnownPixelFormat(fmtdesc.pixelformat) ?
-                (v4l2_fmtdesc?)fmtdesc : null;
+                ioctl(fd, Interop.VIDIOC_ENUM_FMT, fmtdesc) == 0 ? (v4l2_fmtdesc?)fmtdesc : null;
         }).
-        ToArray();   // Important: Iteration process must be continuous, avoid ioctl calls with other requests.
+        ToArray();    // Important: Iteration process must be continuous, avoid ioctl calls with other requests.
 
     private struct FrameSize
     {

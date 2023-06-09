@@ -288,20 +288,16 @@ internal static class NativeMethods_V4L2
         string description,
         bool isDiscrete)
     {
-        if (pixelFormats.TryGetValue(pix_fmt, out var pixelFormat))
+        if (!pixelFormats.TryGetValue(pix_fmt, out var pixelFormat))
         {
-            return new VideoCharacteristics(
-                pixelFormat, width, height,
-                framesPerSecond.Reduce(),
-                description,
-                isDiscrete,
-                NativeMethods.GetFourCCString((int)pix_fmt));
+            pixelFormat = PixelFormats.Unknown;
         }
-        else
-        {
-            Trace.WriteLine($"FlashCap: Unknown format: pix_fmt={NativeMethods.GetFourCCString((int)pix_fmt)}, [{width},{height}], {framesPerSecond}");
-            return null;
-        }
+        return new VideoCharacteristics(
+            pixelFormat, width, height,
+            framesPerSecond.Reduce(),
+            description,
+            isDiscrete,
+            NativeMethods.GetFourCCString((int)pix_fmt));
     }
 
     public static uint[] GetPixelFormats(
