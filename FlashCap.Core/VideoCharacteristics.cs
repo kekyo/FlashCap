@@ -14,6 +14,7 @@ namespace FlashCap;
 
 public enum PixelFormats
 {
+    Unknown,
     RGB8,
     RGB15,
     RGB16,

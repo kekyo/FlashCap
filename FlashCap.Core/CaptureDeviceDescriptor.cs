@@ -78,6 +78,12 @@ public abstract class CaptureDeviceDescriptor
         FrameProcessor frameProcessor,
         CancellationToken ct)
     {
+        if (characteristics.PixelFormat == PixelFormats.Unknown)
+        {
+            throw new ArgumentException(
+                $"FlashCap: Couldn't use unknown pixel format: {characteristics} ({characteristics.RawPixelFormat})");
+        }
+
         using var _ = await this.locker.LockAsync(ct);
 
         try
