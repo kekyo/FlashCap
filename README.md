@@ -213,6 +213,25 @@ await File.WriteAllBytesAsync("oneshot", imageData);
 
 See [sample code](samples/FlashCap.OneShot/) for a complete implementation.
 
+### Exclusion of unsupported formats
+
+The video characteristics contain a list of formats supported by the camera.
+FlashCap does not support all formats, so you must select the correct format before opening the device.
+Unsupported formats are indicated by `PixelFormats.Unknown`.
+
+```csharp
+// Select a device:
+var descriptor0 = devices.EnumerateDescriptors().ElementAt(0);
+
+// Exclude unsupported formats:
+var characteristics = descriptor0.Characteristics.
+    Where(c => c.PixelFormat ! = PixelFormats.Unknown).
+    ToArray();
+```
+
+FlashCap enumerates all formats returned by the device.
+Therefore, by checking the information in `VideoCharacteristics` with `PixelFormats.Unknown`, you can analyze what formats the device supports.
+
 
 ----
 
@@ -622,6 +641,9 @@ Apache-v2.
 
 ## History
 
+* 1.6.0:
+  * Fixed problem with some formats not being enumerated in V4L2.
+  * Unsupported formats are now visible as `PixelFormats.Unknown` instead of being implicitly excluded.
 * 1.5.0:
   * Added `TakeOneShotAsync()` method to easily take a single image, and added corresponding sample project.
   * Avalonia sample code now displays FPS and taken image information in real time.

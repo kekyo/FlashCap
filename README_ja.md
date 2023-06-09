@@ -211,6 +211,25 @@ await File.WriteAllBytesAsync("oneshot", imageData);
 
 完全な実装は、[サンプルコード](samples/FlashCap.OneShot/)を参照して下さい。
 
+### 対応できないフォーマットの除外
+
+映像特性には、そのカメラがサポートしているフォーマットの一覧が入っています。
+FlashCapは全てのフォーマットに対応しているわけではないため、デバイスをオープンする前に、正しいフォーマットを選択する必要があります。
+対応していないフォーマットは、 `PixelFormats.Unknown` で示されるため、これを除外します:
+
+```csharp
+// 映像特性を指定して、デバイスを開きます:
+var descriptor0 = devices.EnumerateDescriptors().ElementAt(0);
+
+// 対応していないフォーマットを除外する:
+var characteristics = descriptor0.Characteristics.
+    Where(c => c.PixelFormat != PixelFormats.Unknown).
+    ToArray();
+```
+
+FlashCapは、デバイスが返す全てのフォーマットを列挙します。
+従って、 `PixelFormats.Unknown` である `VideoCharacteristics` の情報を確認する事で、デバイスがどのようなフォーマットに対応しているのかを分析することが出来ます。
+
 
 ----
 
@@ -562,6 +581,9 @@ Apache-v2.
 
 ## 履歴
 
+* 1.6.0:
+  * V4L2で一部のフォーマットが列挙されない問題を修正しました。
+  * 未対応のフォーマットを暗黙に除外しないで、`PixelFormats.Unknown` として可視化されるようにしました。
 * 1.5.0:
   * 簡単にイメージを一枚だけ撮影する、 `TakeOneShotAsync()` メソッドを追加し、対応するサンプルプロジェクトを追加しました。
   * Avaloniaサンプルコードで、FPSと撮影したイメージの情報をリアルタイムに表示するようにしました。
