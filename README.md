@@ -644,6 +644,7 @@ Apache-v2.
 * 1.6.0:
   * Fixed problem with some formats not being enumerated in V4L2.
   * Unsupported formats are now visible as `PixelFormats.Unknown` instead of being implicitly excluded.
+  * Downgraded dependent F# packages to 5.0.0.
 * 1.5.0:
   * Added `TakeOneShotAsync()` method to easily take a single image, and added corresponding sample project.
   * Avalonia sample code now displays FPS and taken image information in real time.
