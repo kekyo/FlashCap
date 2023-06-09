@@ -46,6 +46,8 @@ public sealed class MainWindowViewModel
             // Use first device.
             if (descriptors.ElementAtOrDefault(0) is { } descriptor0)
             {
+                this.Device = descriptor0.ToString();
+
 #if false
                 // Request video characteristics strictly:
                 // Will raise exception when parameters are not accepted.
@@ -54,23 +56,30 @@ public sealed class MainWindowViewModel
 #else
                 // Or, you could choice from device descriptor:
                 // Hint: Show up video characteristics into ComboBox and like.
-                var characteristics = descriptor0.Characteristics[0];
+                var characteristics = descriptor0.Characteristics.
+                    FirstOrDefault(c => c.PixelFormat != PixelFormats.Unknown);
 #endif
-                // Show status.
-                this.Device = descriptor0.ToString();
-                this.Characteristics = characteristics.ToString();
+                if (characteristics != null)
+                {
+                    // Show status.
+                    this.Characteristics = characteristics.ToString();
 
-                // Open capture device:
-                this.captureDevice = await descriptor0.OpenAsync(
-                    characteristics,
-                    this.OnPixelBufferArrivedAsync);
+                    // Open capture device:
+                    this.captureDevice = await descriptor0.OpenAsync(
+                        characteristics,
+                        this.OnPixelBufferArrivedAsync);
 
-                // Start capturing.
-                await this.captureDevice.StartAsync();
+                    // Start capturing.
+                    await this.captureDevice.StartAsync();
+                }
+                else
+                {
+                    this.Characteristics = "(Formats are not found)";
+                }
             }
             else
             {
-                this.Device = "(Device Not found)";
+                this.Device = "(Devices are not found)";
             }
         });
     }

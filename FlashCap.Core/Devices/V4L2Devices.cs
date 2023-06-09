@@ -25,17 +25,16 @@ public sealed class V4L2Devices : CaptureDevices
     private static IEnumerable<v4l2_fmtdesc> EnumerateFormatDesc(
         int fd) =>
         Enumerable.Range(0, 1000).
-            CollectWhile(index =>
-            {
-                var fmtdesc = Interop.Create_v4l2_fmtdesc();
-                fmtdesc.index = (uint)index;
-                fmtdesc.type = (uint)v4l2_buf_type.VIDEO_CAPTURE;
+        CollectWhile(index =>
+        {
+            var fmtdesc = Interop.Create_v4l2_fmtdesc();
+            fmtdesc.index = (uint)index;
+            fmtdesc.type = (uint)v4l2_buf_type.VIDEO_CAPTURE;
             
-                return
-                    ioctl(fd, Interop.VIDIOC_ENUM_FMT, fmtdesc) == 0 ? (v4l2_fmtdesc?)fmtdesc : null;
-            }).
-            Where(fmtdesc => IsKnownPixelFormat(fmtdesc.pixelformat)).
-            ToArray();    // Important: Iteration process must be continuous, avoid ioctl calls with other requests.
+            return
+                ioctl(fd, Interop.VIDIOC_ENUM_FMT, fmtdesc) == 0 ? (v4l2_fmtdesc?)fmtdesc : null;
+        }).
+        ToArray();    // Important: Iteration process must be continuous, avoid ioctl calls with other requests.
 
     private struct FrameSize
     {

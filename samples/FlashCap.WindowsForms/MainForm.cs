@@ -53,19 +53,23 @@ public partial class MainForm : Form
 #else
             // Or, you could choice from device descriptor:
             // Hint: Show up video characteristics into ComboBox and like.
-            var characteristics = descriptor0.Characteristics[0];
+            var characteristics = descriptor0.Characteristics.
+                FirstOrDefault(c => c.PixelFormat != PixelFormats.Unknown);
 #endif
-            // Show status.
-            this.deviceLabel.Text = descriptor0.ToString();
-            this.characteristicsLabel.Text = characteristics.ToString();
+            if (characteristics != null)
+            {
+                // Show status.
+                this.deviceLabel.Text = descriptor0.ToString();
+                this.characteristicsLabel.Text = characteristics.ToString();
 
-            // Open capture device:
-            this.captureDevice = await descriptor0.OpenAsync(
-                characteristics,
-                this.OnPixelBufferArrived);
+                // Open capture device:
+                this.captureDevice = await descriptor0.OpenAsync(
+                    characteristics,
+                    this.OnPixelBufferArrived);
 
-            // Start capturing.
-            await this.captureDevice.StartAsync();
+                // Start capturing.
+                await this.captureDevice.StartAsync();
+            }
         }
     }
 
