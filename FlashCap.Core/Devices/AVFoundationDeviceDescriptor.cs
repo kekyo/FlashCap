@@ -17,7 +17,7 @@ public sealed class AVFoundationDeviceDescriptor : CaptureDeviceDescriptor
     private readonly string uniqueId;
 
     internal AVFoundationDeviceDescriptor(
-    	string uniqueId, string modelId, string localizedName,
+        string uniqueId, string modelId, string localizedName,
         VideoCharacteristics[] characteristics) :
         base(modelId, localizedName, characteristics) =>
         this.uniqueId = uniqueId;
