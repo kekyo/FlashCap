@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -65,60 +66,111 @@ public static class NativeMethods_AVFoundation
         [DllImport(Path, EntryPoint = "sel_registerName")]
         public extern static IntPtr GetSelector(string name);
 
+        [Flags]
+        public enum BlockFlags
+        {
+            BLOCK_REFCOUNT_MASK = 0xffff,
+            BLOCK_NEEDS_FREE = 1 << 24,
+            BLOCK_HAS_COPY_DISPOSE = 1 << 25,
+            BLOCK_HAS_CTOR = 1 << 26,
+            BLOCK_IS_GC = 1 << 27,
+            BLOCK_IS_GLOBAL = 1 << 28,
+            BLOCK_HAS_STRET = 1 << 29,
+            BLOCK_HAS_SIGNATURE = 1 << 30,
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct BlockDescriptor
+        {
+            public IntPtr Reserved;
+            public IntPtr Size;
+            public IntPtr Copy;
+            public IntPtr Dispose;
+            public IntPtr Signature;
+
+            public static IntPtr Create(Delegate target, Action<IntPtr, IntPtr> copy, Action<IntPtr> dispose)
+            {
+                var signatureString = GetSignature(target.Method);
+                var signatureBytes = Encoding.UTF8.GetBytes(signatureString);
+                var descriptorSize = Marshal.SizeOf<BlockDescriptor>();
+
+                var memory = Marshal.AllocHGlobal(descriptorSize + signatureBytes.Length);
+                var memoryToSignature = memory + descriptorSize;
+
+                Marshal.Copy(signatureBytes, startIndex: 0, memoryToSignature, length: 0);
+
+                unsafe
+                {
+                    var descriptor = (BlockDescriptor*)memory;
+
+                    descriptor->Size = new IntPtr(Marshal.SizeOf<BlockLiteral>());
+                    descriptor->Copy = Marshal.GetFunctionPointerForDelegate(copy);
+                    descriptor->Dispose = Marshal.GetFunctionPointerForDelegate(dispose);
+                    descriptor->Signature = memoryToSignature;
+                }
+
+                return memory;
+            }
+
+            private static string GetSignature(MethodInfo method)
+            {
+                var signature = new StringBuilder()
+                    .Append(GetSignature(method.ReturnType))
+                    .Append("@?");
+
+                foreach (var parameter in method.GetParameters())
+                {
+                    signature.Append(GetSignature(parameter.ParameterType));
+                }
+
+                return signature.ToString();
+            }
+
+            private static string GetSignature(Type type)
+            {
+                type = Nullable.GetUnderlyingType(type) ?? type;
+                return type.FullName switch
+                {
+                    "System.Void" => "v",
+                    "System.String" => "@",
+                    "System.IntPtr" => "^v",
+                    "System.SByte" => "c",
+                    "System.Byte" => "C",
+                    "System.Char" => "s",
+                    "System.Int16" => "s",
+                    "System.UInt16" => "S",
+                    "System.Int32" => "i",
+                    "System.UInt32" => "I",
+                    "System.Int64" => "q",
+                    "System.UInt64" => "Q",
+                    "System.Single" => "f",
+                    "System.Double" => "d",
+                    "System.Boolean" => IntPtr.Size == 64 ? "B" : "c",
+                    _ => typeof(NSObject).IsAssignableFrom(type)
+                        ? "@" : throw new NotSupportedException($"Type '{type}' is not supported for interop.")
+                };
+            }
+        }
+
         // https://clang.llvm.org/docs/Block-ABI-Apple.html
         public unsafe struct BlockLiteral : IDisposable
         {
-            private static readonly IntPtr NSConcreteStackBlock = Dlfcn.GetSymbol(LibSystem.Handle, "_NSConcreteStackBlock");
-
-            private IntPtr _isa;
-            private Flags _flags;
-            private int _reserved;
-            private IntPtr _invoke;
-            private IntPtr _descriptor;
-            private IntPtr _targetHandle;
-
-            public BlockLiteral(byte[] signature, void* trampoline, Delegate target)
-            {
-                _isa = NSConcreteStackBlock;
-                _flags = Flags.BLOCK_HAS_COPY_DISPOSE | Flags.BLOCK_HAS_SIGNATURE;
-                _reserved = 0;
-                _invoke = new IntPtr(trampoline);
-                _descriptor = Marshal.AllocHGlobal(sizeof(Descriptor) + signature.Length);
-                _targetHandle = (IntPtr)GCHandle.Alloc(target);
-
-                delegate* unmanaged<IntPtr, IntPtr, void> copy = &CopyHandler;
-                delegate* unmanaged<IntPtr, void> dispose = &DisposeHandler;
-
-                var descriptor = (Descriptor*)_descriptor;
-
-                descriptor->Copy = new IntPtr(copy);
-                descriptor->Dispose = new IntPtr(dispose);
-                descriptor->Size = new IntPtr(sizeof(BlockLiteral));
-                descriptor->Signature = default;
-
-            }
+            public IntPtr Isa;
+            public BlockFlags Flags;
+            public int Reserved;
+            public IntPtr Invoke;
+            public IntPtr Descriptor;
+            public IntPtr ContextHandle;
 
             public void Dispose()
             {
-                if (_targetHandle != IntPtr.Zero)
+                if (ContextHandle != IntPtr.Zero)
                 {
                     GCHandle
-                        .FromIntPtr(_targetHandle)
+                        .FromIntPtr(ContextHandle)
                         .Free();
 
-                    _targetHandle = IntPtr.Zero;
-                }
-
-                if (_descriptor != IntPtr.Zero)
-                {
-                    var descriptor = (Descriptor*)_descriptor;
-
-                    if (Interlocked.Decrement(ref descriptor->References) == 0)
-                    {
-                        Marshal.FreeHGlobal(_descriptor);
-                    }
-
-                    _descriptor = IntPtr.Zero;
+                    ContextHandle = IntPtr.Zero;
                 }
             }
 
@@ -126,111 +178,89 @@ public static class NativeMethods_AVFoundation
                 where TDelegate : class
             {
                 var self = (BlockLiteral*)block;
-                var target = GCHandle.FromIntPtr(self->_targetHandle).Target;
+                var target = GCHandle.FromIntPtr(self->ContextHandle).Target;
 
                 return (TDelegate)target!;
             }
+        }
 
-            public static byte[] CreateSignature(Type returnType, params Type[] parameterTypes)
+        public sealed class BlockLiteralFactory
+        {
+            private static readonly IntPtr NSConcreteStackBlock = Dlfcn.GetSymbol(LibSystem.Handle, "_NSConcreteStackBlock");
+
+            private static readonly Action<IntPtr, IntPtr> CopyHandler = delegate(IntPtr dst, IntPtr src)
             {
-                static string GetSignature(Type type)
+                unsafe
                 {
-                    type = Nullable.GetUnderlyingType(type) ?? type;
-                    return type.FullName switch
+                    var dstLiteral = (BlockLiteral*)dst;
+                    var srcLiteral = (BlockLiteral*)src;
+                    var context = GCHandle.FromIntPtr(srcLiteral->ContextHandle);
+
+                    dstLiteral->ContextHandle = (IntPtr)GCHandle.Alloc(context);
+                    dstLiteral->Descriptor = srcLiteral->Descriptor;
+                }
+            };
+            
+            private static readonly Action<IntPtr> DisposeHandler = delegate(IntPtr self)
+            {
+                unsafe
+                {
+                    var literal = (BlockLiteral*)self;
+
+                    GCHandle
+                        .FromIntPtr(literal->ContextHandle)
+                        .Free();
+
+                    literal->ContextHandle = IntPtr.Zero;
+                    literal->Descriptor = IntPtr.Zero;
+                }
+            };
+
+            private readonly IntPtr _trampoline;
+            private readonly IntPtr _descriptor;
+
+            private BlockLiteralFactory(IntPtr trampoline, IntPtr descriptor)
+            {
+                _trampoline = trampoline;
+                _descriptor = descriptor;
+            }
+            
+            public static BlockLiteralFactory CreateFactory<T>(T trampoline)
+                where T : Delegate
+            {
+                var descriptor = DescriptorCache<T>.Instance;
+                if (descriptor == IntPtr.Zero)
+                {
+                    descriptor = BlockDescriptor.Create(trampoline, CopyHandler, DisposeHandler);
+
+                    var descriptorCached = Interlocked.CompareExchange(ref DescriptorCache<T>.Instance, descriptor, default);
+                    if (descriptorCached != default)
                     {
-                        "System.Void" => "v",
-                        "System.String" => "@",
-                        "System.IntPtr" => "^v",
-                        "System.SByte" => "c",
-                        "System.Byte" => "C",
-                        "System.Char" => "s",
-                        "System.Int16" => "s",
-                        "System.UInt16" => "S",
-                        "System.Int32" => "i",
-                        "System.UInt32" => "I",
-                        "System.Int64" => "q",
-                        "System.UInt64" => "Q",
-                        "System.Single" => "f",
-                        "System.Double" => "d",
-                        "System.Boolean" => RuntimeInformation.ProcessArchitecture switch
-                        {
-                            Architecture.X64 or Architecture.Arm64 => "B",
-                            Architecture.X86 or Architecture.Arm => "c",
-                            _ => throw new NotSupportedException($"The current architecture is not supported.")
-                        },
-                        _ => typeof(NSObject).IsAssignableFrom(type)
-                            ? "@" : throw new NotSupportedException($"Type '{type}' is not supported for interop.")
-                    };
+                        Marshal.FreeHGlobal(descriptor);
+
+                        descriptor = descriptorCached;
+                    }
                 }
 
-                var signature = new StringBuilder()
-                    .Append(GetSignature(returnType))
-                    .Append("@?");
+                return new BlockLiteralFactory(Marshal.GetFunctionPointerForDelegate(trampoline), descriptor);
+            }
 
-                foreach (var parameterType in parameterTypes)
+            public BlockLiteral CreateLiteral(object? context)
+            {
+                return new BlockLiteral
                 {
-                    signature.Append(GetSignature(parameterType));
-                }
-
-                return Encoding.UTF8.GetBytes(signature.ToString());
+                    Isa = NSConcreteStackBlock,
+                    Flags = BlockFlags.BLOCK_HAS_COPY_DISPOSE | BlockFlags.BLOCK_HAS_SIGNATURE,
+                    Invoke = _trampoline,
+                    Descriptor = _descriptor,
+                    ContextHandle = (IntPtr)GCHandle.Alloc(context),
+                };
             }
 
-            [UnmanagedCallersOnly]
-            private static void CopyHandler(IntPtr dst, IntPtr src)
+            private static class DescriptorCache<T>
+                where T : Delegate
             {
-                var dstLiteral = (BlockLiteral*)dst;
-                var srcLiteral = (BlockLiteral*)src;
-                var context = GCHandle.FromIntPtr(srcLiteral->_targetHandle);
-
-                dstLiteral->_targetHandle = (IntPtr)GCHandle.Alloc(context);
-                dstLiteral->_descriptor = srcLiteral->_descriptor;
-
-                var descriptor = (Descriptor*)dstLiteral->_descriptor;
-
-                Interlocked.Increment(ref descriptor->References);
-            }
-
-            [UnmanagedCallersOnly]
-            private static void DisposeHandler(IntPtr self)
-            {
-                var literal = (BlockLiteral*)self;
-                var descriptor = (Descriptor*)literal->_descriptor;
-
-                if (Interlocked.Decrement(ref descriptor->References) == 0)
-                {
-                    Marshal.FreeHGlobal(literal->_descriptor);
-                }
-
-                GCHandle
-                    .FromIntPtr(literal->_targetHandle)
-                    .Free();
-
-                literal->_targetHandle = IntPtr.Zero;
-                literal->_descriptor = IntPtr.Zero;
-            }
-
-            [Flags]
-            private enum Flags
-            {
-                BLOCK_REFCOUNT_MASK = 0xffff,
-                BLOCK_NEEDS_FREE = 1 << 24,
-                BLOCK_HAS_COPY_DISPOSE = 1 << 25,
-                BLOCK_HAS_CTOR = 1 << 26,
-                BLOCK_IS_GC = 1 << 27,
-                BLOCK_IS_GLOBAL = 1 << 28,
-                BLOCK_HAS_STRET = 1 << 29,
-                BLOCK_HAS_SIGNATURE = 1 << 30,
-            }
-
-            [StructLayout(LayoutKind.Sequential)]
-            private struct Descriptor
-            {
-                public IntPtr Reserved;
-                public IntPtr Size;
-                public IntPtr Copy;
-                public IntPtr Dispose;
-                public IntPtr Signature;
-                public int References;
+                public static IntPtr Instance;
             }
         }
     }
@@ -277,15 +307,13 @@ public static class NativeMethods_AVFoundation
     // https://github.com/opensource-apple/CF/blob/master/CFArray.c
     internal static class CFArray
     {
-        public static T[] ToArray<T>(IntPtr handle, Func<IntPtr, T> constructor)
+        public static unsafe T[] ToArray<T>(IntPtr handle, Func<IntPtr, T> constructor)
         {
             var count = LibCoreFoundation.CFArrayGetCount(handle).ToInt32();
             if (count == 0)
                 return Array.Empty<T>();
 
-            var buffer = count <= 256
-                ? stackalloc IntPtr[count]
-                : new IntPtr[count];
+            var buffer = new IntPtr[count];
 
             unsafe
             {
@@ -481,23 +509,19 @@ public static class NativeMethods_AVFoundation
                     nativeMediaType.Handle);
         }
 
-        private static byte[]? RequestAccessForMediaTypeSignature;
+        private static LibObjC.BlockLiteralFactory? RequestAccessForMediaTypeBlockFactory;
 
         public static unsafe void RequestAccessForMediaType(string mediaType, AVRequestAccessStatus completion)
         {
-            [UnmanagedCallersOnly]
-            static void Invoke(IntPtr block, byte accessGranted)
-            {
-                LibObjC.BlockLiteral
-                    .GetTarget<AVRequestAccessStatus>(block)
-                    .Invoke(accessGranted != 0);
-            }
+            RequestAccessForMediaTypeBlockFactory ??= LibObjC.BlockLiteralFactory.CreateFactory(
+                delegate (IntPtr block, byte accessGranted)
+                {
+                    LibObjC.BlockLiteral
+                        .GetTarget<AVRequestAccessStatus>(block)
+                        .Invoke(accessGranted != 0);
+                });
 
-            RequestAccessForMediaTypeSignature ??= LibObjC.BlockLiteral.CreateSignature(
-                typeof(void), typeof(IntPtr), typeof(byte));
-
-            delegate* unmanaged<IntPtr, byte, void> trampoline = &Invoke;
-            using var blockLiteral = new LibObjC.BlockLiteral(RequestAccessForMediaTypeSignature, trampoline, completion);
+            using var blockLiteral = RequestAccessForMediaTypeBlockFactory.CreateLiteral(completion);
             using var nativeMediaType = CFString.Create(mediaType);
 
             LibObjC.SendNoResult(

@@ -4,6 +4,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <TargetFrameworks>net461;netstandard2.0</TargetFrameworks>
 
     <DebugSymbols>true</DebugSymbols>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -47,10 +48,6 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="RelaxVersioner" Version="2.14.0" PrivateAssets="All" />
-  </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'Release'">
     <SourceRoot Include="$(MSBuildThisFileDirectory)/"/>
