@@ -6,9 +6,9 @@ using System.Threading;
 
 namespace FlashCap.Internal;
 
-public static class NativeMethods_AVFoundation
+internal static class NativeMethods_AVFoundation
 {
-    private static class Dlfcn
+    public static class Dlfcn
     {
         [DllImport(LibSystem.Path, EntryPoint = "dlopen")]
         public static extern IntPtr OpenLibrary(string path, Mode mode);
@@ -23,24 +23,66 @@ public static class NativeMethods_AVFoundation
         }
     }
 
-    private static class LibSystem
+    public static class LibSystem
     {
         public const string Path = "/usr/lib/libSystem.dylib";
+
         public static readonly IntPtr Handle = Dlfcn.OpenLibrary(Path, Dlfcn.Mode.None);
+
+        public static readonly bool IsOnArm64;
+
+        unsafe static LibSystem()
+        {
+            IsOnArm64 =
+                IntPtr.Size == 8 &&
+                NXGetLocalArchInfo()->GetName()?.StartsWith("arm64", StringComparison.OrdinalIgnoreCase) is true;
+        }
+
+        [DllImport(Path)]
+        private static unsafe extern NXArchInfo* NXGetLocalArchInfo();
+
+        private enum NXByteOrder
+        {
+            Unknown,
+            LittleEndian,
+            BigEndian,
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct NXArchInfo
+        {
+            public IntPtr Name;
+            public int CpuType;
+            public int CpuSubType;
+            public NXByteOrder ByteOrder;
+            public IntPtr Description;
+
+            public string? GetName() => GetString(Name);
+
+            public string? GetDescription() => GetString(Description);
+
+            private static unsafe string? GetString(IntPtr pointer)
+            {
+                if (pointer == IntPtr.Zero)
+                    return null;
+
+                var start = (byte*)pointer;
+                var end = (byte*)pointer;
+
+                for (; *end != 0; end += 1) ;
+
+                return Encoding.UTF8.GetString(start, new IntPtr(end - start).ToInt32());
+            }
+        }
     }
 
-    private static class LibObjC
+    public static class LibObjC
     {
-        private const string Path = "/usr/lib/libobjc.dylib";
+        public const string Path = "/usr/lib/libobjc.dylib";
 
         public const string InitSelector = "init";
         public const string AllocSelector = "alloc";
         public const string ReleaseSelector = "release";
-
-        public static void Release(IntPtr handle)
-        {
-            SendNoResult(handle, GetSelector(ReleaseSelector));
-        }
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
         public extern static void SendNoResult(IntPtr receiver, IntPtr selector);
@@ -60,11 +102,18 @@ public static class NativeMethods_AVFoundation
         [DllImport(Path, EntryPoint = "objc_msgSend")]
         public extern static IntPtr SendAndGetHandle(IntPtr receiver, IntPtr selector, IntPtr arg1, IntPtr arg2, long arg3);
 
+        [DllImport(Path, EntryPoint = "objc_msgSend")]
+        public extern static LibCoreMedia.CMTime SendAndGetCMTime(IntPtr receiver, IntPtr selector);
+
+        [DllImport(Path, EntryPoint = "objc_msgSend")]
+        public extern static void SendStret(out LibCoreMedia.CMTime result, IntPtr receiver, IntPtr selector);
+
         [DllImport(Path, EntryPoint = "objc_getClass")]
         public static extern IntPtr GetClass(string name);
 
         [DllImport(Path, EntryPoint = "sel_registerName")]
         public extern static IntPtr GetSelector(string name);
+
 
         [Flags]
         public enum BlockFlags
@@ -188,7 +237,7 @@ public static class NativeMethods_AVFoundation
         {
             private static readonly IntPtr NSConcreteStackBlock = Dlfcn.GetSymbol(LibSystem.Handle, "_NSConcreteStackBlock");
 
-            private static readonly Action<IntPtr, IntPtr> CopyHandler = delegate(IntPtr dst, IntPtr src)
+            private static readonly Action<IntPtr, IntPtr> CopyHandler = delegate (IntPtr dst, IntPtr src)
             {
                 unsafe
                 {
@@ -200,8 +249,8 @@ public static class NativeMethods_AVFoundation
                     dstLiteral->Descriptor = srcLiteral->Descriptor;
                 }
             };
-            
-            private static readonly Action<IntPtr> DisposeHandler = delegate(IntPtr self)
+
+            private static readonly Action<IntPtr> DisposeHandler = delegate (IntPtr self)
             {
                 unsafe
                 {
@@ -224,7 +273,7 @@ public static class NativeMethods_AVFoundation
                 _trampoline = trampoline;
                 _descriptor = descriptor;
             }
-            
+
             public static BlockLiteralFactory CreateFactory<T>(T trampoline)
                 where T : Delegate
             {
@@ -265,9 +314,9 @@ public static class NativeMethods_AVFoundation
         }
     }
 
-    private static class LibCoreFoundation
+    public static class LibCoreFoundation
     {
-        private const string Path = "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation";
+        public const string Path = "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation";
 
         [DllImport(Path)]
         public extern static void CFRelease(IntPtr cf);
@@ -289,6 +338,84 @@ public static class NativeMethods_AVFoundation
 
         [DllImport(Path)]
         public extern static unsafe IntPtr CFStringCreateWithCharacters(IntPtr allocator, char* str, nint count);
+    }
+
+    public static class LibCoreMedia
+    {
+        public const string Path = "/System/Library/Frameworks/CoreMedia.framework/CoreMedia";
+
+        [DllImport(Path)]
+        private extern static CMMediaType CMFormatDescriptionGetMediaType(IntPtr desc);
+
+        [DllImport(Path)]
+        private extern static uint CMFormatDescriptionGetMediaSubType(IntPtr desc);
+
+        [DllImport(Path)]
+        private extern static CMVideoDimensions CMVideoFormatDescriptionGetDimensions(IntPtr videoDesc);
+
+        public enum CMMediaType : uint
+        {
+            Video = 1986618469, // 'vide'
+        }
+
+        public enum CMPixelFormat : uint
+        {
+            AlphaRedGreenBlue32bits = 32,
+            BlueGreenRedAlpha32bits = 1111970369,
+            RedGreenBlue24bits = 24,
+            BigEndian555_16bits = 16,
+            BigEndian565_16bits = 1110783541,
+            LittleEndian555_16bits = 1278555445,
+            LittleEndian565_16bits = 1278555701,
+            LittleEndian5551_16bits = 892679473,
+            YpCbCr422_8bits = 846624121,
+            YpCbCr422yuvs_8bits = 2037741171,
+            YpCbCr444_8bits = 1983066168,
+            YpCbCrA4444_8bits = 1983131704,
+            YpCbCr422_16bits = 1983000886,
+            YpCbCr422_10bits = 1983000880,
+            YpCbCr444_10bits = 1983131952,
+            IndexedGrayWhiteIsZero_8bits = 40,
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public partial struct CMTime
+        {
+            [Flags]
+            public enum Flags : uint
+            {
+                Valid = 1,
+                HasBeenRounded = 2,
+                PositiveInfinity = 4,
+                NegativeInfinity = 8,
+                Indefinite = 16,
+            }
+
+            public long Value;
+            public int TimeScale;
+            public Flags TimeFlags;
+            public long TimeEpoch;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct CMVideoDimensions
+        {
+            public int Width;
+            public int Height;
+        }
+
+        public sealed class CMFormatDescription : CFObject
+        {
+            public CMFormatDescription(IntPtr handle) :
+                base(handle)
+            { }
+
+            public CMMediaType MediaType => CMFormatDescriptionGetMediaType(Handle);
+
+            public CMVideoDimensions Dimensions => MediaType == CMMediaType.Video
+                ? CMVideoFormatDescriptionGetDimensions(Handle)
+                : default;
+        }
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -387,19 +514,14 @@ public static class NativeMethods_AVFoundation
         }
     }
 
-    internal abstract class NSObject : IDisposable
+    internal abstract class NativeObject : IDisposable
     {
-        protected NSObject(IntPtr handle)
-        {
-            Handle = handle;
-        }
-
-        ~NSObject()
+        ~NativeObject()
         {
             Dispose(false);
         }
 
-        public IntPtr Handle { get; private set; }
+        public IntPtr Handle { get; protected set; }
 
         public void Dispose()
         {
@@ -407,23 +529,86 @@ public static class NativeMethods_AVFoundation
             GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose(bool disposing)
+        protected abstract void Dispose(bool disposing);
+    }
+
+    internal abstract class CFObject : NativeObject
+    {
+        protected CFObject(IntPtr handle) => Handle = handle;
+
+        protected override void Dispose(bool disposing)
         {
             if (Handle == IntPtr.Zero)
                 return;
 
-            LibObjC.Release(Handle);
+            LibCoreFoundation.CFRelease(Handle);
+
+            Handle = IntPtr.Zero;
+        }
+    }
+
+    internal abstract class NSObject : NativeObject
+    {
+        protected NSObject(IntPtr handle) => Handle = handle;
+
+        protected override void Dispose(bool disposing)
+        {
+            if (Handle == IntPtr.Zero)
+                return;
+
+            LibObjC.SendNoResult(
+                Handle,
+                LibObjC.GetSelector(LibObjC.ReleaseSelector));
+
             Handle = IntPtr.Zero;
         }
     }
 
     internal delegate void AVRequestAccessStatus(bool accessGranted);
 
+    internal sealed class AVFrameRateRange : NSObject
+    {
+        public AVFrameRateRange(IntPtr handle) :
+            base(handle)
+        { }
+
+        public LibCoreMedia.CMTime MaxFrameDuration
+        {
+            get
+            {
+                if (LibSystem.IsOnArm64)
+                {
+                    LibObjC.SendStret(out var result, Handle, LibObjC.GetSelector("maxFrameDuration"));
+
+                    return result;
+                }
+
+                return LibObjC.SendAndGetCMTime(Handle, LibObjC.GetSelector("maxFrameDuration"));
+            }
+        }
+
+        public LibCoreMedia.CMTime MinFrameDuration
+        {
+            get
+            {
+                if (LibSystem.IsOnArm64)
+                {
+                    LibObjC.SendStret(out var result, Handle, LibObjC.GetSelector("minFrameDuration"));
+
+                    return result;
+                }
+
+                return LibObjC.SendAndGetCMTime(Handle, LibObjC.GetSelector("minFrameDuration"));
+            }
+        }
+
+    }
+
     internal sealed class AVCaptureDevice : NSObject
     {
-        private AVCaptureDevice(IntPtr handle) : base(handle)
-        {
-        }
+        private AVCaptureDevice(IntPtr handle) :
+            base(handle)
+        { }
 
         public string UniqueID
         {
@@ -534,16 +719,28 @@ public static class NativeMethods_AVFoundation
 
     internal sealed class AVCaptureDeviceFormat : NSObject
     {
-        public AVCaptureDeviceFormat(IntPtr handle) : base(handle)
-        {
-        }
+        public AVCaptureDeviceFormat(IntPtr handle) :
+            base(handle)
+        { }
+
+        public LibCoreMedia.CMFormatDescription FormatDescription =>
+            new LibCoreMedia.CMFormatDescription(
+                LibObjC.SendAndGetHandle(
+                    Handle,
+                    LibObjC.GetSelector("formatDescription")));
+
+        public AVFrameRateRange VideoSupportedFrameRateRanges =>
+            new AVFrameRateRange(
+                LibObjC.SendAndGetHandle(
+                    Handle,
+                    LibObjC.GetSelector("videoSupportedFrameRateRanges")));
     }
 
     internal sealed class AVCaptureDeviceInput : NSObject
     {
-        public AVCaptureDeviceInput(IntPtr handle) : base(handle)
-        {
-        }
+        public AVCaptureDeviceInput(IntPtr handle) :
+            base(handle)
+        { }
     }
 
     internal sealed class AVCaptureSession : NSObject
