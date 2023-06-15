@@ -11,7 +11,7 @@ using System.Collections.Generic;
 using System.Linq;
 using FlashCap.Internal;
 using FlashCap.Utilities;
-using static FlashCap.Internal.NativeMethods_AVFoundation;
+using static FlashCap.Internal.NativeMethods_AVFoundation.LibAVFoundation;
 
 namespace FlashCap.Devices;
 

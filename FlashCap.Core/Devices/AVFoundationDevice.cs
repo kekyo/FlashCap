@@ -1,7 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using static FlashCap.Internal.NativeMethods_AVFoundation;
+using static FlashCap.Internal.NativeMethods_AVFoundation.LibAVFoundation;
 
 namespace FlashCap.Devices;
 
