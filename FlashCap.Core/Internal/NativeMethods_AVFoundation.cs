@@ -88,6 +88,9 @@ internal static class NativeMethods_AVFoundation
         public extern static void SendNoResult(IntPtr receiver, IntPtr selector);
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
+        public extern static void SendNoResult(IntPtr receiver, IntPtr selector, IntPtr arg1);
+
+        [DllImport(Path, EntryPoint = "objc_msgSend")]
         public extern static void SendNoResult(IntPtr receiver, IntPtr selector, IntPtr arg1, IntPtr arg2);
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
@@ -114,7 +117,6 @@ internal static class NativeMethods_AVFoundation
         [DllImport(Path, EntryPoint = "sel_registerName")]
         public extern static IntPtr GetSelector(string name);
 
-
         [Flags]
         public enum BlockFlags
         {
@@ -137,7 +139,7 @@ internal static class NativeMethods_AVFoundation
             public IntPtr Dispose;
             public IntPtr Signature;
 
-            public static IntPtr Create(Delegate target, Action<IntPtr, IntPtr> copy, Action<IntPtr> dispose)
+            public static IntPtr Create(Delegate target, BlockLiteralCopy copy, BlockLiteralDispose dispose)
             {
                 var signatureString = GetSignature(target.Method);
                 var signatureBytes = Encoding.UTF8.GetBytes(signatureString);
@@ -201,6 +203,9 @@ internal static class NativeMethods_AVFoundation
             }
         }
 
+        public unsafe delegate void BlockLiteralCopy(BlockLiteral* dst, BlockLiteral* src);
+        public unsafe delegate void BlockLiteralDispose(BlockLiteral* self);
+
         // https://clang.llvm.org/docs/Block-ABI-Apple.html
         public unsafe struct BlockLiteral : IDisposable
         {
@@ -223,6 +228,17 @@ internal static class NativeMethods_AVFoundation
                 }
             }
 
+            public static unsafe void Dispose(BlockLiteral* self) =>
+                self->Dispose();
+
+            public static unsafe void Copy(BlockLiteral* dst, BlockLiteral* src)
+            {
+                var context = GCHandle.FromIntPtr(src->ContextHandle);
+
+                dst->ContextHandle = (IntPtr)GCHandle.Alloc(context);
+                dst->Descriptor = src->Descriptor;
+            }
+
             public static TDelegate GetTarget<TDelegate>(IntPtr block)
                 where TDelegate : class
             {
@@ -235,35 +251,17 @@ internal static class NativeMethods_AVFoundation
 
         public sealed class BlockLiteralFactory
         {
-            private static readonly IntPtr NSConcreteStackBlock = Dlfcn.GetSymbol(LibSystem.Handle, "_NSConcreteStackBlock");
+            private static readonly IntPtr NSConcreteStackBlock;
+            private static readonly BlockLiteralCopy CopyHandler;
+            private static readonly BlockLiteralDispose DisposeHandler;
 
-            private static readonly Action<IntPtr, IntPtr> CopyHandler = delegate (IntPtr dst, IntPtr src)
+            unsafe static BlockLiteralFactory()
             {
-                unsafe
-                {
-                    var dstLiteral = (BlockLiteral*)dst;
-                    var srcLiteral = (BlockLiteral*)src;
-                    var context = GCHandle.FromIntPtr(srcLiteral->ContextHandle);
+                NSConcreteStackBlock = Dlfcn.GetSymbol(LibSystem.Handle, "_NSConcreteStackBlock");
 
-                    dstLiteral->ContextHandle = (IntPtr)GCHandle.Alloc(context);
-                    dstLiteral->Descriptor = srcLiteral->Descriptor;
-                }
-            };
-
-            private static readonly Action<IntPtr> DisposeHandler = delegate (IntPtr self)
-            {
-                unsafe
-                {
-                    var literal = (BlockLiteral*)self;
-
-                    GCHandle
-                        .FromIntPtr(literal->ContextHandle)
-                        .Free();
-
-                    literal->ContextHandle = IntPtr.Zero;
-                    literal->Descriptor = IntPtr.Zero;
-                }
-            };
+                CopyHandler = BlockLiteral.Copy;
+                DisposeHandler = BlockLiteral.Dispose;
+            }
 
             private readonly IntPtr _trampoline;
             private readonly IntPtr _descriptor;
@@ -418,6 +416,13 @@ internal static class NativeMethods_AVFoundation
         }
     }
 
+    internal static class LibAVFoundation
+    {
+        public const string Path = "/System/Library/Frameworks/AVFoundation.framework/AVFoundation";
+        
+        public static readonly IntPtr Handle = Dlfcn.OpenLibrary(Path, Dlfcn.Mode.None);
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     internal struct CFRange
     {
@@ -562,6 +567,13 @@ internal static class NativeMethods_AVFoundation
 
             Handle = IntPtr.Zero;
         }
+    }
+
+    internal sealed class NSError : NSObject
+    {
+        public NSError(IntPtr handle) :
+            base(handle)
+        { }
     }
 
     internal delegate void AVRequestAccessStatus(bool accessGranted);
@@ -736,11 +748,56 @@ internal static class NativeMethods_AVFoundation
                     LibObjC.GetSelector("videoSupportedFrameRateRanges")));
     }
 
-    internal sealed class AVCaptureDeviceInput : NSObject
+    internal abstract class AVCaptureInput : NSObject
     {
-        public AVCaptureDeviceInput(IntPtr handle) :
+        protected AVCaptureInput(IntPtr handle) :
             base(handle)
         { }
+    }
+
+    internal abstract class AVCaptureOutput : NSObject
+    {
+        protected AVCaptureOutput(IntPtr handle) :
+            base(handle)
+        { }
+    }
+
+    internal sealed class AVCaptureDeviceInput : AVCaptureInput
+    {
+        public AVCaptureDeviceInput(AVCaptureDevice device) :
+            base(FromDevice(device))
+        { }
+
+        private static unsafe IntPtr FromDevice(AVCaptureDevice device)
+        {
+            var errorHandle = default(IntPtr);
+            var inputHandle = LibObjC.SendAndGetHandle(
+                LibObjC.GetClass(nameof(AVCaptureDeviceInput)),
+                LibObjC.GetSelector("deviceInputWithDevice:error:"),
+                device.Handle,
+                new IntPtr(&errorHandle));
+
+            if (errorHandle != IntPtr.Zero)
+            {
+                using var error = new NSError(errorHandle);
+                throw new InvalidOperationException(/* error.FailureReason */);
+            }
+
+            return inputHandle;
+        }
+    }
+
+    internal sealed class AVCaptureDeviceOutput : AVCaptureOutput
+    {
+        public AVCaptureDeviceOutput() : base(
+            LibObjC.SendAndGetHandle(
+                LibObjC.GetClass(nameof(AVCaptureDeviceOutput)),
+                LibObjC.GetSelector(LibObjC.AllocSelector)))
+        {
+            LibObjC.SendNoResult(
+                Handle,
+                LibObjC.GetSelector("init"));
+        }
     }
 
     internal sealed class AVCaptureSession : NSObject
@@ -754,6 +811,28 @@ internal static class NativeMethods_AVFoundation
                 Handle,
                 LibObjC.GetSelector("init"));
         }
+
+        public void AddInput(AVCaptureInput input) =>
+            LibObjC.SendNoResult(
+                Handle,
+                LibObjC.GetSelector("addInput:"),
+                input.Handle);
+
+        public void AddOutput(AVCaptureOutput output) =>
+            LibObjC.SendNoResult(
+                Handle,
+                LibObjC.GetSelector("addOutput:"),
+                output.Handle);
+
+		public void StartRunning() =>
+            LibObjC.SendNoResult(
+                Handle,
+                LibObjC.GetSelector("startRunning"));
+
+		public void StopRunning() =>
+            LibObjC.SendNoResult(
+                Handle,
+                LibObjC.GetSelector("stopRunning"));
     }
 
     internal enum AVAuthorizationStatus : long
