@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -76,6 +77,24 @@ internal static class NativeMethods_AVFoundation
         }
     }
 
+    public static class LibC
+    {
+        public const string Path = "/usr/lib/libc.dylib";
+        
+        [DllImport(Path, EntryPoint = "dispatch_get_global_queue")]
+		public extern static IntPtr GetGlobalQueue(IntPtr identifier, IntPtr flags);
+
+        public static class DispatchQualityOfService
+        {
+    		public const nint UserInteractive = 0x21;
+    		public const nint UserInitiated = 0x19;
+    		public const nint Default = 0x15;
+    		public const nint Utility = 0x11;
+    		public const nint Background = 0x09;
+    		public const nint Unspecified = 0x00;
+    	}
+    }
+
     public static class LibObjC
     {
         public const string Path = "/usr/lib/libobjc.dylib";
@@ -85,37 +104,111 @@ internal static class NativeMethods_AVFoundation
         public const string ReleaseSelector = "release";
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
-        public extern static void SendNoResult(IntPtr receiver, IntPtr selector);
+        public static extern void SendNoResult(IntPtr receiver, IntPtr selector);
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
-        public extern static void SendNoResult(IntPtr receiver, IntPtr selector, IntPtr arg1);
+        public static extern void SendNoResult(IntPtr receiver, IntPtr selector, IntPtr arg1);
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
         public extern static void SendNoResult(IntPtr receiver, IntPtr selector, IntPtr arg1, IntPtr arg2);
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
-        public extern static IntPtr SendAndGetHandle(IntPtr receiver, IntPtr selector);
+        public static extern IntPtr SendAndGetHandle(IntPtr receiver, IntPtr selector);
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
-        public extern static IntPtr SendAndGetHandle(IntPtr receiver, IntPtr selector, IntPtr arg1);
+        public static extern IntPtr SendAndGetHandle(IntPtr receiver, IntPtr selector, IntPtr arg1);
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
-        public extern static IntPtr SendAndGetHandle(IntPtr receiver, IntPtr selector, IntPtr arg1, IntPtr arg2);
+        public static extern IntPtr SendAndGetHandle(IntPtr receiver, IntPtr selector, IntPtr arg1, IntPtr arg2);
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
-        public extern static IntPtr SendAndGetHandle(IntPtr receiver, IntPtr selector, IntPtr arg1, IntPtr arg2, long arg3);
+        public static extern IntPtr SendAndGetHandle(IntPtr receiver, IntPtr selector, IntPtr arg1, IntPtr arg2, long arg3);
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
-        public extern static LibCoreMedia.CMTime SendAndGetCMTime(IntPtr receiver, IntPtr selector);
+        public static extern LibCoreMedia.CMTime SendAndGetCMTime(IntPtr receiver, IntPtr selector);
 
-        [DllImport(Path, EntryPoint = "objc_msgSend")]
-        public extern static void SendStret(out LibCoreMedia.CMTime result, IntPtr receiver, IntPtr selector);
+        [DllImport(Path, EntryPoint = "objc_msgSend_stret")]
+        public static extern void SendiAndGetCMTimeStret(out LibCoreMedia.CMTime result, IntPtr receiver, IntPtr selector);
 
         [DllImport(Path, EntryPoint = "objc_getClass")]
         public static extern IntPtr GetClass(string name);
 
+        [DllImport(Path, EntryPoint = "object_getIvar")]
+        public static extern IntPtr GetVariable(IntPtr obj, IntPtr ivar);
+
+        [DllImport(Path, EntryPoint = "object_setIvar")]
+        public static extern void SetVariable(IntPtr obj, IntPtr ivar, IntPtr value);
+
+        [DllImport(Path, EntryPoint = "objc_allocateClassPair")]
+        public static extern IntPtr AllocateClass(IntPtr superclass, string name, IntPtr extraBytes);
+
+        [DllImport(Path, EntryPoint = "objc_registerClassPair")]
+        public static extern void RegisterClass(IntPtr cls);
+
+        [DllImport(Path, EntryPoint = "objc_getProtocol")]
+        public static extern IntPtr GetProtocol(string name);
+
         [DllImport(Path, EntryPoint = "sel_registerName")]
-        public extern static IntPtr GetSelector(string name);
+        public static extern IntPtr GetSelector(string name);
+
+        [DllImport(Path, EntryPoint = "class_addMethod")]
+        [return: MarshalAs(UnmanagedType.U1)]
+		public static extern bool AddMethod(IntPtr cls, IntPtr name, IntPtr imp, string types);
+
+        [DllImport(Path, EntryPoint = "class_addIvar")]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern void AddVariable(IntPtr cls, string name, IntPtr size, byte alignment, string types);
+        
+        [DllImport(Path, EntryPoint = "class_addProtocol")]
+        [return: MarshalAs(UnmanagedType.U1)]
+		public static extern bool AddProtocol(IntPtr cls, IntPtr protocol);
+
+        [DllImport(Path, EntryPoint = "class_getInstanceVariable")]
+        public static extern IntPtr GetVariable(IntPtr cls, string name);
+
+        // https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html#//apple_ref/doc/uid/TP40008048-CH100
+        public static string GetSignature(MethodInfo method, bool blockLiteral)
+        {
+            var signature = new StringBuilder()
+                .Append(GetSignature(method.ReturnType))
+                .Append(blockLiteral ? "@?" : "@:");
+
+            var parameters = blockLiteral
+                ? method.GetParameters()
+                : method.GetParameters().Skip(1);
+
+            foreach (var parameter in parameters)
+            {
+                signature.Append(GetSignature(parameter.ParameterType));
+            }
+
+            return signature.ToString();
+        }
+
+        public static string GetSignature(Type type)
+        {
+            type = Nullable.GetUnderlyingType(type) ?? type;
+            return type.FullName switch
+            {
+                "System.Void" => "v",
+                "System.String" => "@",
+                "System.IntPtr" => "^v",
+                "System.SByte" => "c",
+                "System.Byte" => "C",
+                "System.Char" => "s",
+                "System.Int16" => "s",
+                "System.UInt16" => "S",
+                "System.Int32" => "i",
+                "System.UInt32" => "I",
+                "System.Int64" => "q",
+                "System.UInt64" => "Q",
+                "System.Single" => "f",
+                "System.Double" => "d",
+                "System.Boolean" => IntPtr.Size == 64 ? "B" : "c",
+                _ => typeof(NSObject).IsAssignableFrom(type)
+                    ? "@" : throw new NotSupportedException($"Type '{type}' is not supported for interop.")
+            };
+        }
 
         [Flags]
         public enum BlockFlags
@@ -141,7 +234,7 @@ internal static class NativeMethods_AVFoundation
 
             public static IntPtr Create(Delegate target, BlockLiteralCopy copy, BlockLiteralDispose dispose)
             {
-                var signatureString = GetSignature(target.Method);
+                var signatureString = GetSignature(target.Method, blockLiteral: true);
                 var signatureBytes = Encoding.UTF8.GetBytes(signatureString);
                 var descriptorSize = Marshal.SizeOf<BlockDescriptor>();
 
@@ -161,45 +254,6 @@ internal static class NativeMethods_AVFoundation
                 }
 
                 return memory;
-            }
-
-            private static string GetSignature(MethodInfo method)
-            {
-                var signature = new StringBuilder()
-                    .Append(GetSignature(method.ReturnType))
-                    .Append("@?");
-
-                foreach (var parameter in method.GetParameters())
-                {
-                    signature.Append(GetSignature(parameter.ParameterType));
-                }
-
-                return signature.ToString();
-            }
-
-            private static string GetSignature(Type type)
-            {
-                type = Nullable.GetUnderlyingType(type) ?? type;
-                return type.FullName switch
-                {
-                    "System.Void" => "v",
-                    "System.String" => "@",
-                    "System.IntPtr" => "^v",
-                    "System.SByte" => "c",
-                    "System.Byte" => "C",
-                    "System.Char" => "s",
-                    "System.Int16" => "s",
-                    "System.UInt16" => "S",
-                    "System.Int32" => "i",
-                    "System.UInt32" => "I",
-                    "System.Int64" => "q",
-                    "System.UInt64" => "Q",
-                    "System.Single" => "f",
-                    "System.Double" => "d",
-                    "System.Boolean" => IntPtr.Size == 64 ? "B" : "c",
-                    _ => typeof(NSObject).IsAssignableFrom(type)
-                        ? "@" : throw new NotSupportedException($"Type '{type}' is not supported for interop.")
-                };
             }
         }
 
@@ -567,7 +621,7 @@ internal static class NativeMethods_AVFoundation
                 {
                     if (LibSystem.IsOnArm64)
                     {
-                        LibObjC.SendStret(out var result, Handle, LibObjC.GetSelector("maxFrameDuration"));
+                        LibObjC.SendiAndGetCMTimeStret(out var result, Handle, LibObjC.GetSelector("maxFrameDuration"));
 
                         return result;
                     }
@@ -582,7 +636,7 @@ internal static class NativeMethods_AVFoundation
                 {
                     if (LibSystem.IsOnArm64)
                     {
-                        LibObjC.SendStret(out var result, Handle, LibObjC.GetSelector("minFrameDuration"));
+                        LibObjC.SendiAndGetCMTimeStret(out var result, Handle, LibObjC.GetSelector("minFrameDuration"));
 
                         return result;
                     }
@@ -764,16 +818,116 @@ internal static class NativeMethods_AVFoundation
             }
         }
 
-        public sealed class AVCaptureDeviceOutput : AVCaptureOutput
+        public sealed class AVCaptureVideoDataOutput : AVCaptureOutput
         {
-            public AVCaptureDeviceOutput() : base(
+            public AVCaptureVideoDataOutput() : base(
                 LibObjC.SendAndGetHandle(
-                    LibObjC.GetClass(nameof(AVCaptureDeviceOutput)),
+                    LibObjC.GetClass(nameof(AVCaptureVideoDataOutput)),
                     LibObjC.GetSelector(LibObjC.AllocSelector)))
             {
                 LibObjC.SendNoResult(
                     Handle,
                     LibObjC.GetSelector("init"));
+            }
+
+            public void SetSampleBufferDelegate(AVCaptureVideoDataOutputSampleBuffer sampleBufferDelegate, IntPtr sampleBufferCallbackQueue) =>
+                LibObjC.SendNoResult(
+                    Handle,
+                    LibObjC.GetSelector("setSampleBufferDelegate:queue:"),
+                    sampleBufferDelegate.Handle,
+                    sampleBufferCallbackQueue);
+        }
+
+        public abstract class AVCaptureVideoDataOutputSampleBuffer : LibObjC.NSObject
+        {
+            private const string HandleVariableName = nameof(GCHandle);
+            private static IntPtr HandleVariableDescriptor;
+            
+            static AVCaptureVideoDataOutputSampleBuffer()
+            {
+                var handle = LibObjC.AllocateClass(
+                    LibObjC.GetClass("NSObject"),
+                    nameof(AVCaptureVideoDataOutputSampleBuffer),
+                    extraBytes: IntPtr.Zero);
+
+                var didDropSampleBuffer = new DidDropSampleBufferDelegate(DidDropSampleBufferTrampoline);
+                var didOutputSampleBuffer = new DidOutputSampleBufferDelegate(DidOutputSampleBufferTrampoline);
+                
+                LibObjC.AddMethod(
+                    handle,
+                    LibObjC.GetSelector("captureOutput:didDropSampleBuffer:fromConnection:"),
+                    Marshal.GetFunctionPointerForDelegate(didDropSampleBuffer),
+                    LibObjC.GetSignature(didDropSampleBuffer.Method, blockLiteral: false));
+
+                LibObjC.AddMethod(
+                    handle,
+                    LibObjC.GetSelector("captureOutput:didOutputSampleBuffer:fromConnection:"),
+                    Marshal.GetFunctionPointerForDelegate(didOutputSampleBuffer),
+                    LibObjC.GetSignature(didOutputSampleBuffer.Method, blockLiteral: false));
+
+                LibObjC.AddProtocol(
+                    handle,
+                    LibObjC.GetProtocol("AVCaptureVideoDataOutputSampleBufferDelegate"));
+
+                LibObjC.AddVariable(
+                    handle,
+                    HandleVariableName,
+                    size: new IntPtr(IntPtr.Size),
+                    alignment: IntPtr.Size switch
+                    {
+                        4 => 2,
+                        8 => 3,
+                        _ => throw new NotSupportedException("The current arhitecture isn't supported.")
+                    },
+                    types: LibObjC.GetSignature(typeof(IntPtr)));
+
+                LibObjC.RegisterClass(handle);
+
+                HandleVariableDescriptor = LibObjC.GetVariable(handle, HandleVariableName);
+            }
+
+            protected AVCaptureVideoDataOutputSampleBuffer() : base(
+                LibObjC.SendAndGetHandle(
+                    LibObjC.GetClass(nameof(AVCaptureVideoDataOutputSampleBuffer)),
+                    LibObjC.GetSelector(LibObjC.AllocSelector)))
+            {
+                LibObjC.SetVariable(
+                    Handle,
+                    HandleVariableDescriptor,
+                    Handle);
+            }
+
+            public abstract void DidDropSampleBuffer(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection);
+
+    		public abstract void DidOutputSampleBuffer(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection);
+
+            private delegate void DidDropSampleBufferDelegate(IntPtr self, IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection);
+            private static void DidDropSampleBufferTrampoline(IntPtr self, IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection)
+            {
+                var handle = LibObjC.GetVariable(self, HandleVariableDescriptor);
+                var obj = GCHandle.FromIntPtr(handle).Target as AVCaptureVideoDataOutputSampleBuffer;
+
+                obj?.DidDropSampleBuffer(captureOutput, sampleBuffer, connection);
+            }
+
+            private delegate void DidOutputSampleBufferDelegate(IntPtr self, IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection);
+            private static void DidOutputSampleBufferTrampoline(IntPtr self, IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection)
+            {
+                var handle = LibObjC.GetVariable(self, HandleVariableDescriptor);
+                var obj = GCHandle.FromIntPtr(handle).Target as AVCaptureVideoDataOutputSampleBuffer;
+
+                obj?.DidOutputSampleBuffer(captureOutput, sampleBuffer, connection);
+
+            }
+
+            private delegate void DeallocDelegate(IntPtr self);
+            private static void DeallocTrampoline(IntPtr self)
+            {
+                var handle = LibObjC.GetVariable(self, HandleVariableDescriptor);
+
+                GCHandle
+                    .FromIntPtr(handle)
+                    .Free();
             }
         }
 
