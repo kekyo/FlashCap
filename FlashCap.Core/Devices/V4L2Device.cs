@@ -427,4 +427,9 @@ public sealed class V4L2Device : CaptureDevice
         long timestampMicroseconds, long frameIndex,
         PixelBuffer buffer) =>
         buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeIfYUV);
+
+    protected override void SetControlProperty(CameraControlProperty property, int value)
+    {
+        throw new NotImplementedException();
+    }
 }

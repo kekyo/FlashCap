@@ -28,6 +28,9 @@ public static class CaptureDeviceExtension
     public static Task StopAsync(this CaptureDevice captureDevice, CancellationToken ct = default) =>
         captureDevice.InternalStopAsync(ct);
 
+    public static void SetControlProperty(this CaptureDevice captureDevice, CameraControlProperty property, int value) =>
+        captureDevice.InternalSetControlProperty(property, value);
+
     [Obsolete("Start method will be deprecated. Switch to use StartAsync method.")]
     public static void Start(this CaptureDevice captureDevice) =>
         _ = captureDevice.InternalStartAsync(default);

@@ -70,6 +70,8 @@ public abstract class CaptureDevice :
     protected abstract void OnCapture(
         IntPtr pData, int size, long timestampMicroseconds, long frameIndex, PixelBuffer buffer);
 
+    protected abstract void SetControlProperty(CameraControlProperty property, int value);
+
     //////////////////////////////////////////////////////////////////////////
 
     internal Task InternalInitializeAsync(
@@ -101,4 +103,7 @@ public abstract class CaptureDevice :
     internal void InternalOnCapture(
         IntPtr pData, int size, long timestampMicroseconds, long frameIndex, PixelBuffer buffer) =>
         this.OnCapture(pData, size, timestampMicroseconds, frameIndex, buffer);
+
+    internal void InternalSetControlProperty(CameraControlProperty property, int value) =>
+        this.SetControlProperty(property, value);
 }
