@@ -15,6 +15,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using static FlashCap.Internal.NativeMethods_DirectShow;
 
 namespace FlashCap.Devices;
 
@@ -40,12 +41,14 @@ public sealed class DirectShowDevice :
             this.frameIndex = 0;
 
         // whichMethodToCallback: 0
-        [PreserveSig] public int SampleCB(
+        [PreserveSig]
+        public int SampleCB(
             double sampleTime, NativeMethods_DirectShow.IMediaSample sample) =>
             unchecked((int)0x80004001);  // E_NOTIMPL
 
         // whichMethodToCallback: 1
-        [PreserveSig] public int BufferCB(
+        [PreserveSig]
+        public int BufferCB(
             double sampleTime, IntPtr pBuffer, int bufferLen)
         {
             // HACK: Avoid stupid camera devices...
@@ -75,6 +78,7 @@ public sealed class DirectShowDevice :
     private NativeMethods_DirectShow.IGraphBuilder? graphBuilder;
     private SampleGrabberSink? sampleGrabberSink;
     private IntPtr pBih;
+    private IAMCameraControl cameraControl;
 
 #pragma warning disable CS8618
     internal DirectShowDevice(object identity, string name) :
@@ -179,6 +183,20 @@ public sealed class DirectShowDevice :
                     {
                         throw new ArgumentException(
                             $"FlashCap: Couldn't set graph builder: DevicePath={devicePath}");
+                    }
+
+                    ///////////////////////////////
+
+                    Guid PinCategory_Capture = new(0xfb6c4281, 0x0353, 0x11d1, 0x90, 0x5f, 0x00, 0x00, 0xc0, 0xcc, 0x16, 0xba);
+                    Guid MediaType_Interleaved = new(0x73766169, 0x0000, 0x0010, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71);
+                    if (captureGraphBuilder.FindInterface(PinCategory_Capture, MediaType_Interleaved, captureSource, typeof(IAMCameraControl).GUID, out object? intf) < 0)
+                    {
+                        // Maybe there are cameras that don't have a camera control interface?
+                        throw new ArgumentException($"FlashCap: Couldn't get camera control interface: DevicePath={devicePath}");
+                    }
+                    if (intf != null)
+                    {
+                        cameraControl = (IAMCameraControl)intf;
                     }
 
                     ///////////////////////////////
@@ -320,4 +338,15 @@ public sealed class DirectShowDevice :
         long timestampMicroseconds, long frameIndex,
         PixelBuffer buffer) =>
         buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeIfYUV);
+
+    protected override void SetControlProperty(CameraControlProperty property, int value)
+    {
+        lock (this)
+        {
+            if (this.IsRunning)
+            {
+                cameraControl.Set(property, value, CameraControlFlags.None);
+            }
+        }
+    }
 }
