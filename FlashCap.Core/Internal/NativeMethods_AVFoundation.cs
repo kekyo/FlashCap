@@ -108,6 +108,9 @@ internal static class NativeMethods_AVFoundation
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
         public static extern void SendNoResult(IntPtr receiver, IntPtr selector, IntPtr arg1);
+        
+        [DllImport(Path, EntryPoint = "objc_msgSend")]
+        public static extern void SendNoResult(IntPtr receiver, IntPtr selector, LibCoreMedia.CMTime arg1);
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
         public extern static void SendNoResult(IntPtr receiver, IntPtr selector, IntPtr arg1, IntPtr arg2);
@@ -128,7 +131,7 @@ internal static class NativeMethods_AVFoundation
         public static extern LibCoreMedia.CMTime SendAndGetCMTime(IntPtr receiver, IntPtr selector);
 
         [DllImport(Path, EntryPoint = "objc_msgSend_stret")]
-        public static extern void SendiAndGetCMTimeStret(out LibCoreMedia.CMTime result, IntPtr receiver, IntPtr selector);
+        public static extern void SendAndGetCMTimeStret(out LibCoreMedia.CMTime result, IntPtr receiver, IntPtr selector);
 
         [DllImport(Path, EntryPoint = "objc_getClass")]
         public static extern IntPtr GetClass(string name);
@@ -528,13 +531,25 @@ internal static class NativeMethods_AVFoundation
         public const string Path = "/System/Library/Frameworks/CoreMedia.framework/CoreMedia";
 
         [DllImport(Path)]
-        private extern static CMMediaType CMFormatDescriptionGetMediaType(IntPtr desc);
+        public static extern CMTime CMTimeMake(long value, int timescale);
 
         [DllImport(Path)]
-        private extern static uint CMFormatDescriptionGetMediaSubType(IntPtr desc);
+        public static extern double CMTimeGetSeconds(CMTime time);
 
         [DllImport(Path)]
-        private extern static CMVideoDimensions CMVideoFormatDescriptionGetDimensions(IntPtr videoDesc);
+        public static extern IntPtr CMSampleBufferGetImageBuffer(IntPtr sbuf);
+
+        [DllImport(Path)]
+        public static extern CMTime CMSampleBufferGetDecodeTimeStamp(IntPtr sbuf);
+
+        [DllImport(Path)]
+        public static extern CMMediaType CMFormatDescriptionGetMediaType(IntPtr desc);
+
+        [DllImport(Path)]
+        public static extern uint CMFormatDescriptionGetMediaSubType(IntPtr desc);
+
+        [DllImport(Path)]
+        public static extern CMVideoDimensions CMVideoFormatDescriptionGetDimensions(IntPtr videoDesc);
 
         public enum CMMediaType : uint
         {
@@ -601,6 +616,32 @@ internal static class NativeMethods_AVFoundation
         }
     }
 
+    public static class LibCoreVideo
+    {
+        public const string Path = "/System/Library/Frameworks/CoreMedia.framework/CoreMedia";
+
+        [DllImport(Path)]
+        public static extern nuint CVPixelBufferGetDataSize(IntPtr pixelBuffer);
+
+        [DllImport(Path)]
+        public static extern nuint CVPixelBufferGetPlaneCount(IntPtr pixelBuffer);
+
+        [DllImport(Path)]
+        public static extern IntPtr CVPixelBufferGetBaseAddress(IntPtr pixelBuffer);
+
+        [DllImport(Path)]
+        public static extern int CVPixelBufferLockBaseAddress(IntPtr pixelBuffer, CVPixelBufferLockFlags lockFlags);
+
+        [DllImport(Path)]
+        public static extern int CVPixelBufferUnlockBaseAddress(IntPtr pixelBuffer, CVPixelBufferLockFlags lockFlags);
+
+        public enum CVPixelBufferLockFlags : long
+        {
+            None,
+            ReadOnly = 1,
+        }
+    }
+
     public static class LibAVFoundation
     {
         public const string Path = "/System/Library/Frameworks/AVFoundation.framework/AVFoundation";
@@ -621,7 +662,7 @@ internal static class NativeMethods_AVFoundation
                 {
                     if (LibSystem.IsOnArm64)
                     {
-                        LibObjC.SendiAndGetCMTimeStret(out var result, Handle, LibObjC.GetSelector("maxFrameDuration"));
+                        LibObjC.SendAndGetCMTimeStret(out var result, Handle, LibObjC.GetSelector("maxFrameDuration"));
 
                         return result;
                     }
@@ -636,7 +677,7 @@ internal static class NativeMethods_AVFoundation
                 {
                     if (LibSystem.IsOnArm64)
                     {
-                        LibObjC.SendiAndGetCMTimeStret(out var result, Handle, LibObjC.GetSelector("minFrameDuration"));
+                        LibObjC.SendAndGetCMTimeStret(out var result, Handle, LibObjC.GetSelector("minFrameDuration"));
 
                         return result;
                     }
@@ -703,6 +744,85 @@ internal static class NativeMethods_AVFoundation
 
                     return LibCoreFoundation.CFArray.ToArray(handle, static handle => new AVCaptureDeviceFormat(handle));
                 }
+            }
+
+            public AVCaptureDeviceFormat ActiveFormat
+            {
+                get => new AVCaptureDeviceFormat(
+                    LibObjC.SendAndGetHandle(
+                        Handle,
+                        LibObjC.GetSelector("activeVideoMinFrameDuration")));
+                set =>
+                    LibObjC.SendNoResult(
+                        Handle,
+                        LibObjC.GetSelector("setActiveVideoMinFrameDuration:"),
+                        value.Handle);
+            }
+
+            public LibCoreMedia.CMTime ActiveVideoMinFrameDuration
+            {
+                get
+                {
+                    if (LibSystem.IsOnArm64)
+                    {
+                        LibObjC.SendAndGetCMTimeStret(out var result, Handle, LibObjC.GetSelector("activeVideoMinFrameDuration"));
+
+                        return result;
+                    }
+
+                    return LibObjC.SendAndGetCMTime(Handle, LibObjC.GetSelector("activeVideoMinFrameDuration"));
+                }
+                set
+                {
+                    LibObjC.SendNoResult(
+                        Handle,
+                        LibObjC.GetSelector("setActiveVideoMinFrameDuration:"),
+                        value);
+                }
+            }
+
+            public LibCoreMedia.CMTime ActiveVideoMaxFrameDuration
+            {
+                get
+                {
+                    if (LibSystem.IsOnArm64)
+                    {
+                        LibObjC.SendAndGetCMTimeStret(out var result, Handle, LibObjC.GetSelector("activeVideoMaxFrameDuration"));
+
+                        return result;
+                    }
+
+                    return LibObjC.SendAndGetCMTime(Handle, LibObjC.GetSelector("activeVideoMaxFrameDuration"));
+                }
+                set
+                {
+                    LibObjC.SendNoResult(
+                        Handle,
+                        LibObjC.GetSelector("setActiveVideoMaxFrameDuration:"),
+                        value);
+                }
+            }
+
+            public unsafe void LockForConfiguration()
+            {
+                IntPtr errorHandle;
+                LibObjC.SendNoResult(
+                    Handle,
+                    LibObjC.GetSelector("lockForConfiguration:"),
+                    new IntPtr(&errorHandle));
+
+                if (errorHandle != IntPtr.Zero)
+                {
+                    using var error = new LibObjC.NSError(errorHandle);
+                    throw new InvalidOperationException(/* error.FailureReason */);
+                }
+            }
+
+            public unsafe void UnlockForConfiguration()
+            {
+                LibObjC.SendNoResult(
+                    Handle,
+                    LibObjC.GetSelector("unlockForConfiguration:"));
             }
 
             public static AVCaptureDevice? DeviceWithUniqueID(string deviceUniqueID)
