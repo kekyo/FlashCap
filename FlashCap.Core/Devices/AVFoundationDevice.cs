@@ -1,8 +1,14 @@
 using System;
+using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using FlashCap.Internal;
+using static FlashCap.Internal.NativeMethods;
 using static FlashCap.Internal.NativeMethods_AVFoundation.LibAVFoundation;
 using static FlashCap.Internal.NativeMethods_AVFoundation.LibC;
+using static FlashCap.Internal.NativeMethods_AVFoundation.LibCoreMedia;
+using static FlashCap.Internal.NativeMethods_AVFoundation.LibCoreVideo;
 
 namespace FlashCap.Devices;
 
@@ -15,7 +21,9 @@ public sealed class AVFoundationDevice : CaptureDevice
     private AVCaptureVideoDataOutput? deviceOutput;
     private AVCaptureSession? session;
     private FrameProcessor? frameProcessor;
+    private IntPtr bitmapHeader;
     private bool transcodeIfYUV;
+    private int frameIndex;
 
     public AVFoundationDevice(string uniqueID, string modelID) :
         base(uniqueID, modelID)
@@ -30,6 +38,8 @@ public sealed class AVFoundationDevice : CaptureDevice
         this.deviceOutput?.Dispose();
         this.session?.Dispose();
 
+        Marshal.FreeHGlobal(this.bitmapHeader);
+
         if (frameProcessor is { })
         {
             await frameProcessor.DisposeAsync().ConfigureAwait(false);
@@ -38,24 +48,39 @@ public sealed class AVFoundationDevice : CaptureDevice
         await base.OnDisposeAsync().ConfigureAwait(false);
     }
 
-    protected override async Task OnInitializeAsync(VideoCharacteristics characteristics, bool transcodeIfYUV, FrameProcessor frameProcessor, CancellationToken ct)
+    protected override Task OnInitializeAsync(VideoCharacteristics characteristics, bool transcodeIfYUV, FrameProcessor frameProcessor, CancellationToken ct)
     {
         this.frameProcessor = frameProcessor;
         this.transcodeIfYUV = transcodeIfYUV;
+        this.Characteristics = characteristics;
 
-        const string MediaType = "Video";
-
-        if (AVCaptureDevice.GetAuthorizationStatus(MediaType) != AVAuthorizationStatus.Authorized)
+        if (!NativeMethods.GetCompressionAndBitCount(characteristics.PixelFormat, out var compression, out var bitCount))
         {
-            var tcs = new TaskCompletionSource<bool>();
+            throw new ArgumentException(
+                $"FlashCap: Couldn't set video format: UniqueID={this.uniqueID}");
+        }
 
-            AVCaptureDevice.RequestAccessForMediaType(MediaType, authorized => tcs.SetResult(authorized));
+        this.bitmapHeader = NativeMethods.AllocateMemory(new IntPtr(Marshal.SizeOf<BITMAPINFOHEADER>()));
 
-            if (!await tcs.Task)
+        try
+        {
+            unsafe
             {
-                throw new InvalidOperationException(
-                    $"FlashCap: Couldn't authorize: UniqueId={this.uniqueID}");
+                var pBih = (BITMAPINFOHEADER*)this.bitmapHeader.ToPointer();
+
+                pBih->biSize = sizeof(NativeMethods.BITMAPINFOHEADER);
+                pBih->biCompression = compression;
+                pBih->biPlanes = 1;
+                pBih->biBitCount = bitCount;
+                pBih->biWidth = characteristics.Width;
+                pBih->biHeight = characteristics.Height;
+                pBih->biSizeImage = pBih->CalculateImageSize();
             }
+        }
+        catch
+        {
+            NativeMethods.FreeMemory(this.bitmapHeader);
+            throw;
         }
 
         this.device = AVCaptureDevice.DeviceWithUniqueID(uniqueID);
@@ -66,6 +91,23 @@ public sealed class AVFoundationDevice : CaptureDevice
                 $"FlashCap: Couldn't find device: UniqueID={this.uniqueID}");
         }
 
+        this.device.LockForConfiguration();
+        this.device.ActiveFormat = this.device.Formats
+            .FirstOrDefault(format =>
+                format.FormatDescription.Dimensions is var dimensions &&
+                dimensions.Width == characteristics.Width &&
+                dimensions.Height == characteristics.Height)
+            ?? throw new InvalidOperationException(
+                $"FlashCap: Couldn't set video format: UniqueID={this.uniqueID}");
+
+        var frameDuration = CMTimeMake(
+            characteristics.FramesPerSecond.Numerator,
+            characteristics.FramesPerSecond.Denominator);
+
+        this.device.ActiveVideoMinFrameDuration = frameDuration;
+        this.device.ActiveVideoMaxFrameDuration = frameDuration;
+        this.device.UnlockForConfiguration();
+
         this.deviceInput = new AVCaptureDeviceInput(this.device);
         this.deviceOutput = new AVCaptureVideoDataOutput();
         this.deviceOutput.SetSampleBufferDelegate(
@@ -75,6 +117,8 @@ public sealed class AVFoundationDevice : CaptureDevice
         this.session = new AVCaptureSession();
         this.session.AddInput(this.deviceInput);
         this.session.AddOutput(this.deviceOutput);
+
+        return Task.CompletedTask;
     }
 
     protected override Task OnStartAsync(CancellationToken ct)
@@ -91,12 +135,13 @@ public sealed class AVFoundationDevice : CaptureDevice
 
     protected override void OnCapture(IntPtr pData, int size, long timestampMicroseconds, long frameIndex, PixelBuffer buffer)
     {
-        buffer.CopyIn(/* this.pBih */ default, pData, size, timestampMicroseconds, frameIndex, this.transcodeIfYUV);
+        buffer.CopyIn(this.bitmapHeader, pData, size, timestampMicroseconds, frameIndex, this.transcodeIfYUV);
     }
 
     private sealed class VideoBufferHandler : AVCaptureVideoDataOutputSampleBuffer
     {
-        private AVFoundationDevice device;
+        private readonly AVFoundationDevice device;
+        private int frameIndex;
 
         public VideoBufferHandler(AVFoundationDevice device)
         {
@@ -109,7 +154,25 @@ public sealed class AVFoundationDevice : CaptureDevice
 
         public override void DidOutputSampleBuffer(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection)
         {
-            this.device.frameProcessor?.OnFrameArrived(this.device, default, default, default, default);
+            var pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+            var timeStamp = CMSampleBufferGetDecodeTimeStamp(sampleBuffer);
+            var seconds = CMTimeGetSeconds(timeStamp);
+            
+            CVPixelBufferLockBaseAddress(pixelBuffer, CVPixelBufferLockFlags.ReadOnly);
+
+            try
+            {
+                this.device.frameProcessor?.OnFrameArrived(
+                    this.device,
+                    CVPixelBufferGetBaseAddress(pixelBuffer),
+                    (int)CVPixelBufferGetDataSize(pixelBuffer),
+                    (long)(seconds * 1000),
+                    this.frameIndex++);
+            }
+            finally
+            {
+                CVPixelBufferUnlockBaseAddress(pixelBuffer, CVPixelBufferLockFlags.ReadOnly);
+            }
         }
     }
 }
