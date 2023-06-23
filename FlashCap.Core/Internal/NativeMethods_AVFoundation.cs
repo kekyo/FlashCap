@@ -89,19 +89,19 @@ internal static class NativeMethods_AVFoundation
     public static class LibC
     {
         public const string Path = "/usr/lib/libc.dylib";
-        
+
         [DllImport(Path, EntryPoint = "dispatch_get_global_queue")]
-		public extern static IntPtr GetGlobalQueue(IntPtr identifier, IntPtr flags);
+        public extern static IntPtr GetGlobalQueue(IntPtr identifier, IntPtr flags);
 
         public static class DispatchQualityOfService
         {
-    		public const nint UserInteractive = 0x21;
-    		public const nint UserInitiated = 0x19;
-    		public const nint Default = 0x15;
-    		public const nint Utility = 0x11;
-    		public const nint Background = 0x09;
-    		public const nint Unspecified = 0x00;
-    	}
+            public const nint UserInteractive = 0x21;
+            public const nint UserInitiated = 0x19;
+            public const nint Default = 0x15;
+            public const nint Utility = 0x11;
+            public const nint Background = 0x09;
+            public const nint Unspecified = 0x00;
+        }
     }
 
     public static class LibObjC
@@ -117,7 +117,7 @@ internal static class NativeMethods_AVFoundation
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
         public static extern void SendNoResult(IntPtr receiver, IntPtr selector, IntPtr arg1);
-        
+
         [DllImport(Path, EntryPoint = "objc_msgSend")]
         public static extern void SendNoResult(IntPtr receiver, IntPtr selector, LibCoreMedia.CMTime arg1);
 
@@ -165,15 +165,15 @@ internal static class NativeMethods_AVFoundation
 
         [DllImport(Path, EntryPoint = "class_addMethod")]
         [return: MarshalAs(UnmanagedType.U1)]
-		public static extern bool AddMethod(IntPtr cls, IntPtr name, IntPtr imp, string types);
+        public static extern bool AddMethod(IntPtr cls, IntPtr name, IntPtr imp, string types);
 
         [DllImport(Path, EntryPoint = "class_addIvar")]
         [return: MarshalAs(UnmanagedType.U1)]
         public static extern void AddVariable(IntPtr cls, string name, IntPtr size, byte alignment, string types);
-        
+
         [DllImport(Path, EntryPoint = "class_addProtocol")]
         [return: MarshalAs(UnmanagedType.U1)]
-		public static extern bool AddProtocol(IntPtr cls, IntPtr protocol);
+        public static extern bool AddProtocol(IntPtr cls, IntPtr protocol);
 
         [DllImport(Path, EntryPoint = "class_getInstanceVariable")]
         public static extern IntPtr GetVariable(IntPtr cls, string name);
@@ -422,9 +422,9 @@ internal static class NativeMethods_AVFoundation
 
         [DllImport(Path)]
         public static extern void CFRetain(IntPtr cf);
-        
+
         [DllImport(Path)]
-		public static extern IntPtr CFArrayCreate(IntPtr allocator, IntPtr values, nint numValues, IntPtr callBacks);
+        public static extern IntPtr CFArrayCreate(IntPtr allocator, IntPtr values, nint numValues, IntPtr callBacks);
 
         [DllImport(Path)]
         public static extern IntPtr CFArrayGetCount(IntPtr theArray);
@@ -491,12 +491,12 @@ internal static class NativeMethods_AVFoundation
 
             public static unsafe CFArray Create(IntPtr[] items)
             {
-    			fixed (IntPtr* pointer = items)
+                fixed (IntPtr* pointer = items)
                 {
-				    return new CFArray(CFArrayCreate(IntPtr.Zero, new IntPtr(pointer), items.Length, kCFTypeArrayCallbacks));
+                    return new CFArray(CFArrayCreate(IntPtr.Zero, new IntPtr(pointer), items.Length, kCFTypeArrayCallbacks));
                 }
             }
-            
+
             public static unsafe T[] ToArray<T>(IntPtr handle, Func<IntPtr, T> constructor)
             {
                 var count = CFArrayGetCount(handle).ToInt32();
@@ -745,7 +745,7 @@ internal static class NativeMethods_AVFoundation
     public static class LibAVFoundation
     {
         public const string Path = "/System/Library/Frameworks/AVFoundation.framework/AVFoundation";
-        
+
         public static readonly IntPtr Handle = Dlfcn.OpenLibrary(Path, Dlfcn.Mode.None);
 
         public delegate void AVRequestAccessStatus(bool accessGranted);
@@ -1032,10 +1032,10 @@ internal static class NativeMethods_AVFoundation
 
         public enum AVCaptureDevicePosition : long
         {
-    		Unspecified = 0,
-    		Back = 1,
-    		Front = 2,
-    	}
+            Unspecified = 0,
+            Back = 1,
+            Front = 2,
+        }
 
         public static class AVCaptureDeviceType
         {
@@ -1050,7 +1050,7 @@ internal static class NativeMethods_AVFoundation
                 ? Marshal.ReadIntPtr(handle)
                 : IntPtr.Zero;
         }
-        
+
         public abstract class AVCaptureInput : LibObjC.NSObject
         {
             protected AVCaptureInput(IntPtr handle, bool retain) :
@@ -1151,7 +1151,7 @@ internal static class NativeMethods_AVFoundation
         {
             private const string HandleVariableName = nameof(GCHandle);
             private static IntPtr HandleVariableDescriptor;
-            
+
             static AVCaptureVideoDataOutputSampleBuffer()
             {
                 var handle = LibObjC.AllocateClass(
@@ -1161,7 +1161,7 @@ internal static class NativeMethods_AVFoundation
 
                 var didDropSampleBuffer = new DidDropSampleBufferDelegate(DidDropSampleBufferTrampoline);
                 var didOutputSampleBuffer = new DidOutputSampleBufferDelegate(DidOutputSampleBufferTrampoline);
-                
+
                 LibObjC.AddMethod(
                     handle,
                     LibObjC.GetSelector("captureOutput:didDropSampleBuffer:fromConnection:"),
@@ -1209,7 +1209,7 @@ internal static class NativeMethods_AVFoundation
 
             public abstract void DidDropSampleBuffer(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection);
 
-    		public abstract void DidOutputSampleBuffer(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection);
+            public abstract void DidOutputSampleBuffer(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection);
 
             private delegate void DidDropSampleBufferDelegate(IntPtr self, IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection);
             private static void DidDropSampleBufferTrampoline(IntPtr self, IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection)
@@ -1266,12 +1266,12 @@ internal static class NativeMethods_AVFoundation
                     LibObjC.GetSelector("addOutput:"),
                     output.Handle);
 
-    		public void StartRunning() =>
+            public void StartRunning() =>
                 LibObjC.SendNoResult(
                     Handle,
                     LibObjC.GetSelector("startRunning"));
 
-    		public void StopRunning() =>
+            public void StopRunning() =>
                 LibObjC.SendNoResult(
                     Handle,
                     LibObjC.GetSelector("stopRunning"));

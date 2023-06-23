@@ -39,7 +39,7 @@ public sealed class AVFoundationDevices : CaptureDevices
                     from supported in temp.Select(format => format.Key).DefaultIfEmpty(PixelFormats.Unknown)
                     select new KeyValuePair<PixelFormats, string>(supported, GetFourCCName(available)))
                     .ToArray();
- 
+
                 return new AVFoundationDeviceDescriptor(
                     device.UniqueID,
                     device.ModelID,
@@ -62,7 +62,7 @@ public sealed class AVFoundationDevices : CaptureDevices
                                 .OrderByDescending(fps => fps)
                                 .SelectMany(fps =>
                                     availablePixelFormats.Select(
-                                        format =>new VideoCharacteristics(format.Key, dimensions.Width, dimensions.Height, fps, format.Value, isDiscrete: true, format.Value)));
+                                        format => new VideoCharacteristics(format.Key, dimensions.Width, dimensions.Height, fps, format.Value, isDiscrete: true, format.Value)));
                         })
                         .ToArray());
             });
