@@ -53,7 +53,8 @@ public sealed class AVFoundationDevice : CaptureDevice
         this.transcodeIfYUV = transcodeIfYUV;
         this.Characteristics = characteristics;
 
-        if (!NativeMethods.GetCompressionAndBitCount(characteristics.PixelFormat, out var compression, out var bitCount))
+        if (!NativeMethods_AVFoundation.PixelFormatMap.TryGetValue(characteristics.PixelFormat, out var pixelFormatType) ||
+            !NativeMethods.GetCompressionAndBitCount(characteristics.PixelFormat, out var compression, out var bitCount))
         {
             throw new ArgumentException(
                 $"FlashCap: Couldn't set video format: UniqueID={this.uniqueID}");
@@ -109,6 +110,7 @@ public sealed class AVFoundationDevice : CaptureDevice
 
         this.deviceInput = new AVCaptureDeviceInput(this.device);
         this.deviceOutput = new AVCaptureVideoDataOutput();
+        this.deviceOutput.SetPixelFormatType(pixelFormatType);
         this.deviceOutput.SetSampleBufferDelegate(
             new VideoBufferHandler(this),
             GetGlobalQueue(DispatchQualityOfService.Background, flags: default));
@@ -157,7 +159,7 @@ public sealed class AVFoundationDevice : CaptureDevice
             var timeStamp = CMSampleBufferGetDecodeTimeStamp(sampleBuffer);
             var seconds = CMTimeGetSeconds(timeStamp);
             
-            CVPixelBufferLockBaseAddress(pixelBuffer, CVPixelBufferLockFlags.ReadOnly);
+            CVPixelBufferLockBaseAddress(pixelBuffer, PixelBufferLockFlags.ReadOnly);
 
             try
             {
@@ -170,7 +172,7 @@ public sealed class AVFoundationDevice : CaptureDevice
             }
             finally
             {
-                CVPixelBufferUnlockBaseAddress(pixelBuffer, CVPixelBufferLockFlags.ReadOnly);
+                CVPixelBufferUnlockBaseAddress(pixelBuffer, PixelBufferLockFlags.ReadOnly);
             }
         }
     }

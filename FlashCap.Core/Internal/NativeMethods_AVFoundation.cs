@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -9,6 +10,14 @@ namespace FlashCap.Internal;
 
 internal static class NativeMethods_AVFoundation
 {
+    public static readonly Dictionary<PixelFormats, int> PixelFormatMap = new()
+    {
+        [PixelFormats.RGB16] = LibCoreVideo.PixelFormatType_24RGB,
+        [PixelFormats.RGB32] = LibCoreVideo.PixelFormatType_30RGB,
+        [PixelFormats.ARGB32] = LibCoreVideo.PixelFormatType_32ARGB,
+        [PixelFormats.YUYV] = LibCoreVideo.PixelFormatType_422YpCbCr8,
+    };
+
     public static class Dlfcn
     {
         [DllImport(LibSystem.Path, EntryPoint = "dlopen")]
@@ -405,33 +414,45 @@ internal static class NativeMethods_AVFoundation
 
         public static readonly IntPtr Handle = Dlfcn.OpenLibrary(Path, Dlfcn.Mode.None);
         public static readonly IntPtr kCFTypeArrayCallbacks = Dlfcn.GetSymbol(Handle, "kCFTypeArrayCallBacks");
+        public static readonly IntPtr kCFCopyStringDictionaryKeyCallBacks = Dlfcn.GetSymbol(Handle, "kCFCopyStringDictionaryKeyCallBacks");
+        public static readonly IntPtr kCFTypeDictionaryValueCallBacks = Dlfcn.GetSymbol(Handle, "kCFTypeDictionaryValueCallBacks");
 
         [DllImport(Path)]
-        public extern static void CFRelease(IntPtr cf);
+        public static extern void CFRelease(IntPtr cf);
 
         [DllImport(Path)]
-        public extern static void CFRetain(IntPtr cf);
+        public static extern void CFRetain(IntPtr cf);
         
         [DllImport(Path)]
-		public extern static IntPtr CFArrayCreate(IntPtr allocator, IntPtr values, nint numValues, IntPtr callBacks);
+		public static extern IntPtr CFArrayCreate(IntPtr allocator, IntPtr values, nint numValues, IntPtr callBacks);
 
         [DllImport(Path)]
-        public extern static IntPtr CFArrayGetCount(IntPtr theArray);
+        public static extern IntPtr CFArrayGetCount(IntPtr theArray);
 
         [DllImport(Path)]
-        public extern static void CFArrayGetValues(IntPtr theArray, CFRange range, IntPtr values);
+        public static extern void CFArrayGetValues(IntPtr theArray, CFRange range, IntPtr values);
 
         [DllImport(Path)]
-        public extern static IntPtr CFStringGetLength(IntPtr theString);
+        public static extern IntPtr CFStringGetLength(IntPtr theString);
 
         [DllImport(Path)]
-        public extern static unsafe char* CFStringGetCharactersPtr(IntPtr theString);
+        public static extern unsafe char* CFStringGetCharactersPtr(IntPtr theString);
 
         [DllImport(Path)]
-        public extern static unsafe void CFStringGetCharacters(IntPtr theString, CFRange range, char* buffer);
+        public static extern unsafe void CFStringGetCharacters(IntPtr theString, CFRange range, char* buffer);
 
         [DllImport(Path)]
-        public extern static unsafe IntPtr CFStringCreateWithCharacters(IntPtr allocator, char* str, nint count);
+        public static extern unsafe IntPtr CFStringCreateWithCharacters(IntPtr allocator, char* str, nint count);
+
+        [DllImport(Path)]
+        public static extern unsafe IntPtr CFNumberCreate(IntPtr allocator, CFNumberType theType, void* valuePtr);
+
+        [DllImport(Path)]
+        [return: MarshalAs(UnmanagedType.U1)]
+        public static extern unsafe bool CFNumberGetValue(IntPtr number, CFNumberType theType, void* valuePtr);
+
+        [DllImport(Path)]
+        public static extern unsafe IntPtr CFDictionaryCreate(IntPtr allocator, void* keys, void* values, nint numValues, IntPtr keyCallBacks, IntPtr valueCallBacks);
 
         [StructLayout(LayoutKind.Sequential)]
         public struct CFRange
@@ -551,6 +572,10 @@ internal static class NativeMethods_AVFoundation
             }
         }
 
+        public enum CFNumberType
+        {
+            sInt32Type = 3
+        }
     }
 
     public static class LibCoreMedia
@@ -647,6 +672,9 @@ internal static class NativeMethods_AVFoundation
     {
         public const string Path = "/System/Library/Frameworks/CoreMedia.framework/CoreMedia";
 
+        public static readonly IntPtr Handle = Dlfcn.OpenLibrary(Path, Dlfcn.Mode.None);
+        public static readonly IntPtr kCVPixelBufferPixelFormatTypeKey = Dlfcn.GetSymbol(Handle, "kCVPixelBufferPixelFormatTypeKey");
+
         [DllImport(Path)]
         public static extern nuint CVPixelBufferGetDataSize(IntPtr pixelBuffer);
 
@@ -657,16 +685,61 @@ internal static class NativeMethods_AVFoundation
         public static extern IntPtr CVPixelBufferGetBaseAddress(IntPtr pixelBuffer);
 
         [DllImport(Path)]
-        public static extern int CVPixelBufferLockBaseAddress(IntPtr pixelBuffer, CVPixelBufferLockFlags lockFlags);
+        public static extern int CVPixelBufferLockBaseAddress(IntPtr pixelBuffer, PixelBufferLockFlags lockFlags);
 
         [DllImport(Path)]
-        public static extern int CVPixelBufferUnlockBaseAddress(IntPtr pixelBuffer, CVPixelBufferLockFlags lockFlags);
+        public static extern int CVPixelBufferUnlockBaseAddress(IntPtr pixelBuffer, PixelBufferLockFlags lockFlags);
 
-        public enum CVPixelBufferLockFlags : long
+        public enum PixelBufferLockFlags : long
         {
             None,
             ReadOnly = 1,
         }
+
+        public static readonly int PixelFormatType_16BE555 = 0x00000010;
+        public static readonly int PixelFormatType_16LE555 = GetFourCC("L555");
+        public static readonly int PixelFormatType_16LE5551 = GetFourCC("5551");
+        public static readonly int PixelFormatType_16BE565 = GetFourCC("B565");
+        public static readonly int PixelFormatType_16LE565 = GetFourCC("L565");
+        public static readonly int PixelFormatType_24RGB = 0x00000018;
+        public static readonly int PixelFormatType_24BGR = GetFourCC("24BG");
+        public static readonly int PixelFormatType_32ARGB = 0x00000020;
+        public static readonly int PixelFormatType_32ABGR = GetFourCC("ABGR");
+        public static readonly int PixelFormatType_32RGBA = GetFourCC("RGBA");
+        public static readonly int PixelFormatType_64ARGB = GetFourCC("b64a");
+        public static readonly int PixelFormatType_48RGB = GetFourCC("b48r");
+        public static readonly int PixelFormatType_32AlphaGray = GetFourCC("b32a");
+        public static readonly int PixelFormatType_16Gray = GetFourCC("b16g");
+        public static readonly int PixelFormatType_30RGB = GetFourCC("R10k");
+        public static readonly int PixelFormatType_422YpCbCr8 = GetFourCC("2vuy");
+        public static readonly int PixelFormatType_4444YpCbCrA8 = GetFourCC("v408");
+        public static readonly int PixelFormatType_4444YpCbCrA8R = GetFourCC("r408");
+        public static readonly int PixelFormatType_4444AYpCbCr8 = GetFourCC("y408");
+        public static readonly int PixelFormatType_4444AYpCbCr16 = GetFourCC("y416");
+        public static readonly int PixelFormatType_444YpCbCr8 = GetFourCC("v308");
+        public static readonly int PixelFormatType_422YpCbCr16 = GetFourCC("v216");
+        public static readonly int PixelFormatType_422YpCbCr10 = GetFourCC("v210");
+        public static readonly int PixelFormatType_444YpCbCr10 = GetFourCC("v410");
+        public static readonly int PixelFormatType_422YpCbCr8_yuvs = GetFourCC("yuvs");
+        public static readonly int PixelFormatType_422YpCbCr8FullRange = GetFourCC("yuvf");
+
+        public static unsafe string GetFourCCName(int value)
+        {
+            var buffer = stackalloc char[4];
+
+            buffer[0] = (char)(byte)(value >> 24);
+            buffer[1] = (char)(byte)(value >> 16);
+            buffer[2] = (char)(byte)(value >> 8);
+            buffer[3] = (char)(byte)value;
+
+            return new string(buffer);
+        }
+
+        private static int GetFourCC(string s) =>
+            s[0] << 24 |
+            s[1] << 16 |
+            s[2] << 8 |
+            s[3];
     }
 
     public static class LibAVFoundation
@@ -1030,12 +1103,41 @@ internal static class NativeMethods_AVFoundation
                     LibObjC.GetSelector("init"));
             }
 
-            public IntPtr[] AvailableVideoCVPixelFormatTypes =>
+            public unsafe int[] AvailableVideoCVPixelFormatTypes =>
                 LibCoreFoundation.CFArray.ToArray(
                     LibObjC.SendAndGetHandle(
                         Handle,
                         LibObjC.GetSelector("availableVideoCVPixelFormatTypes")),
-                    static handle => handle);
+                    static handle =>
+                    {
+                        int value;
+                        if (LibCoreFoundation.CFNumberGetValue(handle, LibCoreFoundation.CFNumberType.sInt32Type, &value))
+                            return value;
+                        throw new InvalidOperationException("The value contained by CFNumber cannot be read as 32-bit signed integer.");
+                    });
+
+            public unsafe void SetPixelFormatType(int format)
+            {
+                var number = LibCoreFoundation.CFNumberCreate(IntPtr.Zero, LibCoreFoundation.CFNumberType.sInt32Type, &format);
+                var keys = stackalloc IntPtr[] { LibCoreVideo.kCVPixelBufferPixelFormatTypeKey };
+                var values = stackalloc IntPtr[] { number };
+
+                var dictionary = LibCoreFoundation.CFDictionaryCreate(
+                    IntPtr.Zero,
+                    &keys,
+                    &values,
+                    numValues: 1,
+                    LibCoreFoundation.kCFCopyStringDictionaryKeyCallBacks,
+                    LibCoreFoundation.kCFTypeDictionaryValueCallBacks);
+
+                LibObjC.SendNoResult(
+                    Handle,
+                    LibObjC.GetSelector("setVideoSettings:"),
+                    dictionary);
+
+                LibCoreFoundation.CFRelease(dictionary);
+                LibCoreFoundation.CFRelease(number);
+            }
 
             public void SetSampleBufferDelegate(AVCaptureVideoDataOutputSampleBuffer sampleBufferDelegate, IntPtr sampleBufferCallbackQueue) =>
                 LibObjC.SendNoResult(
