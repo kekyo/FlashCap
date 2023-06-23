@@ -397,8 +397,14 @@ internal static class NativeMethods_AVFoundation
     {
         public const string Path = "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation";
 
+        public static readonly IntPtr Handle = Dlfcn.OpenLibrary(Path, Dlfcn.Mode.None);
+        public static readonly IntPtr kCFTypeArrayCallbacks = Dlfcn.GetSymbol(Handle, "kCFTypeArrayCallBacks");
+
         [DllImport(Path)]
         public extern static void CFRelease(IntPtr cf);
+        
+        [DllImport(Path)]
+		public extern static IntPtr CFArrayCreate(IntPtr allocator, IntPtr values, nint numValues, IntPtr callBacks);
 
         [DllImport(Path)]
         public extern static IntPtr CFArrayGetCount(IntPtr theArray);
@@ -440,18 +446,30 @@ internal static class NativeMethods_AVFoundation
                 if (Handle == IntPtr.Zero)
                     return;
 
-                LibCoreFoundation.CFRelease(Handle);
+                CFRelease(Handle);
 
                 Handle = IntPtr.Zero;
             }
         }
 
         // https://github.com/opensource-apple/CF/blob/master/CFArray.c
-        public static class CFArray
+        public sealed class CFArray : CFObject
         {
+            public CFArray(IntPtr handle) :
+                base(handle)
+            { }
+
+            public static unsafe CFArray Create(IntPtr[] items)
+            {
+    			fixed (IntPtr* pointer = items)
+                {
+				    return new CFArray(CFArrayCreate(IntPtr.Zero, new IntPtr(pointer), items.Length, kCFTypeArrayCallbacks));
+                }
+            }
+            
             public static unsafe T[] ToArray<T>(IntPtr handle, Func<IntPtr, T> constructor)
             {
-                var count = LibCoreFoundation.CFArrayGetCount(handle).ToInt32();
+                var count = CFArrayGetCount(handle).ToInt32();
                 if (count == 0)
                     return Array.Empty<T>();
 
@@ -460,7 +478,7 @@ internal static class NativeMethods_AVFoundation
                 unsafe
                 {
                     fixed (void* ptr = buffer)
-                        LibCoreFoundation.CFArrayGetValues(handle, new CFRange(location: 0, count), new IntPtr(ptr));
+                        CFArrayGetValues(handle, new CFRange(location: 0, count), new IntPtr(ptr));
                 }
 
                 var array = new T[count];
@@ -690,7 +708,7 @@ internal static class NativeMethods_AVFoundation
 
         public sealed class AVCaptureDevice : LibObjC.NSObject
         {
-            private AVCaptureDevice(IntPtr handle) :
+            public AVCaptureDevice(IntPtr handle) :
                 base(handle)
             { }
 
@@ -836,17 +854,6 @@ internal static class NativeMethods_AVFoundation
                 return handle == IntPtr.Zero ? null : new AVCaptureDevice(handle);
             }
 
-            public static AVCaptureDevice? GetDefaultDevice(string mediaType)
-            {
-                using var nativeMediaType = LibCoreFoundation.CFString.Create(mediaType);
-                var handle = LibObjC.SendAndGetHandle(
-                    LibObjC.GetClass(nameof(AVCaptureDevice)),
-                    LibObjC.GetSelector("defaultDeviceWithMediaType:"),
-                    nativeMediaType.Handle);
-
-                return handle == IntPtr.Zero ? null : new AVCaptureDevice(handle);
-            }
-
             public static AVAuthorizationStatus GetAuthorizationStatus(string mediaType)
             {
                 using var nativeMediaType = LibCoreFoundation.CFString.Create(mediaType);
@@ -880,6 +887,47 @@ internal static class NativeMethods_AVFoundation
             }
         }
 
+        public sealed class AVCaptureDeviceDiscoverySession : LibObjC.NSObject
+        {
+            public AVCaptureDeviceDiscoverySession(IntPtr handle) :
+                base(handle)
+            { }
+
+            public AVCaptureDevice[] Devices =>
+                LibCoreFoundation.CFArray.ToArray(
+                    LibObjC.SendAndGetHandle(
+                        LibObjC.GetClass(nameof(AVCaptureDeviceDiscoverySession)),
+                        LibObjC.GetSelector("devices")),
+                    static handle => new AVCaptureDevice(handle));
+
+            public static AVCaptureDeviceDiscoverySession DiscoverySessionWithVideoDevices()
+            {
+                var deviceTypes = new[]
+                {
+                    AVCaptureDeviceType.BuiltInWideAngleCamera,
+                    AVCaptureDeviceType.BuiltInTelephotoCamera,
+                    AVCaptureDeviceType.BuiltInDualCamera,
+                    AVCaptureDeviceType.BuiltInTripleCamera,
+                    AVCaptureDeviceType.BuiltInTrueDepthCamera
+                }
+                    .Where(static handle => handle != IntPtr.Zero)
+                    .ToArray();
+
+                using var deviceTypesArray = LibCoreFoundation.CFArray.Create(deviceTypes);
+
+                var mediaType = AVMediaType.Video;
+                var position = (long)AVCaptureDevicePosition.Unspecified;
+
+                return new AVCaptureDeviceDiscoverySession(
+                    LibObjC.SendAndGetHandle(
+                        LibObjC.GetClass(nameof(AVCaptureDeviceDiscoverySession)),
+                        LibObjC.GetSelector("discoverySessionWithDeviceTypes:mediaType:position:"),
+                        deviceTypesArray.Handle,
+                        mediaType,
+                        position));
+            }
+        }
+
         public sealed class AVCaptureDeviceFormat : LibObjC.NSObject
         {
             public AVCaptureDeviceFormat(IntPtr handle) :
@@ -899,6 +947,27 @@ internal static class NativeMethods_AVFoundation
                         LibObjC.GetSelector("videoSupportedFrameRateRanges")));
         }
 
+        public enum AVCaptureDevicePosition : long
+        {
+    		Unspecified = 0,
+    		Back = 1,
+    		Front = 2,
+    	}
+
+        public static class AVCaptureDeviceType
+        {
+            public static readonly IntPtr BuiltInWideAngleCamera = GetConstant("AVCaptureDeviceTypeBuiltInWideAngleCamera");
+            public static readonly IntPtr BuiltInTelephotoCamera = GetConstant("AVCaptureDeviceTypeBuiltInTelephotoCamera");
+            public static readonly IntPtr BuiltInDualCamera = GetConstant("AVCaptureDeviceTypeBuiltInDualCamera");
+            public static readonly IntPtr BuiltInTripleCamera = GetConstant("AVCaptureDeviceTypeBuiltInTripleCamera");
+            public static readonly IntPtr BuiltInTrueDepthCamera = GetConstant("AVCaptureDeviceTypeBuiltInTrueDepthCamera");
+
+            private static IntPtr GetConstant(string name) =>
+                Dlfcn.GetSymbol(LibAVFoundation.Handle, name) is var handle && handle != IntPtr.Zero
+                ? Marshal.ReadIntPtr(handle)
+                : IntPtr.Zero;
+        }
+        
         public abstract class AVCaptureInput : LibObjC.NSObject
         {
             protected AVCaptureInput(IntPtr handle) :
@@ -1092,6 +1161,14 @@ internal static class NativeMethods_AVFoundation
             Restricted,
             Denied,
             Authorized
+        }
+
+        public static class AVMediaType
+        {
+            public static readonly IntPtr Video =
+                Dlfcn.GetSymbol(LibAVFoundation.Handle, "AVMediaTypeVideo") is var handle && handle != IntPtr.Zero
+                ? Marshal.ReadIntPtr(handle)
+                : IntPtr.Zero;
         }
     }
 
