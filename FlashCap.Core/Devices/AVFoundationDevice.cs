@@ -23,7 +23,6 @@ public sealed class AVFoundationDevice : CaptureDevice
     private FrameProcessor? frameProcessor;
     private IntPtr bitmapHeader;
     private bool transcodeIfYUV;
-    private int frameIndex;
 
     public AVFoundationDevice(string uniqueID, string modelID) :
         base(uniqueID, modelID)

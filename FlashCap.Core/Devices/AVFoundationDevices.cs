@@ -19,11 +19,9 @@ public sealed class AVFoundationDevices : CaptureDevices
 {
     protected override IEnumerable<CaptureDeviceDescriptor> OnEnumerateDescriptors()
     {
-        using var device = AVCaptureDevice.GetDefaultDevice("Video");
-        return device is null
-            ? Enumerable.Empty<AVFoundationDeviceDescriptor>()
-            : new[]
-            {
+        using var discovery = AVCaptureDeviceDiscoverySession.DiscoverySessionWithVideoDevices();;
+        return discovery.Devices
+            .Select(static device =>
                 new AVFoundationDeviceDescriptor(
                     device.UniqueID,
                     device.ModelID,
@@ -46,7 +44,6 @@ public sealed class AVFoundationDevices : CaptureDevices
                                 .OrderByDescending(fps => fps)
                                 .Select(fps => new VideoCharacteristics(default, dimensions.Width, dimensions.Height, fps));
                         })
-                        .ToArray())
-            };
+                        .ToArray()));
     }
 }
