@@ -43,7 +43,7 @@ public sealed class AVFoundationDevice : CaptureDevice
         {
             await frameProcessor.DisposeAsync().ConfigureAwait(false);
         }
-        
+
         await base.OnDisposeAsync().ConfigureAwait(false);
     }
 
@@ -158,7 +158,7 @@ public sealed class AVFoundationDevice : CaptureDevice
             var pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
             var timeStamp = CMSampleBufferGetDecodeTimeStamp(sampleBuffer);
             var seconds = CMTimeGetSeconds(timeStamp);
-            
+
             CVPixelBufferLockBaseAddress(pixelBuffer, PixelBufferLockFlags.ReadOnly);
 
             try
