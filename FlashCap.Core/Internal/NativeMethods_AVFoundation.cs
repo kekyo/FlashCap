@@ -1019,6 +1019,13 @@ internal static class NativeMethods_AVFoundation
                     LibObjC.GetSelector("init"));
             }
 
+            public IntPtr[] AvailableVideoCVPixelFormatTypes =>
+                LibCoreFoundation.CFArray.ToArray(
+                    LibObjC.SendAndGetHandle(
+                        Handle,
+                        LibObjC.GetSelector("availableVideoCVPixelFormatTypes")),
+                    static handle => handle);
+
             public void SetSampleBufferDelegate(AVCaptureVideoDataOutputSampleBuffer sampleBufferDelegate, IntPtr sampleBufferCallbackQueue) =>
                 LibObjC.SendNoResult(
                     Handle,
