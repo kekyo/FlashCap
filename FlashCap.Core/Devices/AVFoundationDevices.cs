@@ -9,6 +9,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using FlashCap.Internal;
 using FlashCap.Utilities;
 using static FlashCap.Internal.NativeMethods_AVFoundation.LibAVFoundation;
@@ -20,6 +21,14 @@ public sealed class AVFoundationDevices : CaptureDevices
 {
     protected override IEnumerable<CaptureDeviceDescriptor> OnEnumerateDescriptors()
     {
+        if (AVCaptureDevice.GetAuthorizationStatus(AVMediaType.Video) != AVAuthorizationStatus.Authorized)
+        {
+            TaskCompletionSource<bool> tcs = new();
+            AVCaptureDevice.RequestAccessForMediaType(AVMediaType.Video, status => tcs.SetResult(status));
+
+            tcs.Task.GetAwaiter().GetResult();
+        }
+
         using var discovery = AVCaptureDeviceDiscoverySession.DiscoverySessionWithVideoDevices();
         return discovery.Devices
             .Select(static device =>
