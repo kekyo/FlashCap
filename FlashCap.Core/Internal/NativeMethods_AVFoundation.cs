@@ -25,6 +25,11 @@ internal static class NativeMethods_AVFoundation
 
         [DllImport(LibSystem.Path, EntryPoint = "dlsym")]
         public static extern IntPtr GetSymbol(IntPtr handle, string symbol);
+        
+        public static IntPtr GetSymbolIndirect(IntPtr handle, string symbol) =>
+            GetSymbol(LibAVFoundation.Handle, symbol) is var indirect && indirect != IntPtr.Zero
+                ? Marshal.ReadIntPtr(indirect)
+                : IntPtr.Zero;
 
         [Flags]
         public enum Mode : int
@@ -1039,16 +1044,11 @@ internal static class NativeMethods_AVFoundation
 
         public static class AVCaptureDeviceType
         {
-            public static readonly IntPtr BuiltInWideAngleCamera = GetConstant("AVCaptureDeviceTypeBuiltInWideAngleCamera");
-            public static readonly IntPtr BuiltInTelephotoCamera = GetConstant("AVCaptureDeviceTypeBuiltInTelephotoCamera");
-            public static readonly IntPtr BuiltInDualCamera = GetConstant("AVCaptureDeviceTypeBuiltInDualCamera");
-            public static readonly IntPtr BuiltInTripleCamera = GetConstant("AVCaptureDeviceTypeBuiltInTripleCamera");
-            public static readonly IntPtr BuiltInTrueDepthCamera = GetConstant("AVCaptureDeviceTypeBuiltInTrueDepthCamera");
-
-            private static IntPtr GetConstant(string name) =>
-                Dlfcn.GetSymbol(LibAVFoundation.Handle, name) is var handle && handle != IntPtr.Zero
-                ? Marshal.ReadIntPtr(handle)
-                : IntPtr.Zero;
+            public static readonly IntPtr BuiltInWideAngleCamera = Dlfcn.GetSymbolIndirect(LibAVFoundation.Handle, "AVCaptureDeviceTypeBuiltInWideAngleCamera");
+            public static readonly IntPtr BuiltInTelephotoCamera = Dlfcn.GetSymbolIndirect(LibAVFoundation.Handle, "AVCaptureDeviceTypeBuiltInTelephotoCamera");
+            public static readonly IntPtr BuiltInDualCamera = Dlfcn.GetSymbolIndirect(LibAVFoundation.Handle, "AVCaptureDeviceTypeBuiltInDualCamera");
+            public static readonly IntPtr BuiltInTripleCamera = Dlfcn.GetSymbolIndirect(LibAVFoundation.Handle, "AVCaptureDeviceTypeBuiltInTripleCamera");
+            public static readonly IntPtr BuiltInTrueDepthCamera = Dlfcn.GetSymbolIndirect(LibAVFoundation.Handle, "AVCaptureDeviceTypeBuiltInTrueDepthCamera");
         }
 
         public abstract class AVCaptureInput : LibObjC.NSObject
@@ -1287,10 +1287,7 @@ internal static class NativeMethods_AVFoundation
 
         public static class AVMediaType
         {
-            public static readonly IntPtr Video =
-                Dlfcn.GetSymbol(LibAVFoundation.Handle, "AVMediaTypeVideo") is var handle && handle != IntPtr.Zero
-                ? Marshal.ReadIntPtr(handle)
-                : IntPtr.Zero;
+            public static readonly IntPtr Video = Dlfcn.GetSymbolIndirect(LibAVFoundation.Handle, "AVMediaTypeVideo");
         }
     }
 
