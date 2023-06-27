@@ -306,7 +306,7 @@ internal static class NativeMethods_AVFoundation
             {
                 var context = GCHandle.FromIntPtr(src->ContextHandle);
 
-                dst->ContextHandle = (IntPtr)GCHandle.Alloc(context);
+                dst->ContextHandle = (IntPtr)GCHandle.Alloc(context.Target);
                 dst->Descriptor = src->Descriptor;
             }
 
