@@ -952,10 +952,11 @@ internal static class NativeMethods_AVFoundation
             }
 
             private static LibObjC.BlockLiteralFactory? RequestAccessForMediaTypeBlockFactory;
+            private delegate void RequestAccessForMediaTypeTrampoline(IntPtr block, byte accessGranted);
 
             public static unsafe void RequestAccessForMediaType(IntPtr mediaType, AVRequestAccessStatus completion)
             {
-                RequestAccessForMediaTypeBlockFactory ??= LibObjC.BlockLiteralFactory.CreateFactory(
+                RequestAccessForMediaTypeBlockFactory ??= LibObjC.BlockLiteralFactory.CreateFactory<RequestAccessForMediaTypeTrampoline>(
                     delegate (IntPtr block, byte accessGranted)
                     {
                         LibObjC.BlockLiteral
@@ -1227,7 +1228,6 @@ internal static class NativeMethods_AVFoundation
                 var obj = GCHandle.FromIntPtr(handle).Target as AVCaptureVideoDataOutputSampleBuffer;
 
                 obj?.DidOutputSampleBuffer(captureOutput, sampleBuffer, connection);
-
             }
 
             private delegate void DeallocDelegate(IntPtr self);
