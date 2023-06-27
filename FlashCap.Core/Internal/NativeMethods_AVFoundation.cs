@@ -983,7 +983,7 @@ internal static class NativeMethods_AVFoundation
             public AVCaptureDevice[] Devices =>
                 LibCoreFoundation.CFArray.ToArray(
                     LibObjC.SendAndGetHandle(
-                        LibObjC.GetClass(nameof(AVCaptureDeviceDiscoverySession)),
+                        Handle,
                         LibObjC.GetSelector("devices")),
                     static handle => new AVCaptureDevice(handle, retain: true));
 
