@@ -806,7 +806,7 @@ internal static class NativeMethods_AVFoundation
                     using var result = new LibCoreFoundation.CFString(
                         LibObjC.SendAndGetHandle(
                             Handle,
-                            LibObjC.GetSelector("uniqueID:")));
+                            LibObjC.GetSelector("uniqueID")));
 
                     return result.ToString() ?? throw new InvalidOperationException();
                 }
@@ -819,7 +819,7 @@ internal static class NativeMethods_AVFoundation
                     using var result = new LibCoreFoundation.CFString(
                         LibObjC.SendAndGetHandle(
                             Handle,
-                            LibObjC.GetSelector("modelID:")));
+                            LibObjC.GetSelector("modelID")));
 
                     return result.ToString() ?? throw new InvalidOperationException();
                 }
@@ -832,7 +832,7 @@ internal static class NativeMethods_AVFoundation
                     using var result = new LibCoreFoundation.CFString(
                         LibObjC.SendAndGetHandle(
                             Handle,
-                            LibObjC.GetSelector("localizedName:")));
+                            LibObjC.GetSelector("localizedName")));
 
                     return result.ToString() ?? throw new InvalidOperationException();
                 }
