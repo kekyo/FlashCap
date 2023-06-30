@@ -419,8 +419,8 @@ internal static class NativeMethods_AVFoundation
 
         public static readonly IntPtr Handle = Dlfcn.OpenLibrary(Path, Dlfcn.Mode.None);
         public static readonly IntPtr kCFTypeArrayCallbacks = Dlfcn.GetSymbol(Handle, "kCFTypeArrayCallBacks");
-        public static readonly IntPtr kCFCopyStringDictionaryKeyCallBacks = Dlfcn.GetSymbol(Handle, "kCFCopyStringDictionaryKeyCallBacks");
-        public static readonly IntPtr kCFTypeDictionaryValueCallBacks = Dlfcn.GetSymbol(Handle, "kCFTypeDictionaryValueCallBacks");
+        public static readonly IntPtr kCFCopyStringDictionaryKeyCallBacks = Dlfcn.GetSymbolIndirect(Handle, "kCFCopyStringDictionaryKeyCallBacks");
+        public static readonly IntPtr kCFTypeDictionaryValueCallBacks = Dlfcn.GetSymbolIndirect(Handle, "kCFTypeDictionaryValueCallBacks");
 
         [DllImport(Path)]
         public static extern void CFRelease(IntPtr cf);
