@@ -1031,12 +1031,12 @@ internal static class NativeMethods_AVFoundation
                         Handle,
                         LibObjC.GetSelector("formatDescription")));
 
-            public AVFrameRateRange VideoSupportedFrameRateRanges =>
-                new AVFrameRateRange(
+            public AVFrameRateRange[] VideoSupportedFrameRateRanges =>
+                LibCoreFoundation.CFArray.ToArray(
                     LibObjC.SendAndGetHandle(
                         Handle,
                         LibObjC.GetSelector("videoSupportedFrameRateRanges")),
-                    retain: true);
+                    static handle => new AVFrameRateRange(handle, retain: true));
         }
 
         public enum AVCaptureDevicePosition : long
