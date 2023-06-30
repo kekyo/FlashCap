@@ -678,7 +678,7 @@ internal static class NativeMethods_AVFoundation
         public const string Path = "/System/Library/Frameworks/CoreMedia.framework/CoreMedia";
 
         public static readonly IntPtr Handle = Dlfcn.OpenLibrary(Path, Dlfcn.Mode.None);
-        public static readonly IntPtr kCVPixelBufferPixelFormatTypeKey = Dlfcn.GetSymbol(Handle, "kCVPixelBufferPixelFormatTypeKey");
+        public static readonly IntPtr kCVPixelBufferPixelFormatTypeKey = Dlfcn.GetSymbolIndirect(Handle, "kCVPixelBufferPixelFormatTypeKey");
 
         [DllImport(Path)]
         public static extern nuint CVPixelBufferGetDataSize(IntPtr pixelBuffer);
