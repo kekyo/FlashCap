@@ -65,8 +65,8 @@ public sealed class AVFoundationDevices : CaptureDevices
                                     var frameMinDuration = frameDurationRange.MinFrameDuration;
                                     var frameMaxDuration = frameDurationRange.MaxFrameDuration;
 
-                                    var minFps = new Fraction((int)frameMinDuration.Value, frameMinDuration.TimeScale);
-                                    var maxFps = new Fraction((int)frameMaxDuration.Value, frameMaxDuration.TimeScale);
+                                    var minFps = new Fraction(frameMinDuration.TimeScale, (int)frameMinDuration.Value);
+                                    var maxFps = new Fraction(frameMaxDuration.TimeScale, (int)frameMaxDuration.Value);
 
                                     return NativeMethods.DefactoStandardFramesPerSecond
                                         .Where(fps => fps >= minFps && fps <= maxFps)
