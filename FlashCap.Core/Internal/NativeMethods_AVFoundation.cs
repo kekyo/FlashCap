@@ -1208,7 +1208,7 @@ internal static class NativeMethods_AVFoundation
                 LibObjC.SetVariable(
                     Handle,
                     HandleVariableDescriptor,
-                    Handle);
+                    (IntPtr)GCHandle.Alloc(this));
             }
 
             public abstract void DidDropSampleBuffer(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection);
