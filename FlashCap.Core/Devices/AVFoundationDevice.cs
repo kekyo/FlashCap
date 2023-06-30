@@ -101,8 +101,8 @@ public sealed class AVFoundationDevice : CaptureDevice
                 $"FlashCap: Couldn't set video format: UniqueID={this.uniqueID}");
 
         var frameDuration = CMTimeMake(
-            characteristics.FramesPerSecond.Numerator,
-            characteristics.FramesPerSecond.Denominator);
+            characteristics.FramesPerSecond.Denominator,
+            characteristics.FramesPerSecond.Numerator);
 
         this.device.ActiveVideoMinFrameDuration = frameDuration;
         this.device.ActiveVideoMaxFrameDuration = frameDuration;
