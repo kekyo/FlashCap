@@ -59,19 +59,22 @@ public sealed class AVFoundationDevices : CaptureDevices
                             var description = format.FormatDescription;
                             var dimensions = description.Dimensions;
 
-                            var frameDurationRange = format.VideoSupportedFrameRateRanges;
-                            var frameMinDuration = frameDurationRange.MinFrameDuration;
-                            var frameMaxDuration = frameDurationRange.MaxFrameDuration;
+                            return format.VideoSupportedFrameRateRanges
+                                .SelectMany(frameDurationRange =>
+                                {
+                                    var frameMinDuration = frameDurationRange.MinFrameDuration;
+                                    var frameMaxDuration = frameDurationRange.MaxFrameDuration;
 
-                            var minFps = new Fraction((int)frameMinDuration.Value, frameMinDuration.TimeScale);
-                            var maxFps = new Fraction((int)frameMaxDuration.Value, frameMaxDuration.TimeScale);
+                                    var minFps = new Fraction((int)frameMinDuration.Value, frameMinDuration.TimeScale);
+                                    var maxFps = new Fraction((int)frameMaxDuration.Value, frameMaxDuration.TimeScale);
 
-                            return NativeMethods.DefactoStandardFramesPerSecond
-                                .Where(fps => fps >= minFps && fps <= maxFps)
-                                .OrderByDescending(fps => fps)
-                                .SelectMany(fps =>
-                                    availablePixelFormats.Select(
-                                        format => new VideoCharacteristics(format.Key, dimensions.Width, dimensions.Height, fps, format.Value, isDiscrete: true, format.Value)));
+                                    return NativeMethods.DefactoStandardFramesPerSecond
+                                        .Where(fps => fps >= minFps && fps <= maxFps)
+                                        .OrderByDescending(fps => fps)
+                                        .SelectMany(fps =>
+                                            availablePixelFormats.Select(
+                                                format => new VideoCharacteristics(format.Key, dimensions.Width, dimensions.Height, fps, format.Value, isDiscrete: true, format.Value)));
+                                });
                         })
                         .ToArray());
             });
