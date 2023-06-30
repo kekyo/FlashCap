@@ -931,7 +931,7 @@ internal static class NativeMethods_AVFoundation
             {
                 LibObjC.SendNoResult(
                     Handle,
-                    LibObjC.GetSelector("unlockForConfiguration:"));
+                    LibObjC.GetSelector("unlockForConfiguration"));
             }
 
             public static AVCaptureDevice? DeviceWithUniqueID(string deviceUniqueID)
