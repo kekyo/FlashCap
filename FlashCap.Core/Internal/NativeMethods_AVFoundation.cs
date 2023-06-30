@@ -859,12 +859,12 @@ internal static class NativeMethods_AVFoundation
                 get => new AVCaptureDeviceFormat(
                     LibObjC.SendAndGetHandle(
                         Handle,
-                        LibObjC.GetSelector("activeVideoMinFrameDuration")),
+                        LibObjC.GetSelector("activeFormat")),
                     retain: true);
                 set =>
                     LibObjC.SendNoResult(
                         Handle,
-                        LibObjC.GetSelector("setActiveVideoMinFrameDuration:"),
+                        LibObjC.GetSelector("setActiveFormat:"),
                         value.Handle);
             }
 
