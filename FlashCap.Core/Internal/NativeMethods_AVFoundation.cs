@@ -25,7 +25,7 @@ internal static class NativeMethods_AVFoundation
 
         [DllImport(LibSystem.Path, EntryPoint = "dlsym")]
         public static extern IntPtr GetSymbol(IntPtr handle, string symbol);
-        
+
         public static IntPtr GetSymbolIndirect(IntPtr handle, string symbol) =>
             GetSymbol(LibAVFoundation.Handle, symbol) is var indirect && indirect != IntPtr.Zero
                 ? Marshal.ReadIntPtr(indirect)
@@ -767,12 +767,12 @@ internal static class NativeMethods_AVFoundation
                 {
                     if (LibSystem.IsOnArm64)
                     {
-                        LibObjC.SendAndGetCMTimeStret(out var result, Handle, LibObjC.GetSelector("maxFrameDuration"));
-
-                        return result;
+                        return LibObjC.SendAndGetCMTime(Handle, LibObjC.GetSelector("maxFrameDuration"));
                     }
 
-                    return LibObjC.SendAndGetCMTime(Handle, LibObjC.GetSelector("maxFrameDuration"));
+                    LibObjC.SendAndGetCMTimeStret(out var result, Handle, LibObjC.GetSelector("maxFrameDuration"));
+
+                    return result;
                 }
             }
 
@@ -782,12 +782,15 @@ internal static class NativeMethods_AVFoundation
                 {
                     if (LibSystem.IsOnArm64)
                     {
-                        LibObjC.SendAndGetCMTimeStret(out var result, Handle, LibObjC.GetSelector("minFrameDuration"));
 
-                        return result;
+                        return LibObjC.SendAndGetCMTime(Handle, LibObjC.GetSelector("minFrameDuration"));
+
                     }
 
-                    return LibObjC.SendAndGetCMTime(Handle, LibObjC.GetSelector("minFrameDuration"));
+
+                    LibObjC.SendAndGetCMTimeStret(out var result, Handle, LibObjC.GetSelector("minFrameDuration"));
+
+                    return result;
                 }
             }
 
