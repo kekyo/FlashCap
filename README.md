@@ -632,6 +632,27 @@ So, you can implement your own image data processing to achieve the fastest poss
 
 ----
 
+## Build FlashCap
+
+FlashCap keeps a clean build environment.
+Basically, if you have Visual Studio 2022 .NET development environment installed, you can build it as is.
+(Please add the WPF and Windows Forms options. These are required to build the sample code)
+
+1. Clone this repository.
+2. Build `FlashCap.sln`.
+   * Build it with `dotnet build`.
+   * Or open `FlashCap.sln` with Visual Studio 2022 and build it.
+
+NOTE: FlashCap itself should build in a Linux environment,
+but since the sample code has a Windows-dependent implementation,
+we assume Windows as the development environment.
+
+Pull requests are welcome! Development is on the `develop` branch and merged into the `main` branch at release time.
+Therefore, if you make a pull request, please make new your branch from the `develop` branch.
+
+
+----
+
 ## License
 
 Apache-v2.

@@ -572,6 +572,26 @@ await device.StartAsync();
 
 ----
 
+## 自分でビルドする
+
+FlashCapは、ビルド環境をクリーンに保っています。
+基本的に、Visual Studio 2022の.NET開発環境がインストールされていればビルド出来ると思います。
+（WPF, Windows Formsのオプションは追加してください。これらはサンプルコードのビルドに必要です）
+
+1. このリポジトリをクローンします。
+2. `FlashCap.sln`をビルドします。
+   * `dotnet build` でビルドします。
+   * または、`FlashCap.sln`をVisual Studio 2022で開き、ビルドします。
+
+注意: FlashCap自体は、.NET SDKを持つLinux環境でもビルドできるはずですが、サンプルコードにWindowsに依存する実装があるため、
+開発環境にWindowsを想定しています。
+
+プルリクエストを歓迎します! 開発は`develop`ブランチ上で行って、リリース時に`main`ブランチにマージしています。
+そのため、プルリクエストを作る場合は、`develop`ブランチからあなたのブランチを切って下さい。
+
+
+----
+
 ## License
 
 Apache-v2.
