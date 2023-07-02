@@ -80,8 +80,8 @@ public partial class MainForm : Form
         // NOTE: Perhaps this thread context is NOT UI thread.
 
         // HACK: I have seen reports of Windows Forms `Image.FromStream()` throwing an exception
-        // in the UI thread in some environments (see #67 and others).
-        // This is a totally mysterious behavior, since it works fine in UI threads in my environment.
+        // in the worker thread in some environments (see #67 and others).
+        // This is a totally mysterious behavior, since it works fine in worker thread in my environment.
         // Since I have no choice, I decided to copy it to a byte array immediately here
         // and do the conversion to `Image` on the UI thread.
         // The disadvantage of this operation is that it will consume time on the worker thread
