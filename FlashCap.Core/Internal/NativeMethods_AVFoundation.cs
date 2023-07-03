@@ -1119,8 +1119,15 @@ internal static class NativeMethods_AVFoundation
                     nameof(AVCaptureVideoDataOutputSampleBuffer),
                     extraBytes: IntPtr.Zero);
 
+                var dealloc = new DeallocDelegate(DeallocTrampoline);
                 var didDropSampleBuffer = new DidDropSampleBufferDelegate(DidDropSampleBufferTrampoline);
                 var didOutputSampleBuffer = new DidOutputSampleBufferDelegate(DidOutputSampleBufferTrampoline);
+
+                LibObjC.AddMethod(
+                    handle,
+                    LibObjC.GetSelector("dealloc"),
+                    Marshal.GetFunctionPointerForDelegate(dealloc),
+                    types: "@:");
 
                 LibObjC.AddMethod(
                     handle,
