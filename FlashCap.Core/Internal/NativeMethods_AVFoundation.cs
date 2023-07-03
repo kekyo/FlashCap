@@ -915,7 +915,7 @@ internal static class NativeMethods_AVFoundation
             public static unsafe void RequestAccessForMediaType(IntPtr mediaType, AVRequestAccessStatus completion)
             {
                 RequestAccessForMediaTypeBlockFactory ??= LibObjC.BlockLiteralFactory.CreateFactory<RequestAccessForMediaTypeTrampoline>(
-                    signature: "@?^vC",
+                    signature: "v@?^vC",
                     delegate (IntPtr block, byte accessGranted)
                     {
                         LibObjC.BlockLiteral
@@ -1127,19 +1127,19 @@ internal static class NativeMethods_AVFoundation
                     handle,
                     LibObjC.GetSelector("dealloc"),
                     Marshal.GetFunctionPointerForDelegate(dealloc),
-                    types: "@:");
+                    types: "v@:");
 
                 LibObjC.AddMethod(
                     handle,
                     LibObjC.GetSelector("captureOutput:didDropSampleBuffer:fromConnection:"),
                     Marshal.GetFunctionPointerForDelegate(didDropSampleBuffer),
-                    types: "@:@@@");
+                    types: "v@:@@@");
 
                 LibObjC.AddMethod(
                     handle,
                     LibObjC.GetSelector("captureOutput:didOutputSampleBuffer:fromConnection:"),
                     Marshal.GetFunctionPointerForDelegate(didOutputSampleBuffer),
-                    types: "@:@@@");
+                    types: "v@:@@@");
 
                 LibObjC.AddProtocol(
                     handle,
