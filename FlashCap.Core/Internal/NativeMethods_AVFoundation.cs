@@ -183,50 +183,6 @@ internal static class NativeMethods_AVFoundation
         [DllImport(Path, EntryPoint = "class_getInstanceVariable")]
         public static extern IntPtr GetVariable(IntPtr cls, string name);
 
-        // https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ObjCRuntimeGuide/Articles/ocrtTypeEncodings.html#//apple_ref/doc/uid/TP40008048-CH100
-        public static string GetSignature(MethodInfo method, bool blockLiteral)
-        {
-            var signature = new StringBuilder()
-                .Append(GetSignature(method.ReturnType))
-                .Append(blockLiteral ? "@?" : "@:");
-
-            var parameters = blockLiteral
-                ? method.GetParameters()
-                : method.GetParameters().Skip(1);
-
-            foreach (var parameter in parameters)
-            {
-                signature.Append(GetSignature(parameter.ParameterType));
-            }
-
-            return signature.ToString();
-        }
-
-        public static string GetSignature(Type type)
-        {
-            type = Nullable.GetUnderlyingType(type) ?? type;
-            return type.FullName switch
-            {
-                "System.Void" => "v",
-                "System.String" => "@",
-                "System.IntPtr" => "^v",
-                "System.SByte" => "c",
-                "System.Byte" => "C",
-                "System.Char" => "s",
-                "System.Int16" => "s",
-                "System.UInt16" => "S",
-                "System.Int32" => "i",
-                "System.UInt32" => "I",
-                "System.Int64" => "q",
-                "System.UInt64" => "Q",
-                "System.Single" => "f",
-                "System.Double" => "d",
-                "System.Boolean" => IntPtr.Size == 64 ? "B" : "c",
-                _ => typeof(NSObject).IsAssignableFrom(type)
-                    ? "@" : throw new NotSupportedException($"Type '{type}' is not supported for interop.")
-            };
-        }
-
         [Flags]
         public enum BlockFlags
         {
@@ -249,10 +205,9 @@ internal static class NativeMethods_AVFoundation
             public IntPtr Dispose;
             public IntPtr Signature;
 
-            public static IntPtr Create(Delegate target, BlockLiteralCopy copy, BlockLiteralDispose dispose)
+            public static IntPtr Create(string signature, Delegate target, BlockLiteralCopy copy, BlockLiteralDispose dispose)
             {
-                var signatureString = GetSignature(target.Method, blockLiteral: true);
-                var signatureBytes = Encoding.UTF8.GetBytes(signatureString);
+                var signatureBytes = Encoding.UTF8.GetBytes(signature);
                 var descriptorSize = Marshal.SizeOf<BlockDescriptor>();
 
                 var memory = Marshal.AllocHGlobal(descriptorSize + signatureBytes.Length);
@@ -343,13 +298,13 @@ internal static class NativeMethods_AVFoundation
                 _descriptor = descriptor;
             }
 
-            public static BlockLiteralFactory CreateFactory<T>(T trampoline)
+            public static BlockLiteralFactory CreateFactory<T>(string signature, T trampoline)
                 where T : Delegate
             {
                 var descriptor = DescriptorCache<T>.Instance;
                 if (descriptor == IntPtr.Zero)
                 {
-                    descriptor = BlockDescriptor.Create(trampoline, CopyHandler, DisposeHandler);
+                    descriptor = BlockDescriptor.Create(signature, trampoline, CopyHandler, DisposeHandler);
 
                     var descriptorCached = Interlocked.CompareExchange(ref DescriptorCache<T>.Instance, descriptor, default);
                     if (descriptorCached != default)
@@ -960,6 +915,7 @@ internal static class NativeMethods_AVFoundation
             public static unsafe void RequestAccessForMediaType(IntPtr mediaType, AVRequestAccessStatus completion)
             {
                 RequestAccessForMediaTypeBlockFactory ??= LibObjC.BlockLiteralFactory.CreateFactory<RequestAccessForMediaTypeTrampoline>(
+                    signature: "@?^vC",
                     delegate (IntPtr block, byte accessGranted)
                     {
                         LibObjC.BlockLiteral
@@ -1170,13 +1126,13 @@ internal static class NativeMethods_AVFoundation
                     handle,
                     LibObjC.GetSelector("captureOutput:didDropSampleBuffer:fromConnection:"),
                     Marshal.GetFunctionPointerForDelegate(didDropSampleBuffer),
-                    LibObjC.GetSignature(didDropSampleBuffer.Method, blockLiteral: false));
+                    types: "@:@@@");
 
                 LibObjC.AddMethod(
                     handle,
                     LibObjC.GetSelector("captureOutput:didOutputSampleBuffer:fromConnection:"),
                     Marshal.GetFunctionPointerForDelegate(didOutputSampleBuffer),
-                    LibObjC.GetSignature(didOutputSampleBuffer.Method, blockLiteral: false));
+                    types: "@:@@@");
 
                 LibObjC.AddProtocol(
                     handle,
@@ -1192,7 +1148,7 @@ internal static class NativeMethods_AVFoundation
                         8 => 3,
                         _ => throw new NotSupportedException("The current arhitecture isn't supported.")
                     },
-                    types: LibObjC.GetSignature(typeof(IntPtr)));
+                    types: "^v");
 
                 LibObjC.RegisterClass(handle);
 
