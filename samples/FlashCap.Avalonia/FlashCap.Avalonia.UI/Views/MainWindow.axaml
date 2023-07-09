@@ -1,5 +1,4 @@
 <Window
-    x:Class="FlashCap.Avalonia.Views.MainWindow"
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -8,6 +7,8 @@
     xmlns:siv="clr-namespace:SkiaImageView;assembly=SkiaImageView"
     xmlns:viewmodels="clr-namespace:FlashCap.Avalonia.ViewModels"
     mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+    x:Class="FlashCap.Avalonia.Views.MainWindow"
+    x:DataType="viewmodels:MainWindowViewModel"
     Title="FlashCap.Avalonia" Height="450" Width="800"
     TransparencyBackgroundFallback="Black">
 
@@ -27,11 +28,11 @@
             <StackPanel Orientation="Horizontal">
                 <ComboBox HorizontalAlignment="Stretch"
                           IsEnabled="{Binding IsEnbaled}"
-                          Items="{Binding DeviceList}"
+                          ItemsSource="{Binding DeviceList}"
                           SelectedItem="{Binding Device, Mode=TwoWay}" />
                 <ComboBox HorizontalAlignment="Stretch"
                           IsEnabled="{Binding IsEnbaled}"
-                          Items="{Binding CharacteristicsList}"
+                          ItemsSource="{Binding CharacteristicsList}"
                           SelectedItem="{Binding Characteristics, Mode=TwoWay}" />
             </StackPanel>
             <TextBlock Foreground="Yellow"

@@ -8,7 +8,6 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using Epoxy;
-using Epoxy.Synchronized;
 using SkiaSharp;
 using System;
 using System.Collections.ObjectModel;
@@ -50,7 +49,7 @@ public sealed class MainWindowViewModel
     public MainWindowViewModel()
     {
         // Window shown:
-        this.Opened = Command.Factory.CreateSync(() =>
+        this.Opened = Command.Factory.Create(() =>
         {
             ////////////////////////////////////////////////
             // Initialize and start capture device
@@ -71,6 +70,8 @@ public sealed class MainWindowViewModel
             }
 
             this.IsEnbaled = true;
+
+            return default;
         });
     }
 

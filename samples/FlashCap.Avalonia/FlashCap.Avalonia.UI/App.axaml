@@ -1,8 +1,9 @@
 <Application
     xmlns="https://github.com/avaloniaui"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    x:Class="FlashCap.Avalonia.App">
+    x:Class="FlashCap.Avalonia.App"
+    RequestedThemeVariant="Default">
     <Application.Styles>
-        <FluentTheme Mode="Light"/>
+        <FluentTheme/>
     </Application.Styles>
 </Application>
