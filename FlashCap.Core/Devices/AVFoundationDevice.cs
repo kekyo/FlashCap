@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using FlashCap.Internal;
 using static FlashCap.Internal.NativeMethods;
 using static FlashCap.Internal.NativeMethods_AVFoundation.LibAVFoundation;
-using static FlashCap.Internal.NativeMethods_AVFoundation.LibC;
 using static FlashCap.Internal.NativeMethods_AVFoundation.LibCoreFoundation;
 using static FlashCap.Internal.NativeMethods_AVFoundation.LibCoreMedia;
 using static FlashCap.Internal.NativeMethods_AVFoundation.LibCoreVideo;
