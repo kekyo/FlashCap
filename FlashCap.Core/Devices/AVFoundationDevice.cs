@@ -7,6 +7,7 @@ using FlashCap.Internal;
 using static FlashCap.Internal.NativeMethods;
 using static FlashCap.Internal.NativeMethods_AVFoundation.LibAVFoundation;
 using static FlashCap.Internal.NativeMethods_AVFoundation.LibC;
+using static FlashCap.Internal.NativeMethods_AVFoundation.LibCoreFoundation;
 using static FlashCap.Internal.NativeMethods_AVFoundation.LibCoreMedia;
 using static FlashCap.Internal.NativeMethods_AVFoundation.LibCoreVideo;
 
@@ -16,6 +17,7 @@ public sealed class AVFoundationDevice : CaptureDevice
 {
     private readonly string uniqueID;
 
+    private DispatchQueue? queue;
     private AVCaptureDevice? device;
     private AVCaptureDeviceInput? deviceInput;
     private AVCaptureVideoDataOutput? deviceOutput;
@@ -36,6 +38,7 @@ public sealed class AVFoundationDevice : CaptureDevice
         this.deviceInput?.Dispose();
         this.deviceOutput?.Dispose();
         this.session?.Dispose();
+        this.queue?.Dispose();
 
         Marshal.FreeHGlobal(this.bitmapHeader);
 
@@ -83,6 +86,7 @@ public sealed class AVFoundationDevice : CaptureDevice
             throw;
         }
 
+        this.queue = new DispatchQueue(nameof(FlashCap));
         this.device = AVCaptureDevice.DeviceWithUniqueID(uniqueID);
 
         if (this.device is null)
@@ -111,9 +115,7 @@ public sealed class AVFoundationDevice : CaptureDevice
         this.deviceInput = new AVCaptureDeviceInput(this.device);
         this.deviceOutput = new AVCaptureVideoDataOutput();
         this.deviceOutput.SetPixelFormatType(pixelFormatType);
-        this.deviceOutput.SetSampleBufferDelegate(
-            new VideoBufferHandler(this),
-            GetGlobalQueue(DispatchQualityOfService.Background, flags: default));
+        this.deviceOutput.SetSampleBufferDelegate(new VideoBufferHandler(this), this.queue);
 
         this.session = new AVCaptureSession();
         this.session.AddInput(this.deviceInput);
