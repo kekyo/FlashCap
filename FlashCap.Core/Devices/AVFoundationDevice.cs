@@ -157,6 +157,11 @@ public sealed class AVFoundationDevice : CaptureDevice
         public override void DidOutputSampleBuffer(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection)
         {
             var pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+            if (pixelBuffer == IntPtr.Zero)
+            {
+                return;
+            }
+
             var timeStamp = CMSampleBufferGetDecodeTimeStamp(sampleBuffer);
             var seconds = CMTimeGetSeconds(timeStamp);
 
@@ -174,6 +179,8 @@ public sealed class AVFoundationDevice : CaptureDevice
             finally
             {
                 CVPixelBufferUnlockBaseAddress(pixelBuffer, PixelBufferLockFlags.ReadOnly);
+                // Required to return the buffer to the queue of free buffers.
+                CFRelease(sampleBuffer);
             }
         }
     }
