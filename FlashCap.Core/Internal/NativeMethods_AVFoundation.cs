@@ -95,18 +95,14 @@ internal static class NativeMethods_AVFoundation
     {
         public const string Path = "/usr/lib/libc.dylib";
 
-        [DllImport(Path, EntryPoint = "dispatch_get_global_queue")]
-        public extern static IntPtr GetGlobalQueue(IntPtr identifier, IntPtr flags);
+        [DllImport(Path, EntryPoint = "dispatch_queue_create")]
+        public extern static IntPtr DispatchQueueCreate(string label, IntPtr attr);
 
-        public static class DispatchQualityOfService
-        {
-            public const nint UserInteractive = 0x21;
-            public const nint UserInitiated = 0x19;
-            public const nint Default = 0x15;
-            public const nint Utility = 0x11;
-            public const nint Background = 0x09;
-            public const nint Unspecified = 0x00;
-        }
+        [DllImport(Path, EntryPoint = "dispatch_release")]
+        public extern static IntPtr DispatchRelease(IntPtr o);
+
+        [DllImport(Path, EntryPoint = "dispatch_retain")]
+        public extern static IntPtr DispatchRetain(IntPtr o);
     }
 
     public static class LibObjC
@@ -535,6 +531,16 @@ internal static class NativeMethods_AVFoundation
         public enum CFNumberType
         {
             sInt32Type = 3
+        }
+
+        public sealed class DispatchQueue : NativeObject
+        {
+            public DispatchQueue(string label) =>
+                Handle = LibC.DispatchQueueCreate(label, IntPtr.Zero) is var handle && handle != IntPtr.Zero
+                    ? handle : throw new InvalidOperationException("Cannot create a dispatch queue.");
+
+            protected override void Dispose(bool disposing) =>
+                LibC.DispatchRelease(Handle);
         }
     }
 
@@ -1099,12 +1105,12 @@ internal static class NativeMethods_AVFoundation
                 LibCoreFoundation.CFRelease(number);
             }
 
-            public void SetSampleBufferDelegate(AVCaptureVideoDataOutputSampleBuffer sampleBufferDelegate, IntPtr sampleBufferCallbackQueue) =>
+            public void SetSampleBufferDelegate(AVCaptureVideoDataOutputSampleBuffer sampleBufferDelegate, LibCoreFoundation.DispatchQueue  sampleBufferCallbackQueue) =>
                 LibObjC.SendNoResult(
                     Handle,
                     LibObjC.GetSelector("setSampleBufferDelegate:queue:"),
                     sampleBufferDelegate.Handle,
-                    sampleBufferCallbackQueue);
+                    sampleBufferCallbackQueue.Handle);
         }
 
         public abstract class AVCaptureVideoDataOutputSampleBuffer : LibObjC.NSObject
