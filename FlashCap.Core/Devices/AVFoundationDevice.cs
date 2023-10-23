@@ -86,13 +86,9 @@ public sealed class AVFoundationDevice : CaptureDevice
         }
 
         this.queue = new DispatchQueue(nameof(FlashCap));
-        this.device = AVCaptureDevice.DeviceWithUniqueID(uniqueID);
-
-        if (this.device is null)
-        {
-            throw new InvalidOperationException(
+        this.device = AVCaptureDevice.DeviceWithUniqueID(uniqueID)
+            ?? throw new InvalidOperationException(
                 $"FlashCap: Couldn't find device: UniqueID={this.uniqueID}");
-        }
 
         this.device.LockForConfiguration();
         this.device.ActiveFormat = this.device.Formats
@@ -115,6 +111,7 @@ public sealed class AVFoundationDevice : CaptureDevice
         this.deviceOutput = new AVCaptureVideoDataOutput();
         this.deviceOutput.SetPixelFormatType(pixelFormatType);
         this.deviceOutput.SetSampleBufferDelegate(new VideoBufferHandler(this), this.queue);
+        this.deviceOutput.AlwaysDiscardsLateVideoFrames = true;
 
         this.session = new AVCaptureSession();
         this.session.AddInput(this.deviceInput);
@@ -159,6 +156,7 @@ public sealed class AVFoundationDevice : CaptureDevice
             var pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
             if (pixelBuffer == IntPtr.Zero)
             {
+                CFRelease(sampleBuffer);
                 return;
             }
 

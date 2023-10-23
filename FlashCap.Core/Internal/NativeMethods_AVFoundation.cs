@@ -113,6 +113,9 @@ internal static class NativeMethods_AVFoundation
         public const string ReleaseSelector = "release";
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
+        public static extern void SendNoResult(IntPtr receiver, IntPtr selector, bool arg1);
+
+        [DllImport(Path, EntryPoint = "objc_msgSend")]
         public static extern void SendNoResult(IntPtr receiver, IntPtr selector);
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
@@ -123,6 +126,9 @@ internal static class NativeMethods_AVFoundation
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
         public extern static void SendNoResult(IntPtr receiver, IntPtr selector, IntPtr arg1, IntPtr arg2);
+
+        [DllImport(Path, EntryPoint = "objc_msgSend")]
+        public static extern bool SendAndGetBool(IntPtr receiver, IntPtr selector);
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
         public static extern IntPtr SendAndGetHandle(IntPtr receiver, IntPtr selector);
@@ -1080,6 +1086,19 @@ internal static class NativeMethods_AVFoundation
                             return value;
                         throw new InvalidOperationException("The value contained by CFNumber cannot be read as 32-bit signed integer.");
                     });
+
+            public bool AlwaysDiscardsLateVideoFrames
+            {
+                get =>
+                    LibObjC.SendAndGetBool(
+                        Handle,
+                        LibObjC.GetSelector("alwaysDiscardsLateVideoFrames"));
+                set =>
+                    LibObjC.SendNoResult(
+                        Handle,
+                        LibObjC.GetSelector("setAlwaysDiscardsLateVideoFrames:"),
+                        value);
+            }
 
             public unsafe void SetPixelFormatType(int format)
             {
