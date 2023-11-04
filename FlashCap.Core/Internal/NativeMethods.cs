@@ -198,8 +198,8 @@ internal static class NativeMethods
         YUY2 = 0x32595559,   // FOURCC
         YUYV = 0x56595559,   // FOURCC
         UYVY = 0x59565955,   // FOURCC
-        HDYC = 0x43594448,   // FOURCC
-        MJPG = 0x47504A4D    // FOURCC
+        MJPG = 0x47504A4D,   // FOURCC
+        HDYC = 0x43594448    // FOURCC (BlackMagic input (UYVY))
     }
 
     private static int CalculateClrUsed(
