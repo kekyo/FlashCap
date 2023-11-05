@@ -24,6 +24,12 @@ public enum DeviceTypes
     V4L2,
 }
 
+public enum TranscodeFormats
+{
+    DoNotTranscode,
+    BT709,
+}
+
 public delegate void PixelBufferArrivedDelegate(
     PixelBufferScope bufferScope);
 
@@ -51,7 +57,7 @@ public abstract class CaptureDeviceDescriptor
 
     protected abstract Task<CaptureDevice> OnOpenWithFrameProcessorAsync(
         VideoCharacteristics characteristics,
-        bool transcodeIfYUV,
+        TranscodeFormats transcodeFormat,
         FrameProcessor frameProcessor,
         CancellationToken ct);
 
@@ -66,15 +72,15 @@ public abstract class CaptureDeviceDescriptor
 #endif
     internal Task<CaptureDevice> InternalOpenWithFrameProcessorAsync(
         VideoCharacteristics characteristics,
-        bool transcodeIfYUV,
+        TranscodeFormats transcodeFormat,
         FrameProcessor frameProcessor,
         CancellationToken ct) =>
-        this.OnOpenWithFrameProcessorAsync(characteristics, transcodeIfYUV, frameProcessor, ct);
+        this.OnOpenWithFrameProcessorAsync(characteristics, transcodeFormat, frameProcessor, ct);
 
     internal async Task<CaptureDevice> InternalOnOpenWithFrameProcessorAsync(
         CaptureDevice preConstructedDevice,
         VideoCharacteristics characteristics,
-        bool transcodeIfYUV,
+        TranscodeFormats transcodeFormat,
         FrameProcessor frameProcessor,
         CancellationToken ct)
     {
@@ -89,7 +95,7 @@ public abstract class CaptureDeviceDescriptor
         try
         {
             await preConstructedDevice.InternalInitializeAsync(
-                characteristics, transcodeIfYUV, frameProcessor, ct);
+                characteristics, transcodeFormat, frameProcessor, ct);
         }
         catch
         {
@@ -101,13 +107,13 @@ public abstract class CaptureDeviceDescriptor
 
     internal async Task<byte[]> InternalTakeOneShotAsync(
         VideoCharacteristics characteristics,
-        bool transcodeIfYUV,
+        TranscodeFormats transcodeFormat,
         CancellationToken ct)
     {
         var tcs = new TaskCompletionSource<byte[]>();
 
         using var device = await this.OnOpenWithFrameProcessorAsync(
-            characteristics, transcodeIfYUV,
+            characteristics, transcodeFormat,
             new DelegatedQueuingProcessor(pixelBuffer =>
             {
                 var image = pixelBuffer.Buffer.InternalExtractImage(

@@ -30,10 +30,10 @@ public sealed class V4L2DeviceDescriptor : CaptureDeviceDescriptor
 
     protected override Task<CaptureDevice> OnOpenWithFrameProcessorAsync(
         VideoCharacteristics characteristics,
-        bool transcodeIfYUV,
+        TranscodeFormats transcodeFormat,
         FrameProcessor frameProcessor,
         CancellationToken ct) =>
         this.InternalOnOpenWithFrameProcessorAsync(
             new V4L2Device(this.devicePath, this.Name),
-            characteristics, transcodeIfYUV, frameProcessor, ct);
+            characteristics, transcodeFormat, frameProcessor, ct);
 }

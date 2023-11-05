@@ -19,8 +19,9 @@ internal static class BitmapTranscoder
 
     // Preffered article: https://docs.microsoft.com/en-us/windows/win32/medfound/recommended-8-bit-yuv-formats-for-video-rendering#420-formats-16-bits-per-pixel
 
-    private static unsafe void TranscodeFromUYVY(
-        int width, int height, bool performFullRange,
+    private static unsafe void TranscodeFromBT709UYVY(
+        int width, int height,
+        bool performFullRange,   // TODO: Use in future.
         byte* pFrom, byte* pTo)
     {
         var scatter = height / scatteringBase;
@@ -58,8 +59,9 @@ internal static class BitmapTranscoder
         });
     }
 
-    private static unsafe void TranscodeFromYUYV(
-        int width, int height, bool performFullRange,
+    private static unsafe void TranscodeFromBT709YUYV(
+        int width, int height,
+        bool performFullRange,   // TODO: Use in future.
         byte* pFrom, byte* pTo)
     {
         var scatter = height / scatteringBase;
@@ -122,18 +124,19 @@ internal static class BitmapTranscoder
 
     public static unsafe void Transcode(
         int width, int height,
-        NativeMethods.Compression compression, bool performFullRange,
+        NativeMethods.Compression compression,
+        TranscodeFormats transcodeFormat,
         byte* pFrom, byte* pTo)
     {
-        switch (compression)
+        switch (compression, transcodeFormat)
         {
-            case NativeMethods.Compression.UYVY:
-            case NativeMethods.Compression.HDYC:
-                TranscodeFromUYVY(width, height, performFullRange, pFrom, pTo);
+            case (NativeMethods.Compression.UYVY, TranscodeFormats.BT709):
+            case (NativeMethods.Compression.HDYC, TranscodeFormats.BT709):
+                TranscodeFromBT709UYVY(width, height, false, pFrom, pTo);
                 break;
-            case NativeMethods.Compression.YUYV:
-            case NativeMethods.Compression.YUY2:
-                TranscodeFromYUYV(width, height, performFullRange, pFrom, pTo);
+            case (NativeMethods.Compression.YUYV, TranscodeFormats.BT709):
+            case (NativeMethods.Compression.YUY2, TranscodeFormats.BT709):
+                TranscodeFromBT709YUYV(width, height, false, pFrom, pTo);
                 break;
             default:
                 throw new ArgumentException();
