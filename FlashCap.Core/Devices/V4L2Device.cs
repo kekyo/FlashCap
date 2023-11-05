@@ -27,7 +27,7 @@ public sealed class V4L2Device : CaptureDevice
     private readonly TimestampCounter counter = new();
 
     private string devicePath;
-    private bool transcodeIfYUV;
+    private TranscodeFormats transcodeFormat;
     private FrameProcessor frameProcessor;
 
     private long frameIndex;
@@ -50,13 +50,13 @@ public sealed class V4L2Device : CaptureDevice
 
     protected override unsafe Task OnInitializeAsync(
         VideoCharacteristics characteristics,
-        bool transcodeIfYUV,
+        TranscodeFormats transcodeFormat,
         FrameProcessor frameProcessor,
         CancellationToken ct)
     {
         this.devicePath = (string)this.Identity;
         this.Characteristics = characteristics;
-        this.transcodeIfYUV = transcodeIfYUV;
+        this.transcodeFormat = transcodeFormat;
         this.frameProcessor = frameProcessor;
 
         if (!NativeMethods.GetCompressionAndBitCount(
@@ -426,5 +426,5 @@ public sealed class V4L2Device : CaptureDevice
         IntPtr pData, int size,
         long timestampMicroseconds, long frameIndex,
         PixelBuffer buffer) =>
-        buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeIfYUV);
+        buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeFormat);
 }

@@ -21,7 +21,7 @@ public sealed class VideoForWindowsDevice : CaptureDevice
 {
     private readonly TimestampCounter counter = new();
     private int deviceIndex;
-    private bool transcodeIfYUV;
+    private TranscodeFormats transcodeFormat;
     private FrameProcessor frameProcessor;
     private long frameIndex;
 
@@ -40,13 +40,13 @@ public sealed class VideoForWindowsDevice : CaptureDevice
 
     protected override unsafe Task OnInitializeAsync(
         VideoCharacteristics characteristics,
-        bool transcodeIfYUV,
+        TranscodeFormats transcodeFormat,
         FrameProcessor frameProcessor,
         CancellationToken ct)
     {
         this.deviceIndex = (int)this.Identity;
         this.Characteristics = characteristics;
-        this.transcodeIfYUV = transcodeIfYUV;
+        this.transcodeFormat = transcodeFormat;
         this.frameProcessor = frameProcessor;
 
         if (!NativeMethods.GetCompressionAndBitCount(
@@ -285,5 +285,5 @@ public sealed class VideoForWindowsDevice : CaptureDevice
     protected override void OnCapture(
         IntPtr pData, int size, long timestampMicroseconds, long frameIndex,
         PixelBuffer buffer) =>
-        buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeIfYUV);
+        buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeFormat);
 }

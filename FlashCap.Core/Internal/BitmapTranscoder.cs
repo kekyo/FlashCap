@@ -1,4 +1,4 @@
-﻿////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////
 //
 // FlashCap - Independent camera capture library.
 // Copyright (c) Kouji Matsui (@kozy_kekyo, @kekyo@mastodon.cloud)
@@ -240,7 +240,7 @@ internal static class BitmapTranscoder
         bool performFullRange,
         byte* pFrom, byte* pTo)
     {
-        switch (compression)
+        switch (compression, transcodeFormat)
         {
             case NativeMethods.Compression.UYVY:
             case NativeMethods.Compression.HDYC:

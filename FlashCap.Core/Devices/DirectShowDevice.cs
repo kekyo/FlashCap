@@ -70,7 +70,7 @@ public sealed class DirectShowDevice :
 
     // DirectShow objects are sandboxed in the working context.
     private IndependentSingleApartmentContext? workingContext = new();
-    private bool transcodeIfYUV;
+    private TranscodeFormats transcodeFormat;
     private FrameProcessor frameProcessor;
     private NativeMethods_DirectShow.IGraphBuilder? graphBuilder;
     private SampleGrabberSink? sampleGrabberSink;
@@ -85,13 +85,13 @@ public sealed class DirectShowDevice :
 
     protected override Task OnInitializeAsync(
         VideoCharacteristics characteristics,
-        bool transcodeIfYUV,
+        TranscodeFormats transcodeFormat,
         FrameProcessor frameProcessor,
         CancellationToken ct)
     {
         var devicePath = (string)this.Identity;
 
-        this.transcodeIfYUV = transcodeIfYUV;
+        this.transcodeFormat = transcodeFormat;
         this.frameProcessor = frameProcessor;
 
         return this.workingContext!.InvokeAsync(() =>
@@ -319,5 +319,5 @@ public sealed class DirectShowDevice :
         IntPtr pData, int size,
         long timestampMicroseconds, long frameIndex,
         PixelBuffer buffer) =>
-        buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeIfYUV);
+        buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeFormat);
 }
