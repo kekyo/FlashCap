@@ -113,6 +113,7 @@ internal static class BitmapTranscoder
             case NativeMethods.Compression.UYVY:
             case NativeMethods.Compression.YUYV:
             case NativeMethods.Compression.YUY2:
+            case NativeMethods.Compression.HDYC:
                 return width * height * 3;
             default:
                 return null;
@@ -127,6 +128,7 @@ internal static class BitmapTranscoder
         switch (compression)
         {
             case NativeMethods.Compression.UYVY:
+            case NativeMethods.Compression.HDYC:
                 TranscodeFromUYVY(width, height, performFullRange, pFrom, pTo);
                 break;
             case NativeMethods.Compression.YUYV:
