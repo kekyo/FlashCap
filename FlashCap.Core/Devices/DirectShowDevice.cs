@@ -83,6 +83,36 @@ public sealed class DirectShowDevice :
     {
     }
 
+    // see also
+    // https://learn.microsoft.com/en-us/windows/win32/directshow/displaying-a-filters-property-pages
+    public void ShowPropertyPage(IntPtr parentWindow)
+    {
+        var devicePath = (string)this.Identity;
+
+        if (NativeMethods_DirectShow.EnumerateDeviceMoniker(
+           NativeMethods_DirectShow.CLSID_VideoInputDeviceCategory).
+           Where(moniker =>
+               moniker.GetPropertyBag() is { } pb &&
+               pb.SafeReleaseBlock(pb =>
+                   pb.GetValue("DevicePath", default(string))?.Trim() is { } dp &&
+                   dp.Equals(devicePath))).
+           Collect(moniker =>
+               moniker.BindToObject(null, null, in NativeMethods_DirectShow.IID_IBaseFilter, out var captureSource) == 0 ?
+               captureSource as NativeMethods_DirectShow.IBaseFilter : null).
+           FirstOrDefault() is { } captureSource)
+        {
+            try
+            {
+                if (captureSource is NativeMethods_DirectShow.ISpecifyPropertyPages specifyPropertyPages && captureSource is object sourceAsObject)
+                {
+                    specifyPropertyPages.GetPages(out var pPages);
+                    NativeMethods_DirectShow.OleCreatePropertyFrame(parentWindow, 0, 0, Name, 1, ref sourceAsObject, pPages.cElems, pPages.pElems, 0, 0, IntPtr.Zero);
+                    Marshal.FreeCoTaskMem(pPages.pElems);
+                }
+            }catch { }
+        }
+    }
+
     protected override Task OnInitializeAsync(
         VideoCharacteristics characteristics,
         TranscodeFormats transcodeFormat,
@@ -96,20 +126,20 @@ public sealed class DirectShowDevice :
 
         return this.workingContext!.InvokeAsync(() =>
         {
-            if (NativeMethods_DirectShow.EnumerateDeviceMoniker(
-                NativeMethods_DirectShow.CLSID_VideoInputDeviceCategory).
-                Where(moniker =>
-                    moniker.GetPropertyBag() is { } pb &&
-                    pb.SafeReleaseBlock(pb =>
-                        pb.GetValue("DevicePath", default(string))?.Trim() is { } dp &&
-                        dp.Equals(devicePath))).
-                Collect(moniker =>
-                    moniker.BindToObject(null, null, in NativeMethods_DirectShow.IID_IBaseFilter, out var captureSource) == 0 ?
-                    captureSource as NativeMethods_DirectShow.IBaseFilter : null).
-                FirstOrDefault() is { } captureSource)
+        if (NativeMethods_DirectShow.EnumerateDeviceMoniker(
+            NativeMethods_DirectShow.CLSID_VideoInputDeviceCategory).
+            Where(moniker =>
+                moniker.GetPropertyBag() is { } pb &&
+                pb.SafeReleaseBlock(pb =>
+                    pb.GetValue("DevicePath", default(string))?.Trim() is { } dp &&
+                    dp.Equals(devicePath))).
+            Collect(moniker =>
+                moniker.BindToObject(null, null, in NativeMethods_DirectShow.IID_IBaseFilter, out var captureSource) == 0 ?
+                captureSource as NativeMethods_DirectShow.IBaseFilter : null).
+            FirstOrDefault() is { } captureSource)
+        {
+            try
             {
-                try
-                {
                     if (captureSource.EnumeratePins().
                         Collect(pin =>
                             pin.GetPinInfo() is { } pinInfo &&
