@@ -7,12 +7,40 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using FlashCap.Wpf.ViewModels;
 using System.Windows;
+using System.Windows.Controls;
 
 namespace FlashCap.Wpf.Views;
 
 public sealed partial class MainWindow : Window
 {
-    public MainWindow() =>
+    private MainWindowViewModel? viewModel { get; set; }
+    public MainWindow()
+    {
         InitializeComponent();
+
+        viewModel = DataContext as MainWindowViewModel;
+    }
+
+    private void ShowPropertiesClicked(object sender, RoutedEventArgs e)
+    {
+        viewModel?.ShowProperties();
+    }
+
+    private void StartClicked(object sender, RoutedEventArgs e)
+    {
+        viewModel?.Start();
+    }
+
+    private void StopClicked(object sender, RoutedEventArgs e)
+    {
+        viewModel?.Stop();
+    }
+
+    private void DeviceSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (sender is ComboBox cb && cb.SelectedItem is CaptureDeviceDescriptor { } device)
+            viewModel?.SelectDevice(device);
+    }
 }

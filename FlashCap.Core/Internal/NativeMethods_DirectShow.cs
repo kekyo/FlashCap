@@ -13,6 +13,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security;
 using FlashCap.Utilities;
+using static FlashCap.Devices.DirectShowDevice;
 
 namespace FlashCap.Internal;
 
@@ -998,4 +999,27 @@ internal static class NativeMethods_DirectShow
             throw new InvalidOperationException("FlashCap: Couldn't create capture graph builder.");
         }
     }
+
+    #region SHOW_PROPERTY_PAGES
+
+    [ComVisible(false)]
+    internal struct CAUUID
+    {
+        public int cElems;
+        public IntPtr pElems;
+    }
+
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("B196B28B-BAB4-101A-B69C-00AA00341D07")]
+    internal interface ISpecifyPropertyPages
+    {
+        [PreserveSig]
+        int GetPages(out CAUUID pPages);
+    }
+
+    [DllImport("oleaut32.dll")]
+    public static extern int OleCreatePropertyFrame(IntPtr hwndOwner, int x, int y, [MarshalAs(UnmanagedType.LPWStr)] string caption, int cObjects, [MarshalAs(UnmanagedType.Interface)] ref object ppUnk, int cPages, IntPtr lpPageClsID, int lcid, int dwReserved, IntPtr lpvReserved);
+    
+    #endregion
 }
