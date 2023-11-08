@@ -182,7 +182,7 @@ public sealed class PixelBuffer
 #endif
                             BitmapTranscoder.Transcode(
                                 pBih->biWidth, pBih->biHeight,
-                                pBih->biCompression, false,
+                                pBih->biCompression, YUV2RGBConversionStandard.Auto, false,
                                 pImageContainer + pBfh->bfOffBits,
                                 pTranscodedImageContainer + pBfhTo->bfOffBits);
 
