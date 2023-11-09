@@ -45,11 +45,11 @@ internal static class BitmapTranscoder
                 for (var x = 0; x < width; x += 2)
                 {
                     //Color profile ITU-R BT.601 Limited Range
-                    //matrix 1.1643, 1.16430, 1.1643,
+                    //matrix 1.0,    1.0,     1.0,
                     //       0.0,   -0.39173, 2.0170,
                     //       1.5958,-0.81290, 0.0
                     //converts to rounded int (multiply by 256)
-                    //298,  298, 298,
+                    //256,  256, 256,
                     //0   ,-100, 516
                     //409, -208, 0
 
@@ -68,6 +68,7 @@ internal static class BitmapTranscoder
                         e = pFromBase[3] - 128;   // V
                     }
 
+                    // YUV limited range (Y is in [16..235], rescale to [0..255])
                     cc1 = 298 * c1; // (Y1-0.0625)*1.164
                     cc2 = 298 * c2; // (Y2-0.0625)*1.164
 
@@ -127,8 +128,9 @@ internal static class BitmapTranscoder
                         e = pFromBase[3] - 128;   // V
                     }
 
-                    cc1 = 256 * c1;
-                    cc2 = 256 * c2;
+                    // YUV limited range (Y is in [16..235], rescale to [0..255])
+                    cc1 = 298 * c1;
+                    cc2 = 298 * c2;
 
                     *pToBase++ = Clip((cc1 + 475 * d + 128) >> 8);   // B1
                     *pToBase++ = Clip((cc1 - 48 * d - 120 * e + 128) >> 8);   // G1
@@ -187,8 +189,9 @@ internal static class BitmapTranscoder
                     }
 
 
-                    cc1 = 256 * c1;
-                    cc2 = 256 * c2;
+                    // YUV limited range (Y is in [16..235], rescale to [0..255])
+                    cc1 = 298 * c1;
+                    cc2 = 298 * c2;
 
                     *pToBase++ = Clip((cc1 + 482 * d + 128) >> 8);   // B1
                     *pToBase++ = Clip((cc1 - 42 * d - 146 * e + 128) >> 8);   // G1
@@ -223,13 +226,13 @@ internal static class BitmapTranscoder
                 TranscodeFromYUV_BT_2020(width, height, performFullRange, isUYVY, pFrom, pTo);
                 break;
             case YUV2RGBConversionStandard.Auto:
-                // determine the color conversion based on the width of the frame
-                if (width < 1920) // SD
-                    TranscodeFromYUV_BT_601(width, height, performFullRange, isUYVY, pFrom, pTo);
-                else if (width < 3840) // HD
-                    TranscodeFromYUV_BT_709(width, height, performFullRange, isUYVY, pFrom, pTo);
-                else // UHD or larger
+                // determine the color conversion based on the width and height of the frame
+                if (width > 1920 || height > 1080)  // UHD or larger
                     TranscodeFromYUV_BT_2020(width, height, performFullRange, isUYVY, pFrom, pTo);
+                else if (width > 720 || height > 576) // HD
+                    TranscodeFromYUV_BT_709(width, height, performFullRange, isUYVY, pFrom, pTo);
+                else // SD
+                    TranscodeFromYUV_BT_601(width, height, performFullRange, isUYVY, pFrom, pTo);
                 break;
             default:
                 TranscodeFromYUV_BT_601(width, height, performFullRange, isUYVY, pFrom, pTo);
