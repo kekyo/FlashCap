@@ -26,11 +26,13 @@ public enum DeviceTypes
 
 public enum TranscodeFormats
 {
-    DoNotTranscode,
     Auto,
-    BT_601,
-    BT_709,
-    BT_2020,
+    DoNotTranscode,
+    BT601,
+    BT709,
+    BT709FullRange,
+    BT2020,
+    BT2020FullRange,
 }
 
 public delegate void PixelBufferArrivedDelegate(

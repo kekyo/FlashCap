@@ -25,7 +25,7 @@ public static class CaptureDeviceDescriptorExtension
         CancellationToken ct = default) =>
         descriptor.InternalOpenWithFrameProcessorAsync(
             characteristics,
-            transcodeIfYUV ? TranscodeFormats.BT709 : TranscodeFormats.DoNotTranscode,
+            transcodeIfYUV ? TranscodeFormats.Auto : TranscodeFormats.DoNotTranscode,
             frameProcessor,
             ct);
 
@@ -46,7 +46,7 @@ public static class CaptureDeviceDescriptorExtension
         PixelBufferArrivedDelegate pixelBufferArrived,
         CancellationToken ct = default) =>
         descriptor.OpenWithFrameProcessorAsync(
-            characteristics, TranscodeFormats.BT709,
+            characteristics, TranscodeFormats.Auto,
             new DelegatedQueuingProcessor(pixelBufferArrived, 1),
             ct);
 
@@ -112,7 +112,7 @@ public static class CaptureDeviceDescriptorExtension
         PixelBufferArrivedTaskDelegate pixelBufferArrived,
         CancellationToken ct = default) =>
         descriptor.OpenWithFrameProcessorAsync(
-            characteristics, TranscodeFormats.BT709,
+            characteristics, TranscodeFormats.Auto,
             new DelegatedQueuingTaskProcessor(pixelBufferArrived, 1),
             ct);
 
@@ -179,7 +179,7 @@ public static class CaptureDeviceDescriptorExtension
     {
         var observerProxy = new ObservableCaptureDevice.ObserverProxy();
         var captureDevice = await descriptor.OpenWithFrameProcessorAsync(
-            characteristics, TranscodeFormats.BT709,
+            characteristics, TranscodeFormats.Auto,
             new DelegatedQueuingProcessor(observerProxy.OnPixelBufferArrived, 1),
             ct).
             ConfigureAwait(false);
@@ -267,7 +267,7 @@ public static class CaptureDeviceDescriptorExtension
         this CaptureDeviceDescriptor descriptor,
         VideoCharacteristics characteristics,
         CancellationToken ct = default) =>
-        descriptor.InternalTakeOneShotAsync(characteristics, TranscodeFormats.BT709, ct);
+        descriptor.InternalTakeOneShotAsync(characteristics, TranscodeFormats.Auto, ct);
 
     [Obsolete("This overload is obsoleted, please use TranscodeFormats parameter instead.")]
     public static Task<byte[]> TakeOneShotAsync(
@@ -277,7 +277,7 @@ public static class CaptureDeviceDescriptorExtension
         CancellationToken ct = default) =>
         descriptor.InternalTakeOneShotAsync(
             characteristics,
-            transcodeIfYUV ? TranscodeFormats.BT709 : TranscodeFormats.DoNotTranscode,
+            transcodeIfYUV ? TranscodeFormats.Auto : TranscodeFormats.DoNotTranscode,
             ct);
 
     public static Task<byte[]> TakeOneShotAsync(

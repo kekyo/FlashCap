@@ -28,7 +28,7 @@ module public CaptureDeviceDescriptorExtension =
 
     let inline private toFormat (transcodeIfYUV: bool) =
         match transcodeIfYUV with
-        | true -> TranscodeFormats.BT709
+        | true -> TranscodeFormats.Auto
         | false -> TranscodeFormats.DoNotTranscode
 
     type public CaptureDeviceDescriptor with
@@ -38,7 +38,7 @@ module public CaptureDeviceDescriptorExtension =
             pixelBufferArrived: PixelBufferScope -> unit,
             ?ct: CancellationToken) : Async<CaptureDevice> =
             self.InternalOpenWithFrameProcessorAsync(
-                characteristics, TranscodeFormats.BT709,
+                characteristics, TranscodeFormats.Auto,
                 new DelegatedQueuingProcessor(pixelBufferArrived, 1),
                 asCT ct) |> Async.AwaitTask
 
@@ -76,7 +76,7 @@ module public CaptureDeviceDescriptorExtension =
             ?ct: CancellationToken) : Async<CaptureDevice> =
             self.InternalOpenWithFrameProcessorAsync(
                 characteristics,
-                TranscodeFormats.BT709,
+                TranscodeFormats.Auto,
                 new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, 1),
                 asCT ct) |> Async.AwaitTask
         
@@ -114,7 +114,7 @@ module public CaptureDeviceDescriptorExtension =
                 let observerProxy = new ObservableCaptureDevice.ObserverProxy()
                 let! captureDevice = self.InternalOpenWithFrameProcessorAsync(
                     characteristics,
-                    TranscodeFormats.BT709,
+                    TranscodeFormats.Auto,
                     (new DelegatedQueuingProcessor(
                         new PixelBufferArrivedDelegate(observerProxy.OnPixelBufferArrived), 1)), asCT ct) |> Async.AwaitTask
                 return new ObservableCaptureDevice(captureDevice, observerProxy)
@@ -157,7 +157,7 @@ module public CaptureDeviceDescriptorExtension =
             ?ct: CancellationToken) : Async<byte[]> =
             self.InternalTakeOneShotAsync(
                 characteristics,
-                TranscodeFormats.BT709,
+                TranscodeFormats.Auto,
                 asCT ct) |> Async.AwaitTask
 
         member self.takeOneShot(
@@ -178,7 +178,7 @@ module public CaptureDeviceDescriptorExtension =
             pixelBufferArrived: PixelBufferScope -> unit,
             ?ct: CancellationToken) : Async<CaptureDevice> =
             self.InternalOpenWithFrameProcessorAsync(
-                characteristics, TranscodeFormats.BT709,
+                characteristics, TranscodeFormats.Auto,
                 new DelegatedQueuingProcessor(pixelBufferArrived, 1),
                 asCT ct) |> Async.AwaitTask
 
@@ -222,7 +222,7 @@ module public CaptureDeviceDescriptorExtension =
             ?ct: CancellationToken) : Async<CaptureDevice> =
             self.InternalOpenWithFrameProcessorAsync(
                 characteristics,
-                TranscodeFormats.BT709,
+                TranscodeFormats.Auto,
                 new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, 1),
                 asCT ct) |> Async.AwaitTask
         
@@ -266,7 +266,7 @@ module public CaptureDeviceDescriptorExtension =
                 let observerProxy = new ObservableCaptureDevice.ObserverProxy()
                 let! captureDevice = self.InternalOpenWithFrameProcessorAsync(
                     characteristics,
-                    TranscodeFormats.BT709,
+                    TranscodeFormats.Auto,
                     (new DelegatedQueuingProcessor(
                         new PixelBufferArrivedDelegate(observerProxy.OnPixelBufferArrived), 1)), asCT ct) |> Async.AwaitTask
                 return new ObservableCaptureDevice(captureDevice, observerProxy)
@@ -315,7 +315,7 @@ module public CaptureDeviceDescriptorExtension =
             ?ct: CancellationToken) : Async<byte[]> =
             self.InternalTakeOneShotAsync(
                 characteristics,
-                TranscodeFormats.BT709,
+                TranscodeFormats.Auto,
                 asCT ct) |> Async.AwaitTask
 
         [<Obsolete("This function is obsoleted, please use `takeOneShot` instead.")>]

@@ -21,12 +21,11 @@ internal static class BitmapTranscoder
 
     // some interesting code references:
     // https://chromium.googlesource.com/libyuv/libyuv/+/HEAD/unit_test/color_test.cc
-    // performFullRange = true means that we suppose Y is in [16..235] range and UV in [16..240]
-    // performFullRange = false means that we suppose Y U and V are in [0..255] range
+    // FullRange = true means that we suppose Y is in [16..235] range and UV in [16..240]
+    // FullRange = false means that we suppose Y U and V are in [0..255] range
     private static unsafe void TranscodeFromYUVInternal(
        int width, int height,
-       TranscodeFormats conversionStandard,
-       bool performFullRange, bool isUYVY,
+       TranscodeFormats conversionStandard, bool isUYVY,
        byte* pFrom, byte* pTo)
     {
         // default values BT.601
@@ -40,94 +39,99 @@ internal static class BitmapTranscoder
         // set constants for the color conversion
         switch (conversionStandard)
         {
-            case TranscodeFormats.BT_601:
-                //Color profile ITU-R BT.601 Limited Range
-                //matrix 1.0,    1.0,     1.0,
-                //       0.0,   -0.39173, 2.0170,
-                //       1.5958,-0.81290, 0.0
-                //converts to rounded int (multiply by 256)
-                //256,  256, 256,
-                //0   ,-100, 516
-                //409, -208, 0
+            //////////////////////////////////////////////////
 
-                if (performFullRange)
-                {
-                    // YUV limited range
-                    // (Y  is in [16..235], rescale to [0..255])
-                    // (UV is in [16..240], rescale to [0..255])
+            //Color profile ITU-R BT.601 Limited Range
+            //matrix 1.0,    1.0,     1.0,
+            //       0.0,   -0.39173, 2.0170,
+            //       1.5958,-0.81290, 0.0
+            //converts to rounded int (multiply by 256)
+            //256,  256, 256,
+            //0   ,-100, 516
+            //409, -208, 0
 
-                    // multiply  Y by 1.16438
-                    // multiply UV by 1.13839
-                    multY = 298;
-                    multUB = 587;
-                    multUG = 114;
-                    multVG = 237;
-                    multVR = 466;
-                    offsetY = 16;
-                }
+            case TranscodeFormats.BT601:
+                // YUV limited range
+                // (Y  is in [16..235], rescale to [0..255])
+                // (UV is in [16..240], rescale to [0..255])
+
+                // multiply  Y by 1.16438
+                // multiply UV by 1.13839
+                multY = 298;
+                multUB = 587;
+                multUG = 114;
+                multVG = 237;
+                multVR = 466;
+                offsetY = 16;
                 break;
-            case TranscodeFormats.BT_709:
-                //Color profile ITU-R BT.709 Limited Range
-                //matrix 1.0,     1.0,    1.0,
-                //       0.0,    -0.1873, 1.8556,
-                //       1.5748, -0.4681, 0.0
-                // converts to rounded int (multiply by 256)
-                //256, 256, 256,
-                //0   ,-48, 475
-                //403,-120, 0
 
-                if (performFullRange)
-                {
-                    // YUV limited range
-                    // (Y  is in [16..235], rescale to [0..255])
-                    // (UV is in [16..240], rescale to [0..255])
+            //////////////////////////////////////////////////
 
-                    // multiply  Y by 1.16438
-                    // multiply UV by 1.13839
-                    multY = 298;
-                    multUB = 541;
-                    multUG = 55;
-                    multVG = 137;
-                    multVR = 459;
-                    offsetY = 16;
-                }
-                else
-                {
-                    multY = 298;
-                    multUB = 475;
-                    multUG = 48;
-                    multVG = 120;
-                    multVR = 403;
-                    offsetY = 0;
-                }
+            //Color profile ITU-R BT.709 Limited Range
+            //matrix 1.0,     1.0,    1.0,
+            //       0.0,    -0.1873, 1.8556,
+            //       1.5748, -0.4681, 0.0
+            // converts to rounded int (multiply by 256)
+            //256, 256, 256,
+            //0   ,-48, 475
+            //403,-120, 0
+
+            case TranscodeFormats.BT709FullRange:
+                // YUV limited range
+                // (Y  is in [16..235], rescale to [0..255])
+                // (UV is in [16..240], rescale to [0..255])
+
+                // multiply  Y by 1.16438
+                // multiply UV by 1.13839
+                multY = 298;
+                multUB = 541;
+                multUG = 55;
+                multVG = 137;
+                multVR = 459;
+                offsetY = 16;
                 break;
-            case TranscodeFormats.BT_2020:
-                if (performFullRange)
-                {
-                    // YUV limited range
-                    // (Y  is in [16..235], rescale to [0..255])
-                    // (UV is in [16..240], rescale to [0..255])
 
-                    // multiply  Y by 1.16438
-                    // multiply UV by 1.13839
-                    multY = 298;
-                    multUB = 549;
-                    multUG = 48;
-                    multVG = 166;
-                    multVR = 429;
-                    offsetY = 16;
-                }
-                else
-                {
-                    multY = 298;
-                    multUB = 482;
-                    multUG = 42;
-                    multVG = 146;
-                    multVR = 377;
-                    offsetY = 0;
-                }
+            case TranscodeFormats.BT709:
+                multY = 298;
+                multUB = 475;
+                multUG = 48;
+                multVG = 120;
+                multVR = 403;
+                offsetY = 0;
                 break;
+
+            //////////////////////////////////////////////////
+
+            case TranscodeFormats.BT2020FullRange:
+                // YUV limited range
+                // (Y  is in [16..235], rescale to [0..255])
+                // (UV is in [16..240], rescale to [0..255])
+
+                // multiply  Y by 1.16438
+                // multiply UV by 1.13839
+                multY = 298;
+                multUB = 549;
+                multUG = 48;
+                multVG = 166;
+                multVR = 429;
+                offsetY = 16;
+                break;
+
+            case TranscodeFormats.BT2020:
+                multY = 298;
+                multUB = 482;
+                multUG = 42;
+                multVG = 146;
+                multVR = 377;
+                offsetY = 0;
+                break;
+
+            //////////////////////////////////////////////////
+
+            default:
+                throw new ArgumentException(nameof(conversionStandard));
         }
+
         var scatter = height / scatteringBase;
         Parallel.For(0, (height + scatter - 1) / scatter, ys =>
         {
@@ -176,26 +180,26 @@ internal static class BitmapTranscoder
 
     private static unsafe void TranscodeFromYUV(
         int width, int height,
-        TranscodeFormats transcodeFormat,
-        bool isUYVY,
-        bool performFullRange,
+        TranscodeFormats transcodeFormat, bool isUYVY,
         byte* pFrom, byte* pTo)
     {
         switch (transcodeFormat)
         {
-            case TranscodeFormats.BT_601:
-            case TranscodeFormats.BT_709:
-            case TranscodeFormats.BT_2020:
-                TranscodeFromYUVInternal(width, height, transcodeFormat, performFullRange, isUYVY, pFrom, pTo);
+            case TranscodeFormats.BT601:
+            case TranscodeFormats.BT709:
+            case TranscodeFormats.BT709FullRange:
+            case TranscodeFormats.BT2020:
+            case TranscodeFormats.BT2020FullRange:
+                TranscodeFromYUVInternal(width, height, transcodeFormat, isUYVY, pFrom, pTo);
                 break;
             case TranscodeFormats.Auto:
                 // determine the color conversion based on the width and height of the frame
                 if (width > 1920 || height > 1080)  // UHD or larger
-                    TranscodeFromYUVInternal(width, height, TranscodeFormats.BT_2020, performFullRange, isUYVY, pFrom, pTo);
+                    TranscodeFromYUVInternal(width, height, TranscodeFormats.BT2020, isUYVY, pFrom, pTo);
                 else if (width > 720 || height > 576) // HD
-                    TranscodeFromYUVInternal(width, height, TranscodeFormats.BT_709, performFullRange, isUYVY, pFrom, pTo);
+                    TranscodeFromYUVInternal(width, height, TranscodeFormats.BT709, isUYVY, pFrom, pTo);
                 else // SD
-                    TranscodeFromYUVInternal(width, height, TranscodeFormats.BT_601, performFullRange, isUYVY, pFrom, pTo);
+                    TranscodeFromYUVInternal(width, height, TranscodeFormats.BT601, isUYVY, pFrom, pTo);
                 break;
             default:
                 throw new ArgumentException(nameof(transcodeFormat));
@@ -229,21 +233,20 @@ internal static class BitmapTranscoder
         int width, int height,
         NativeMethods.Compression compression,
         TranscodeFormats transcodeFormat, 
-        bool performFullRange,
         byte* pFrom, byte* pTo)
     {
         switch (compression)
         {
             case NativeMethods.Compression.UYVY:
             case NativeMethods.Compression.HDYC:
-                TranscodeFromYUV(width, height, transcodeFormat, true, performFullRange, pFrom, pTo);
+                TranscodeFromYUV(width, height, transcodeFormat, true, pFrom, pTo);
                 break;
             case NativeMethods.Compression.YUYV:
             case NativeMethods.Compression.YUY2:
-                TranscodeFromYUV(width, height, transcodeFormat, false, performFullRange, pFrom, pTo);
+                TranscodeFromYUV(width, height, transcodeFormat, false, pFrom, pTo);
                 break;
             default:
-                throw new ArgumentException();
+                throw new ArgumentException(nameof(compression));
         }
     }
 }
