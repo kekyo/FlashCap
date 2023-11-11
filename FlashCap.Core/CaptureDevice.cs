@@ -54,7 +54,7 @@ public abstract class CaptureDevice :
 
     protected abstract Task OnInitializeAsync(
         VideoCharacteristics characteristics,
-        bool transcodeIfYUV,
+        TranscodeFormats transcodeFormat,
         FrameProcessor frameProcessor,
         CancellationToken ct);
 
@@ -74,10 +74,10 @@ public abstract class CaptureDevice :
 
     internal Task InternalInitializeAsync(
         VideoCharacteristics characteristics,
-        bool transcodeIfYUV,
+        TranscodeFormats transcodeFormat,
         FrameProcessor frameProcessor,
         CancellationToken ct) =>
-        this.OnInitializeAsync(characteristics, transcodeIfYUV, frameProcessor, ct);
+        this.OnInitializeAsync(characteristics, transcodeFormat, frameProcessor, ct);
 
     internal async Task InternalStartAsync(CancellationToken ct)
     {

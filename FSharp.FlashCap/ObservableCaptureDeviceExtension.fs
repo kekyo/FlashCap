@@ -17,19 +17,19 @@ module public ObservableCaptureDeviceExtension =
 
     type public ObservableCaptureDevice with
 
+        member self.start(?ct: CancellationToken) =
+            self.InternalStartAsync(asCT ct) |> Async.AwaitTask
+
+        member self.stop(?ct: CancellationToken) =
+            self.InternalStopAsync(asCT ct) |> Async.AwaitTask
+
+        [<Obsolete("This function is obsoleted, please use `start` instead.")>]
         member self.startAsync(?ct: CancellationToken) =
             self.InternalStartAsync(asCT ct) |> Async.AwaitTask
 
+        [<Obsolete("This function is obsoleted, please use `stop` instead.")>]
         member self.stopAsync(?ct: CancellationToken) =
             self.InternalStopAsync(asCT ct) |> Async.AwaitTask
-
-        [<Obsolete("start method will be deprecated. Switch to use startAsync method.")>]
-        member self.start() =
-            self.InternalStartAsync(CancellationToken()) |> ignore
-
-        [<Obsolete("stop method will be deprecated. Switch to use stopAsync method.")>]
-        member self.stop() =
-            self.InternalStopAsync(CancellationToken()) |> ignore
 
         member self.subscribe(observer: IObserver<PixelBufferScope>) =
             self.InternalSubscribe(observer)
