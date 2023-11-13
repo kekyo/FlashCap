@@ -9,7 +9,8 @@
     xmlns:viewmodels="clr-namespace:FlashCap.Wpf.ViewModels"
     mc:Ignorable="d"
     Title="FlashCap.Wpf" Height="450" Width="1050"
-    Background="Black">
+    Background="Black"
+    epoxy:Anchor.Pile="{Binding WindowPile}">
 
     <Window.DataContext>
         <viewmodels:MainWindowViewModel />
@@ -26,13 +27,24 @@
         <StackPanel>
             <StackPanel Orientation="Horizontal">
                 <ComboBox HorizontalAlignment="Stretch"
-                          IsEnabled="{Binding IsEnbaled}"
+                          IsEnabled="{Binding IsEnabled}"
                           ItemsSource="{Binding DeviceList}"
                           SelectedItem="{Binding Device, Mode=TwoWay}" />
                 <ComboBox HorizontalAlignment="Stretch"
-                          IsEnabled="{Binding IsEnbaled}"
+                          IsEnabled="{Binding IsEnabled}"
                           ItemsSource="{Binding CharacteristicsList}"
                           SelectedItem="{Binding Characteristics, Mode=TwoWay}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Button IsEnabled="{Binding IsEnabledStartCapture}"
+                        Content="Start capture"
+                        Command="{Binding StartCapture}" />
+                <Button IsEnabled="{Binding IsEnabledStopCapture}"
+                        Content="Stop capture"
+                        Command="{Binding StopCapture}" />
+                <Button IsEnabled="{Binding IsEnabled}"
+                        Content="Show property page (DS)"
+                        Command="{Binding ShowPropertyPage}" />
             </StackPanel>
             <TextBlock Foreground="Yellow"
                        Text="{Binding Statistics1}" />
@@ -41,14 +53,5 @@
             <TextBlock Foreground="Yellow"
                        Text="{Binding Statistics3}" />
         </StackPanel>
-        <!--
-        <Grid Grid.Column="1" Background="Gray">
-            <StackPanel Orientation="Vertical">
-                <Button Content="Start" Click="StartClicked" HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="150" Height="30"/>
-                <Button Content="Stop" Click="StopClicked" HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="150" Height="30"/>
-                <Button Content="Show Properties" Click="ShowPropertiesClicked" HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="150" Height="30"/>
-            </StackPanel>
-        </Grid>
-        -->
     </Grid>
 </Window>

@@ -7,34 +7,12 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-using FlashCap.Wpf.ViewModels;
 using System.Windows;
-using System.Windows.Controls;
 
 namespace FlashCap.Wpf.Views;
 
 public sealed partial class MainWindow : Window
 {
-    private MainWindowViewModel? viewModel { get; set; }
-    public MainWindow()
-    {
-        InitializeComponent();
-
-        viewModel = DataContext as MainWindowViewModel;
-    }
-
-    private void ShowPropertiesClicked(object sender, RoutedEventArgs e)
-    {
-        viewModel?.ShowProperties();
-    }
-
-    private void StartClicked(object sender, RoutedEventArgs e)
-    {
-        viewModel?.Start();
-    }
-
-    private void StopClicked(object sender, RoutedEventArgs e)
-    {
-        viewModel?.Stop();
-    }
+    public MainWindow() =>
+        this.InitializeComponent();
 }
