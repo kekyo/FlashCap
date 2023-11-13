@@ -90,17 +90,24 @@ public sealed class MainWindowViewModel
         // Clicked start capture button.
         this.StartCapture = Command.Factory.Create(async () =>
         {
+            // Erase preview.
+            this.Image = null;
+            this.Statistics1 = null;
+            this.Statistics2 = null;
+            this.Statistics3 = null;
+            this.countFrames = 0;
+
             await this.captureDevice!.StartAsync();
-            this.IsEnabledStartCapture = false;
-            this.IsEnabledStopCapture = true;
+
+            this.UpdateCurrentState(States.Show);
         });
 
         // Clicked stop capture button.
         this.StopCapture = Command.Factory.Create(async () =>
         {
             await this.captureDevice!.StopAsync();
-            this.IsEnabledStopCapture = false;
-            this.IsEnabledStartCapture = true;
+
+            this.UpdateCurrentState(States.Ready);
         });
 
         // Clicked show property page button.
@@ -109,18 +116,17 @@ public sealed class MainWindowViewModel
             if (this.captureDevice is DirectShowDevice dsDevice)
             {
                 // Partially rent Window object from the anchor.
-                await this.WindowPile.RentAsync(window =>
+                await this.WindowPile.RentAsync(async window =>
                 {
                     // Take Win32 parent window handle and show with relation.
                     var handle = new WindowInteropHelper(window).Handle;
-                    dsDevice.ShowPropertyPage(handle);
-
-                    return default;
+                    await dsDevice.ShowPropertyPageAsync(handle);
                 });
             }
         });
     }
 
+    // Buttons enabling control.
     private void UpdateCurrentState(States state)
     {
         this.state = state;
