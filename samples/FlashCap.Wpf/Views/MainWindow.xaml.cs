@@ -37,10 +37,4 @@ public sealed partial class MainWindow : Window
     {
         viewModel?.Stop();
     }
-
-    private void DeviceSelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
-    {
-        if (sender is ComboBox cb && cb.SelectedItem is CaptureDeviceDescriptor { } device)
-            viewModel?.SelectDevice(device);
-    }
 }

@@ -12,114 +12,153 @@ using FlashCap.Devices;
 using SkiaSharp;
 using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
-using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FlashCap.Wpf.ViewModels;
 
 [ViewModel]
-public sealed class MainWindowViewModel : INotifyPropertyChanged
+public sealed class MainWindowViewModel
 {
+    private long countFrames;
+
     // Constructed capture device.
     private CaptureDevice? captureDevice;
 
     // Binding members.
     public Command? Loaded { get; }
     public SKBitmap? Image { get; private set; }
-    public string? Device { get; private set; }
-    public string? Characteristics { get; private set; }
+    public bool IsEnbaled { get; private set; }
 
-    // holds the list of devices, bound to the ComboBox view
-    private ObservableCollection<CaptureDeviceDescriptor> deviceList;
-    public ObservableCollection<CaptureDeviceDescriptor> DeviceList
-    {
-        get { return deviceList; }
-        set
-        {
-            if (deviceList != value)
-            {
-                deviceList = value;
-                OnPropertyChanged();
-            }
-        }
-    }
+    public ObservableCollection<CaptureDeviceDescriptor?> DeviceList { get; } = new();
+    public CaptureDeviceDescriptor? Device { get; set; }
 
-    // INotifyPropertyChanged implementation
-    public event PropertyChangedEventHandler? PropertyChanged;
-    private void OnPropertyChanged([CallerMemberName] string? name = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-    }
+    public ObservableCollection<VideoCharacteristics> CharacteristicsList { get; } = new();
+    public VideoCharacteristics? Characteristics { get; set; }
+
+    public string? Statistics1 { get; private set; }
+    public string? Statistics2 { get; private set; }
+    public string? Statistics3 { get; private set; }
 
     public MainWindowViewModel()
     {
-        deviceList = new ObservableCollection<CaptureDeviceDescriptor>();
         // Window shown:
-        this.Loaded = Command.Factory.Create(async () =>
+        this.Loaded = Command.Factory.Create(() =>
         {
             ////////////////////////////////////////////////
             // Initialize and start capture device
 
             // Enumerate capture devices:
             var devices = new CaptureDevices();
-            var descriptors = devices.EnumerateDescriptors().
+
+            // Store device list into the combo box.
+            this.DeviceList.Clear();
+            this.DeviceList.Add(null);
+
+            foreach (var descriptor in devices.EnumerateDescriptors().
                 // You could filter by device type and characteristics.
                 //Where(d => d.DeviceType == DeviceTypes.DirectShow).  // Only DirectShow device.
-                Where(d => d.Characteristics.Length >= 1).             // One or more valid video characteristics.
-                ToArray();
-
-            DeviceList = new ObservableCollection<CaptureDeviceDescriptor>(descriptors);
-
-            // Use first device.
-            if (descriptors.ElementAtOrDefault(0) is { } descriptor0)
-                await SelectDeviceInternal(descriptor0);
-            else
+                Where(d => d.Characteristics.Length >= 1))             // One or more valid video characteristics.
             {
-                this.Device = "(Devices are not found)";
+                this.DeviceList.Add(descriptor);
             }
+
+            this.IsEnbaled = true;
+
+            return default;
         });
     }
 
-    private Task SelectDeviceInternal(CaptureDeviceDescriptor descriptor)
+    // Devices combo box was changed.
+    [PropertyChanged(nameof(Device))]
+    private ValueTask OnDeviceListChangedAsync(CaptureDeviceDescriptor? descriptor)
     {
-        if (descriptor != null)
-        {
-            this.Device = descriptor.ToString();
+        Debug.WriteLine($"OnDeviceListChangedAsync: Enter: {descriptor?.ToString() ?? "(null)"}");
 
+        // Use selected device.
+        if (descriptor is { })
+        {
 #if false
-                // Request video characteristics strictly:
-                // Will raise exception when parameters are not accepted.
-                var characteristics = new VideoCharacteristics(
-                    PixelFormats.JPEG, 1920, 1080, 60);
+            // Request video characteristics strictly:
+            // Will raise exception when parameters are not accepted.
+            var characteristics = new VideoCharacteristics(
+                PixelFormats.JPEG, 1920, 1080, 60);
 #else
             // Or, you could choice from device descriptor:
-            // Hint: Show up video characteristics into ComboBox and like.
-            var characteristics = descriptor.Characteristics.
-                FirstOrDefault(c => c.PixelFormat != PixelFormats.Unknown);
-#endif
-            if (characteristics != null)
+            this.CharacteristicsList.Clear();
+            foreach (var characteristics in descriptor.Characteristics)
             {
-                // Show status.
-                this.Characteristics = characteristics.ToString();
-
-                // Open capture device:
-                return Task.Run(async () =>
+                if (characteristics.PixelFormat != PixelFormats.Unknown)
                 {
-                    this.captureDevice = await descriptor.OpenAsync(
-                        characteristics,
-                        this.OnPixelBufferArrivedAsync);
-                });
+                    this.CharacteristicsList.Add(characteristics);
+                }
             }
-            else
-            {
-                this.Characteristics = "(Formats are not found)";
-            }
+
+            this.Characteristics = this.CharacteristicsList.FirstOrDefault();
+#endif
         }
-        return Task.CompletedTask;
+        else
+        {
+            this.CharacteristicsList.Clear();
+            this.Characteristics = null;
+        }
+
+        Debug.WriteLine($"OnDeviceListChangedAsync: Leave: {descriptor?.ToString() ?? "(null)"}");
+
+        return default;
     }
 
+    // Characteristics combo box was changed.
+    [PropertyChanged(nameof(Characteristics))]
+    private async ValueTask OnCharacteristicsChangedAsync(VideoCharacteristics? characteristics)
+    {
+        Debug.WriteLine($"OnCharacteristicsChangedAsync: Enter: {characteristics?.ToString() ?? "(null)"}");
+
+        this.IsEnbaled = false;
+        try
+        {
+            // Close when already opened.
+            if (this.captureDevice is { } captureDevice)
+            {
+                this.captureDevice = null;
+
+                Debug.WriteLine($"OnCharacteristicsChangedAsync: Stopping: {captureDevice.Name}");
+                await captureDevice.StopAsync();
+
+                Debug.WriteLine($"OnCharacteristicsChangedAsync: Disposing: {captureDevice.Name}");
+                await captureDevice.DisposeAsync();
+            }
+
+            // Erase preview.
+            this.Image = null;
+            this.Statistics1 = null;
+            this.Statistics2 = null;
+            this.countFrames = 0;
+
+            // Descriptor is assigned and set valid characteristics:
+            if (this.Device is { } descriptor &&
+                characteristics is { })
+            {
+                // Open capture device:
+                Debug.WriteLine($"OnCharacteristicsChangedAsync: Opening: {descriptor.Name}");
+                this.captureDevice = await descriptor.OpenAsync(
+                    characteristics,
+                    this.OnPixelBufferArrivedAsync);
+
+                // Start capturing.
+                Debug.WriteLine($"OnCharacteristicsChangedAsync: Starting: {descriptor.Name}");
+                await this.captureDevice.StartAsync();
+            }
+        }
+        finally
+        {
+            this.IsEnbaled = true;
+
+            Debug.WriteLine($"OnCharacteristicsChangedAsync: Leave: {characteristics?.ToString() ?? "(null)"}");
+        }
+    }
 
     private async Task OnPixelBufferArrivedAsync(PixelBufferScope bufferScope)
     {
@@ -136,6 +175,11 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         // Decode image data to a bitmap:
         var bitmap = SKBitmap.Decode(image);
 
+        // Capture statistics variables.
+        var countFrames = Interlocked.Increment(ref this.countFrames);
+        var frameIndex = bufferScope.Buffer.FrameIndex;
+        var timestamp = bufferScope.Buffer.Timestamp;
+
         // `bitmap` is copied, so we can release pixel buffer now.
         bufferScope.ReleaseNow();
 
@@ -144,6 +188,13 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
         {
             // Update a bitmap.
             this.Image = bitmap;
+
+            // Update statistics.
+            var realFps = countFrames / timestamp.TotalSeconds;
+            var fpsByIndex = frameIndex / timestamp.TotalSeconds;
+            this.Statistics1 = $"Frame={countFrames}/{frameIndex}";
+            this.Statistics2 = $"FPS={realFps:F3}/{fpsByIndex:F3}";
+            this.Statistics3 = $"SKBitmap={bitmap.Width}x{bitmap.Height} [{bitmap.ColorType}]";
         }
     }
 
@@ -170,13 +221,5 @@ public sealed class MainWindowViewModel : INotifyPropertyChanged
             if (this.captureDevice != null)
                 await this.captureDevice.StopAsync();
         });
-    }
-
-    /* A user selected a different video source from the drop down menu */
-    internal async void SelectDevice(CaptureDeviceDescriptor device)
-    {
-        await Stop();
-        await SelectDeviceInternal(device);
-        await Start();
     }
 }

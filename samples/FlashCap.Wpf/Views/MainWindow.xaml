@@ -20,26 +20,35 @@
     </epoxy:EventBinder.Events>
 
     <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="Auto"/>
-        </Grid.ColumnDefinitions>
-        <Grid Grid.Column="0">
-            <siv:SKImageView
+        <siv:SKImageView
             Source="{Binding Image}"
             Stretch="Uniform" />
-            <StackPanel Orientation="Vertical">
-                <TextBlock Foreground="Yellow" Text="{Binding Device}" />
-                <TextBlock Foreground="Yellow" Text="{Binding Characteristics}" />
+        <StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <ComboBox HorizontalAlignment="Stretch"
+                          IsEnabled="{Binding IsEnbaled}"
+                          ItemsSource="{Binding DeviceList}"
+                          SelectedItem="{Binding Device, Mode=TwoWay}" />
+                <ComboBox HorizontalAlignment="Stretch"
+                          IsEnabled="{Binding IsEnbaled}"
+                          ItemsSource="{Binding CharacteristicsList}"
+                          SelectedItem="{Binding Characteristics, Mode=TwoWay}" />
             </StackPanel>
-        </Grid>
+            <TextBlock Foreground="Yellow"
+                       Text="{Binding Statistics1}" />
+            <TextBlock Foreground="Yellow"
+                       Text="{Binding Statistics2}" />
+            <TextBlock Foreground="Yellow"
+                       Text="{Binding Statistics3}" />
+        </StackPanel>
+        <!--
         <Grid Grid.Column="1" Background="Gray">
             <StackPanel Orientation="Vertical">
-                <ComboBox ItemsSource="{Binding Path=DeviceList}" DisplayMemberPath="Name" SelectedIndex="0" SelectionChanged="DeviceSelectionChanged" VerticalContentAlignment="Center" Width="150" Height="30"/>
                 <Button Content="Start" Click="StartClicked" HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="150" Height="30"/>
                 <Button Content="Stop" Click="StopClicked" HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="150" Height="30"/>
                 <Button Content="Show Properties" Click="ShowPropertiesClicked" HorizontalAlignment="Left" VerticalAlignment="Bottom" Width="150" Height="30"/>
             </StackPanel>
         </Grid>
+        -->
     </Grid>
 </Window>
