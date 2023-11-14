@@ -46,6 +46,7 @@ public sealed class MainWindowViewModel
     public Command ShowPropertyPage { get; }
     public bool IsEnabledStartCapture { get; private set; }
     public bool IsEnabledStopCapture { get; private set; }
+    public bool IsEnabledShowPropertyPage { get; private set; }
 
     public Pile<Window> WindowPile { get; } = Pile.Factory.Create<Window>();
 
@@ -114,14 +115,15 @@ public sealed class MainWindowViewModel
         // Clicked show property page button.
         this.ShowPropertyPage = Command.Factory.Create(async () =>
         {
-            if (this.captureDevice is DirectShowDevice dsDevice)
+            if (this.captureDevice is { } captureDevice &&
+                captureDevice.HasPropertyPage == true)
             {
                 // Partially rent Window object from the anchor.
                 await this.WindowPile.RentAsync(async window =>
                 {
                     // Take Win32 parent window handle and show with relation.
                     var handle = new WindowInteropHelper(window).Handle;
-                    await dsDevice.ShowPropertyPageAsync(handle);
+                    await captureDevice.ShowPropertyPageAsync(handle);
                 });
             }
         });
@@ -147,6 +149,8 @@ public sealed class MainWindowViewModel
                 this.IsEnabledStopCapture = false;
                 break;
         }
+
+        this.IsEnabledShowPropertyPage = this.captureDevice?.HasPropertyPage ?? false;
     }
 
     // Devices combo box was changed.

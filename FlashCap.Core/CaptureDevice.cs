@@ -61,6 +61,8 @@ public abstract class CaptureDevice :
     public object Identity { get; }
     public string Name { get; }
 
+    public virtual bool HasPropertyPage => false;
+
     public VideoCharacteristics Characteristics { get; protected set; } = null!;
     public bool IsRunning { get; protected set; }
 
@@ -69,6 +71,10 @@ public abstract class CaptureDevice :
 
     protected abstract void OnCapture(
         IntPtr pData, int size, long timestampMicroseconds, long frameIndex, PixelBuffer buffer);
+
+    protected virtual Task<bool> OnShowPropertyPageAsync(
+        IntPtr parentWindow, CancellationToken ct) =>
+        TaskCompat.FromResult(false);
 
     //////////////////////////////////////////////////////////////////////////
 
@@ -101,4 +107,13 @@ public abstract class CaptureDevice :
     internal void InternalOnCapture(
         IntPtr pData, int size, long timestampMicroseconds, long frameIndex, PixelBuffer buffer) =>
         this.OnCapture(pData, size, timestampMicroseconds, frameIndex, buffer);
+
+    internal async Task<bool> InternalShowPropertyPageAsync(
+        IntPtr parentWindow, CancellationToken ct)
+    {
+        using var _ = await locker.LockAsync(ct).
+            ConfigureAwait(false);
+
+        return await this.OnShowPropertyPageAsync(parentWindow, ct);
+    }
 }

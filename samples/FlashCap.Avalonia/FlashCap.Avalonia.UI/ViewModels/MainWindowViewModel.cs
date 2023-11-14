@@ -121,14 +121,17 @@ public sealed class MainWindowViewModel
         // Clicked show property page button.
         this.ShowPropertyPage = Command.Factory.Create(async () =>
         {
-            if (this.captureDevice is DirectShowDevice dsDevice)
+            if (this.captureDevice is { } captureDevice &&
+                captureDevice.HasPropertyPage == true)
             {
                 // Partially rent Window object from the anchor.
                 await this.WindowPile.RentAsync(async window =>
                 {
                     // Take Win32 parent window handle and show with relation.
-                    var handle = window.TryGetPlatformHandle()!.Handle;
-                    await dsDevice.ShowPropertyPageAsync(handle);
+                    if (window.TryGetPlatformHandle()?.Handle is { } handle)
+                    {
+                        await captureDevice.ShowPropertyPageAsync(handle);
+                    }
                 });
             }
         });
@@ -154,6 +157,8 @@ public sealed class MainWindowViewModel
                 this.IsEnabledStopCapture = false;
                 break;
         }
+
+        this.IsEnabledShowPropertyPage = this.captureDevice?.HasPropertyPage ?? false;
     }
 
     // Devices combo box was changed.
@@ -184,17 +189,12 @@ public sealed class MainWindowViewModel
             this.Characteristics = this.CharacteristicsList.FirstOrDefault();
 #endif
 
-            // Enabled only DS device.
-            this.IsEnabledShowPropertyPage = descriptor is DirectShowDeviceDescriptor;
-
             this.UpdateCurrentState(States.Ready);
         }
         else
         {
             this.CharacteristicsList.Clear();
             this.Characteristics = null;
-
-            this.IsEnabledShowPropertyPage = false;
 
             this.UpdateCurrentState(States.NotShown);
         }

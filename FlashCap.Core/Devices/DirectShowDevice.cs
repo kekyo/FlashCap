@@ -326,9 +326,10 @@ public sealed class DirectShowDevice :
     // Property page implementation.
     // https://learn.microsoft.com/en-us/windows/win32/directshow/displaying-a-filters-property-pages
 
-    public Task<bool> ShowPropertyPageAsync(
-        IntPtr parentWindow,
-        CancellationToken ct = default) =>
+    public override bool HasPropertyPage => true;
+
+    protected override Task<bool> OnShowPropertyPageAsync(
+        IntPtr parentWindow, CancellationToken ct) =>
         this.workingContext!.InvokeAsync(() =>
         {
             var devicePath = (string)this.Identity;

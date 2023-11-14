@@ -42,8 +42,8 @@
                 <Button IsEnabled="{Binding IsEnabledStopCapture}"
                         Content="Stop capture"
                         Command="{Binding StopCapture}" />
-                <Button IsEnabled="{Binding IsEnabled}"
-                        Content="Show property page (DS)"
+                <Button IsEnabled="{Binding IsEnabledShowPropertyPage}"
+                        Content="Show property page"
                         Command="{Binding ShowPropertyPage}" />
             </StackPanel>
             <TextBlock Foreground="Yellow"
