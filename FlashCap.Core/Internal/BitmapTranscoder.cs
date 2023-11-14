@@ -21,22 +21,17 @@ internal static class BitmapTranscoder
 
     // some interesting code references:
     // https://chromium.googlesource.com/libyuv/libyuv/+/HEAD/unit_test/color_test.cc
-    // FullRange = true means that we suppose Y is in [16..235] range and UV in [16..240]
-    // FullRange = false means that we suppose Y U and V are in [0..255] range
+    // TranscodeFormats WITHOUT FullRange suffix means that we suppose Y is in [16..235] range and UV in [16..240]
+    // TranscodeFormats WITH FullRange suffix means that we suppose Y U and V are in [0..255] range
     private static unsafe void TranscodeFromYUVInternal(
        int width, int height,
        TranscodeFormats conversionStandard, bool isUYVY,
        byte* pFrom, byte* pTo)
     {
-        // default values BT.601
-        int multY = 255;
-        int multUB = 516;
-        int multUG = 100;
-        int multVG = 208;
-        int multVR = 409;
-        int offsetY = 0;
+        // constants for color conversion
+        int multY, multUB, multUG, multVG, multVR, offsetY;
 
-        // set constants for the color conversion
+        // select constants for the color conversion
         switch (conversionStandard)
         {
             //////////////////////////////////////////////////
@@ -63,6 +58,15 @@ internal static class BitmapTranscoder
                 multVG = 237;
                 multVR = 466;
                 offsetY = 16;
+                break;
+
+            case TranscodeFormats.BT601FullRange:
+                multY = 255;
+                multUB = 516;
+                multUG = 100;
+                multVG = 208;
+                multVR = 409;
+                offsetY = 0;
                 break;
 
             //////////////////////////////////////////////////
@@ -92,7 +96,7 @@ internal static class BitmapTranscoder
                 break;
 
             case TranscodeFormats.BT709FullRange:
-                multY = 298;
+                multY = 255;
                 multUB = 475;
                 multUG = 48;
                 multVG = 120;
@@ -118,7 +122,7 @@ internal static class BitmapTranscoder
                 break;
 
             case TranscodeFormats.BT2020FullRange:
-                multY = 298;
+                multY = 255;
                 multUB = 482;
                 multUG = 42;
                 multVG = 146;
@@ -186,6 +190,7 @@ internal static class BitmapTranscoder
         switch (transcodeFormat)
         {
             case TranscodeFormats.BT601:
+            case TranscodeFormats.BT601FullRange:
             case TranscodeFormats.BT709:
             case TranscodeFormats.BT709FullRange:
             case TranscodeFormats.BT2020:
