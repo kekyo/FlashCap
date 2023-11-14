@@ -636,6 +636,7 @@ Apache-v2.
   * `TranscodeFormats` 列挙型を使用して、BT.601, BT.709, BT.2020変換を指定できるようにしました [#107](https://github.com/kekyo/FlashCap/issues/107)
   * BlackMagic社固有のYUYVフォーマットに対応しました [#105](https://github.com/kekyo/FlashCap/issues/105)
   * いくつかのメソッド/関数は `Obsolete` としてマークされています。警告に従って変更してください。
+  * .NET 8.0 RC2に対応しました。
 * 1.6.0:
   * V4L2で一部のフォーマットが列挙されない問題を修正しました。
   * 未対応のフォーマットを暗黙に除外しないで、`PixelFormats.Unknown` として可視化されるようにしました。

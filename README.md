@@ -697,6 +697,7 @@ Apache-v2.
   * Added transcoding formats by `TranscodeFormats` enum type, declared BT.601, BT.709 and BT.2020. [#107](https://github.com/kekyo/FlashCap/issues/107)
   * Supported BlackMagic specific YUYV format. [#105](https://github.com/kekyo/FlashCap/issues/105)
   * Some methods/functions are marked as `Obsolete` . Change them according to the warnings.
+  * Supported .NET 8.0 RC2.
 * 1.6.0:
   * Fixed problem with some formats not being enumerated in V4L2.
   * Unsupported formats are now visible as `PixelFormats.Unknown` instead of being implicitly excluded.
