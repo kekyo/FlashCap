@@ -28,6 +28,13 @@ public static class CaptureDeviceExtension
     public static Task StopAsync(this CaptureDevice captureDevice, CancellationToken ct = default) =>
         captureDevice.InternalStopAsync(ct);
 
+#if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+    public static Task<bool> ShowPropertyPageAsync(
+        this CaptureDevice captureDevice, IntPtr parentWindow, CancellationToken ct = default) =>
+        captureDevice.InternalShowPropertyPageAsync(parentWindow, ct);
+
     [Obsolete("Start method will be deprecated. Switch to use StartAsync method.")]
     public static void Start(this CaptureDevice captureDevice) =>
         _ = captureDevice.InternalStartAsync(default);

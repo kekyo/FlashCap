@@ -7,7 +7,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using Avalonia.Controls;
 using Epoxy;
+using FlashCap.Devices;
 using SkiaSharp;
 using System;
 using System.Collections.ObjectModel;
@@ -26,15 +28,31 @@ namespace FlashCap.Avalonia.ViewModels;
 [ViewModel]
 public sealed class MainWindowViewModel
 {
+    private enum States
+    {
+        NotShown,
+        Ready,
+        Show,
+    }
+
+    private States state = States.NotShown;
     private long countFrames;
 
     // Constructed capture device.
     private CaptureDevice? captureDevice;
 
     // Binding members.
-    public Command? Opened { get; }
+    public Command Opened { get; }
     public SKBitmap? Image { get; private set; }
-    public bool IsEnbaled { get; private set; }
+    public bool IsEnabled { get; private set; }
+    public Command StartCapture { get; }
+    public Command StopCapture { get; }
+    public Command ShowPropertyPage { get; }
+    public bool IsEnabledStartCapture { get; private set; }
+    public bool IsEnabledStopCapture { get; private set; }
+    public bool IsEnabledShowPropertyPage { get; private set; }
+
+    public Pile<Window> WindowPile { get; } = Pile.Factory.Create<Window>();
 
     public ObservableCollection<CaptureDeviceDescriptor?> DeviceList { get; } = new();
     public CaptureDeviceDescriptor? Device { get; set; }
@@ -48,6 +66,8 @@ public sealed class MainWindowViewModel
 
     public MainWindowViewModel()
     {
+        this.UpdateCurrentState(States.NotShown);
+
         // Window shown:
         this.Opened = Command.Factory.Create(() =>
         {
@@ -59,7 +79,6 @@ public sealed class MainWindowViewModel
 
             // Store device list into the combo box.
             this.DeviceList.Clear();
-            this.DeviceList.Add(null);
 
             foreach (var descriptor in devices.EnumerateDescriptors().
                 // You could filter by device type and characteristics.
@@ -69,17 +88,84 @@ public sealed class MainWindowViewModel
                 this.DeviceList.Add(descriptor);
             }
 
-            this.IsEnbaled = true;
+            this.Device = this.DeviceList.FirstOrDefault();
+
+            this.IsEnabled = true;
 
             return default;
         });
+
+        // Clicked start capture button.
+        this.StartCapture = Command.Factory.Create(async () =>
+        {
+            // Erase preview.
+            this.Image = null;
+            this.Statistics1 = null;
+            this.Statistics2 = null;
+            this.Statistics3 = null;
+            this.countFrames = 0;
+
+            await this.captureDevice!.StartAsync();
+
+            this.UpdateCurrentState(States.Show);
+        });
+
+        // Clicked stop capture button.
+        this.StopCapture = Command.Factory.Create(async () =>
+        {
+            await this.captureDevice!.StopAsync();
+
+            this.UpdateCurrentState(States.Ready);
+        });
+
+        // Clicked show property page button.
+        this.ShowPropertyPage = Command.Factory.Create(async () =>
+        {
+            if (this.captureDevice is { } captureDevice &&
+                captureDevice.HasPropertyPage == true)
+            {
+                // Partially rent Window object from the anchor.
+                await this.WindowPile.RentAsync(async window =>
+                {
+                    // Take Win32 parent window handle and show with relation.
+                    if (window.TryGetPlatformHandle()?.Handle is { } handle)
+                    {
+                        await captureDevice.ShowPropertyPageAsync(handle);
+                    }
+                });
+            }
+        });
+    }
+
+    // Buttons enabling control.
+    private void UpdateCurrentState(States state)
+    {
+        this.state = state;
+
+        switch (this.state)
+        {
+            case States.Ready:
+                this.IsEnabledStartCapture = true;
+                this.IsEnabledStopCapture = false;
+                break;
+            case States.Show:
+                this.IsEnabledStartCapture = false;
+                this.IsEnabledStopCapture = true;
+                break;
+            default:
+                this.IsEnabledStartCapture = false;
+                this.IsEnabledStopCapture = false;
+                break;
+        }
+
+        this.IsEnabledShowPropertyPage = this.captureDevice?.HasPropertyPage ?? false;
     }
 
     // Devices combo box was changed.
     [PropertyChanged(nameof(Device))]
-    private ValueTask OnDeviceListChangedAsync(CaptureDeviceDescriptor? descriptor)
+    private ValueTask OnDeviceChangedAsync(CaptureDeviceDescriptor? descriptor)
     {
-        Debug.WriteLine($"OnDeviceListChangedAsync: Enter: {descriptor?.ToString() ?? "(null)"}");
+        Debug.WriteLine($"OnDeviceChangedAsync: Enter: {descriptor?.ToString() ?? "(null)"}");
 
         // Use selected device.
         if (descriptor is { })
@@ -102,14 +188,18 @@ public sealed class MainWindowViewModel
 
             this.Characteristics = this.CharacteristicsList.FirstOrDefault();
 #endif
+
+            this.UpdateCurrentState(States.Ready);
         }
         else
         {
             this.CharacteristicsList.Clear();
             this.Characteristics = null;
+
+            this.UpdateCurrentState(States.NotShown);
         }
 
-        Debug.WriteLine($"OnDeviceListChangedAsync: Leave: {descriptor?.ToString() ?? "(null)"}");
+        Debug.WriteLine($"OnDeviceChangedAsync: Leave: {descriptor?.ToString() ?? "(null)"}");
 
         return default;
     }
@@ -120,13 +210,15 @@ public sealed class MainWindowViewModel
     {
         Debug.WriteLine($"OnCharacteristicsChangedAsync: Enter: {characteristics?.ToString() ?? "(null)"}");
 
-        this.IsEnbaled = false;
+        this.IsEnabled = false;
         try
         {
             // Close when already opened.
             if (this.captureDevice is { } captureDevice)
             {
                 this.captureDevice = null;
+
+                this.UpdateCurrentState(States.NotShown);
 
                 Debug.WriteLine($"OnCharacteristicsChangedAsync: Stopping: {captureDevice.Name}");
                 await captureDevice.StopAsync();
@@ -139,6 +231,7 @@ public sealed class MainWindowViewModel
             this.Image = null;
             this.Statistics1 = null;
             this.Statistics2 = null;
+            this.Statistics3 = null;
             this.countFrames = 0;
 
             // Descriptor is assigned and set valid characteristics:
@@ -151,14 +244,12 @@ public sealed class MainWindowViewModel
                     characteristics,
                     this.OnPixelBufferArrivedAsync);
 
-                // Start capturing.
-                Debug.WriteLine($"OnCharacteristicsChangedAsync: Starting: {descriptor.Name}");
-                await this.captureDevice.StartAsync();
+                this.UpdateCurrentState(States.Ready);
             }
         }
         finally
         {
-            this.IsEnbaled = true;
+            this.IsEnabled = true;
 
             Debug.WriteLine($"OnCharacteristicsChangedAsync: Leave: {characteristics?.ToString() ?? "(null)"}");
         }

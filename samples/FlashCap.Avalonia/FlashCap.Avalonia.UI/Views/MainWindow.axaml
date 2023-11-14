@@ -10,7 +10,8 @@
     x:Class="FlashCap.Avalonia.Views.MainWindow"
     x:DataType="viewmodels:MainWindowViewModel"
     Title="FlashCap.Avalonia" Height="450" Width="800"
-    TransparencyBackgroundFallback="Black">
+    TransparencyBackgroundFallback="Black"
+    epoxy:Anchor.Pile="{Binding WindowPile}">
 
     <Window.DataContext>
         <viewmodels:MainWindowViewModel />
@@ -27,13 +28,24 @@
         <StackPanel>
             <StackPanel Orientation="Horizontal">
                 <ComboBox HorizontalAlignment="Stretch"
-                          IsEnabled="{Binding IsEnbaled}"
+                          IsEnabled="{Binding IsEnabled}"
                           ItemsSource="{Binding DeviceList}"
                           SelectedItem="{Binding Device, Mode=TwoWay}" />
                 <ComboBox HorizontalAlignment="Stretch"
-                          IsEnabled="{Binding IsEnbaled}"
+                          IsEnabled="{Binding IsEnabled}"
                           ItemsSource="{Binding CharacteristicsList}"
                           SelectedItem="{Binding Characteristics, Mode=TwoWay}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Button IsEnabled="{Binding IsEnabledStartCapture}"
+                        Content="Start capture"
+                        Command="{Binding StartCapture}" />
+                <Button IsEnabled="{Binding IsEnabledStopCapture}"
+                        Content="Stop capture"
+                        Command="{Binding StopCapture}" />
+                <Button IsEnabled="{Binding IsEnabledShowPropertyPage}"
+                        Content="Show property page"
+                        Command="{Binding ShowPropertyPage}" />
             </StackPanel>
             <TextBlock Foreground="Yellow"
                        Text="{Binding Statistics1}" />

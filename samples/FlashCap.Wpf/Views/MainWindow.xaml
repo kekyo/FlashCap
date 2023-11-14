@@ -8,8 +8,9 @@
     xmlns:siv="https://github.com/kekyo/SkiaImageView"
     xmlns:viewmodels="clr-namespace:FlashCap.Wpf.ViewModels"
     mc:Ignorable="d"
-    Title="FlashCap.Wpf" Height="450" Width="800"
-    Background="Black">
+    Title="FlashCap.Wpf" Height="450" Width="1050"
+    Background="Black"
+    epoxy:Anchor.Pile="{Binding WindowPile}">
 
     <Window.DataContext>
         <viewmodels:MainWindowViewModel />
@@ -23,9 +24,34 @@
         <siv:SKImageView
             Source="{Binding Image}"
             Stretch="Uniform" />
-        <StackPanel Orientation="Vertical">
-            <TextBlock Foreground="Yellow" Text="{Binding Device}" />
-            <TextBlock Foreground="Yellow" Text="{Binding Characteristics}" />
+        <StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <ComboBox HorizontalAlignment="Stretch"
+                          IsEnabled="{Binding IsEnabled}"
+                          ItemsSource="{Binding DeviceList}"
+                          SelectedItem="{Binding Device, Mode=TwoWay}" />
+                <ComboBox HorizontalAlignment="Stretch"
+                          IsEnabled="{Binding IsEnabled}"
+                          ItemsSource="{Binding CharacteristicsList}"
+                          SelectedItem="{Binding Characteristics, Mode=TwoWay}" />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <Button IsEnabled="{Binding IsEnabledStartCapture}"
+                        Content="Start capture"
+                        Command="{Binding StartCapture}" />
+                <Button IsEnabled="{Binding IsEnabledStopCapture}"
+                        Content="Stop capture"
+                        Command="{Binding StopCapture}" />
+                <Button IsEnabled="{Binding IsEnabledShowPropertyPage}"
+                        Content="Show property page"
+                        Command="{Binding ShowPropertyPage}" />
+            </StackPanel>
+            <TextBlock Foreground="Yellow"
+                       Text="{Binding Statistics1}" />
+            <TextBlock Foreground="Yellow"
+                       Text="{Binding Statistics2}" />
+            <TextBlock Foreground="Yellow"
+                       Text="{Binding Statistics3}" />
         </StackPanel>
     </Grid>
 </Window>

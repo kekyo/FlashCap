@@ -96,20 +96,20 @@ public sealed class DirectShowDevice :
 
         return this.workingContext!.InvokeAsync(() =>
         {
-            if (NativeMethods_DirectShow.EnumerateDeviceMoniker(
-                NativeMethods_DirectShow.CLSID_VideoInputDeviceCategory).
-                Where(moniker =>
-                    moniker.GetPropertyBag() is { } pb &&
-                    pb.SafeReleaseBlock(pb =>
-                        pb.GetValue("DevicePath", default(string))?.Trim() is { } dp &&
-                        dp.Equals(devicePath))).
-                Collect(moniker =>
-                    moniker.BindToObject(null, null, in NativeMethods_DirectShow.IID_IBaseFilter, out var captureSource) == 0 ?
-                    captureSource as NativeMethods_DirectShow.IBaseFilter : null).
-                FirstOrDefault() is { } captureSource)
+        if (NativeMethods_DirectShow.EnumerateDeviceMoniker(
+            NativeMethods_DirectShow.CLSID_VideoInputDeviceCategory).
+            Where(moniker =>
+                moniker.GetPropertyBag() is { } pb &&
+                pb.SafeReleaseBlock(pb =>
+                    pb.GetValue("DevicePath", default(string))?.Trim() is { } dp &&
+                    dp.Equals(devicePath))).
+            Collect(moniker =>
+                moniker.BindToObject(null, null, in NativeMethods_DirectShow.IID_IBaseFilter, out var captureSource) == 0 ?
+                captureSource as NativeMethods_DirectShow.IBaseFilter : null).
+            FirstOrDefault() is { } captureSource)
+        {
+            try
             {
-                try
-                {
                     if (captureSource.EnumeratePins().
                         Collect(pin =>
                             pin.GetPinInfo() is { } pinInfo &&
@@ -320,4 +320,51 @@ public sealed class DirectShowDevice :
         long timestampMicroseconds, long frameIndex,
         PixelBuffer buffer) =>
         buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeFormat);
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////
+
+    // Property page implementation.
+    // https://learn.microsoft.com/en-us/windows/win32/directshow/displaying-a-filters-property-pages
+
+    public override bool HasPropertyPage => true;
+
+    protected override Task<bool> OnShowPropertyPageAsync(
+        IntPtr parentWindow, CancellationToken ct) =>
+        this.workingContext!.InvokeAsync(() =>
+        {
+            var devicePath = (string)this.Identity;
+
+            if (NativeMethods_DirectShow.EnumerateDeviceMoniker(
+               NativeMethods_DirectShow.CLSID_VideoInputDeviceCategory).
+               Where(moniker =>
+                   moniker.GetPropertyBag() is { } pb &&
+                   pb.SafeReleaseBlock(pb =>
+                       pb.GetValue("DevicePath", default(string))?.Trim() is { } dp &&
+                       dp.Equals(devicePath))).
+               Collect(moniker =>
+                   moniker.BindToObject(null, null, in NativeMethods_DirectShow.IID_IBaseFilter, out var captureSource) == 0 ?
+                   captureSource as NativeMethods_DirectShow.IBaseFilter : null).
+               FirstOrDefault() is { } captureSource)
+            {
+                if (captureSource is NativeMethods_DirectShow.ISpecifyPropertyPages specifyPropertyPages &&
+                    captureSource is object sourceAsObject &&
+                    specifyPropertyPages.GetPages(out var pPages) == 0)
+                {
+                    try
+                    {
+                        NativeMethods_DirectShow.OleCreatePropertyFrame(
+                            parentWindow, 0, 0, this.Name, 1, ref sourceAsObject,
+                            pPages.cElems, pPages.pElems, 0, 0, IntPtr.Zero);
+
+                        return true;
+                    }
+                    finally
+                    {
+                        Marshal.FreeCoTaskMem(pPages.pElems);
+                    }
+                }
+            }
+
+            return false;
+        }, ct);
 }
