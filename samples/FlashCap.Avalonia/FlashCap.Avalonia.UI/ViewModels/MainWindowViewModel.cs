@@ -79,7 +79,6 @@ public sealed class MainWindowViewModel
 
             // Store device list into the combo box.
             this.DeviceList.Clear();
-            this.DeviceList.Add(null);
 
             foreach (var descriptor in devices.EnumerateDescriptors().
                 // You could filter by device type and characteristics.
@@ -88,6 +87,8 @@ public sealed class MainWindowViewModel
             {
                 this.DeviceList.Add(descriptor);
             }
+
+            this.Device = this.DeviceList.FirstOrDefault();
 
             this.IsEnabled = true;
 
