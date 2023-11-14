@@ -76,7 +76,7 @@ internal static class BitmapTranscoder
             //0   ,-48, 475
             //403,-120, 0
 
-            case TranscodeFormats.BT709FullRange:
+            case TranscodeFormats.BT709:
                 // YUV limited range
                 // (Y  is in [16..235], rescale to [0..255])
                 // (UV is in [16..240], rescale to [0..255])
@@ -91,7 +91,7 @@ internal static class BitmapTranscoder
                 offsetY = 16;
                 break;
 
-            case TranscodeFormats.BT709:
+            case TranscodeFormats.BT709FullRange:
                 multY = 298;
                 multUB = 475;
                 multUG = 48;
@@ -102,7 +102,7 @@ internal static class BitmapTranscoder
 
             //////////////////////////////////////////////////
 
-            case TranscodeFormats.BT2020FullRange:
+            case TranscodeFormats.BT2020:
                 // YUV limited range
                 // (Y  is in [16..235], rescale to [0..255])
                 // (UV is in [16..240], rescale to [0..255])
@@ -117,7 +117,7 @@ internal static class BitmapTranscoder
                 offsetY = 16;
                 break;
 
-            case TranscodeFormats.BT2020:
+            case TranscodeFormats.BT2020FullRange:
                 multY = 298;
                 multUB = 482;
                 multUG = 42;
