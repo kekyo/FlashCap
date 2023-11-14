@@ -182,7 +182,7 @@ Couldn't detect any devices on FlashCap:
 
 Fully sample code is here:
 
-* [Avalonia](samples/FlashCap.Avalonia/)
+* [Avalonia11 application](samples/FlashCap.Avalonia/)
 * [WPF application](samples/FlashCap.Wpf/)
 * [Windows Forms application](samples/FlashCap.WindowsForms/)
 * [Console application](samples/FlashCap.OneShot/)
@@ -231,6 +231,36 @@ var characteristics = descriptor0.Characteristics.
 
 FlashCap enumerates all formats returned by the device.
 Therefore, by checking the information in `VideoCharacteristics` with `PixelFormats.Unknown`, you can analyze what formats the device supports.
+
+### Displaying camera device property page
+
+It is possible to display camera device property page.
+
+![PropertyPage](Images/PropertyPage.png)
+
+```csharp
+using var device = await descriptor.OpenAsync(
+    characteristics,
+    async bufferScope =>
+    {
+        // ...
+    });
+
+// if the camera device supports property pages
+if (device.HasPropertyPage)
+{
+    // Get parent window handle from Avalonia window
+    if (this.window.TryGetPlatformHandle()?.Handle is { } handle)
+    {
+        // show the camera device's property page
+        await device.ShowPropertyPageAsync(handle);
+    }
+}
+```
+
+Currently, property pages can only be displayed when the target is a DirectShow device.
+
+See [Avalonia sample code](samples/FlashCap.Avalonia/) and [WPF sample code](samples/FlashCap.Wpf/) for a complete implementation.
 
 
 ----
@@ -632,6 +662,27 @@ So, you can implement your own image data processing to achieve the fastest poss
 
 ----
 
+## Build FlashCap
+
+FlashCap keeps a clean build environment.
+Basically, if you have Visual Studio 2022 .NET development environment installed, you can build it as is.
+(Please add the WPF and Windows Forms options. These are required to build the sample code)
+
+1. Clone this repository.
+2. Build `FlashCap.sln`.
+   * Build it with `dotnet build`.
+   * Or open `FlashCap.sln` with Visual Studio 2022 and build it.
+
+NOTE: FlashCap itself should build in a Linux environment,
+but since the sample code has a Windows-dependent implementation,
+we assume Windows as the development environment.
+
+Pull requests are welcome! Development is on the `develop` branch and merged into the `main` branch at release time.
+Therefore, if you make a pull request, please make new your topic branch from the `develop` branch.
+
+
+----
+
 ## License
 
 Apache-v2.
@@ -641,6 +692,12 @@ Apache-v2.
 
 ## History
 
+* 1.7.0:
+  * Supported display property page on DirectShow device. [#112](https://github.com/kekyo/FlashCap/issues/112)
+  * Added transcoding formats by `TranscodeFormats` enum type, declared BT.601, BT.709 and BT.2020. [#107](https://github.com/kekyo/FlashCap/issues/107)
+  * Supported BlackMagic specific YUYV format. [#105](https://github.com/kekyo/FlashCap/issues/105)
+  * Some methods/functions are marked as `Obsolete` . Change them according to the warnings.
+  * Supported .NET 8.0 RC2.
 * 1.6.0:
   * Fixed problem with some formats not being enumerated in V4L2.
   * Unsupported formats are now visible as `PixelFormats.Unknown` instead of being implicitly excluded.

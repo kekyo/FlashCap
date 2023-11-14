@@ -183,7 +183,7 @@ await deviceObservable.StartAsync();
 
 完全なサンプルコードはこちらです:
 
-* [Avaloniaアプリケーション](samples/FlashCap.Avalonia/)
+* [Avalonia11アプリケーション](samples/FlashCap.Avalonia/)
 * [WPFアプリケーション](samples/FlashCap.Wpf)
 * [Windowsフォームアプリケーション](samples/FlashCap.WindowsForms/)
 * [コンソールアプリケーション](samples/FlashCap.OneShot/)
@@ -229,6 +229,36 @@ var characteristics = descriptor0.Characteristics.
 
 FlashCapは、デバイスが返す全てのフォーマットを列挙します。
 従って、 `PixelFormats.Unknown` である `VideoCharacteristics` の情報を確認する事で、デバイスがどのようなフォーマットに対応しているのかを分析することが出来ます。
+
+### カメラデバイスのプロパティページを表示する
+
+カメラデバイスのプロパティページを表示する事が出来ます。
+
+![PropertyPage](Images/PropertyPage.png)
+
+```csharp
+using var device = await descriptor.OpenAsync(
+    characteristics,
+    async bufferScope =>
+    {
+        // ...
+    });
+
+// カメラデバイスがプロパティページをサポートしていれば
+if (device.HasPropertyPage)
+{
+    // Avaloniaのウインドウから親ハンドルを取得
+    if (window.TryGetPlatformHandle()?.Handle is { } handle)
+    {
+        // カメラデバイスのプロパティページを表示する
+        await device.ShowPropertyPageAsync(handle);
+    }
+}
+```
+
+現在のところ、プロパティページを表示出来るのは、対象がDirectShowデバイスの場合のみです。
+
+完全な実装は、[Avaloniaサンプルコード](samples/FlashCap.Avalonia/)や、[WPFサンプルコード](samples/FlashCap.Wpf/)を参照して下さい。
 
 
 ----
@@ -572,6 +602,26 @@ await device.StartAsync();
 
 ----
 
+## 自分でビルドする
+
+FlashCapは、ビルド環境をクリーンに保っています。
+基本的に、Visual Studio 2022の.NET開発環境がインストールされていればビルド出来ると思います。
+（WPF, Windows Formsのオプションは追加してください。これらはサンプルコードのビルドに必要です）
+
+1. このリポジトリをクローンします。
+2. `FlashCap.sln`をビルドします。
+   * `dotnet build` でビルドします。
+   * または、`FlashCap.sln`をVisual Studio 2022で開き、ビルドします。
+
+注意: FlashCap自体は、.NET SDKを持つLinux環境でもビルドできるはずですが、サンプルコードにWindowsに依存する実装があるため、
+開発環境にWindowsを想定しています。
+
+プルリクエストを歓迎します! 開発は`develop`ブランチ上で行って、リリース時に`main`ブランチにマージしています。
+そのため、プルリクエストを作る場合は、`develop`ブランチからあなたのトピックブランチを切って下さい。
+
+
+----
+
 ## License
 
 Apache-v2.
@@ -581,6 +631,12 @@ Apache-v2.
 
 ## 履歴
 
+* 1.7.0:
+  * DirectShowデバイスでプロパティページを表示出来るようになりました [#112](https://github.com/kekyo/FlashCap/issues/112)
+  * `TranscodeFormats` 列挙型を使用して、BT.601, BT.709, BT.2020変換を指定できるようにしました [#107](https://github.com/kekyo/FlashCap/issues/107)
+  * BlackMagic社固有のYUYVフォーマットに対応しました [#105](https://github.com/kekyo/FlashCap/issues/105)
+  * いくつかのメソッド/関数は `Obsolete` としてマークされています。警告に従って変更してください。
+  * .NET 8.0 RC2に対応しました。
 * 1.6.0:
   * V4L2で一部のフォーマットが列挙されない問題を修正しました。
   * 未対応のフォーマットを暗黙に除外しないで、`PixelFormats.Unknown` として可視化されるようにしました。

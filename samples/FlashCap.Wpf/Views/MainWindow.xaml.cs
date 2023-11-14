@@ -14,5 +14,5 @@ namespace FlashCap.Wpf.Views;
 public sealed partial class MainWindow : Window
 {
     public MainWindow() =>
-        InitializeComponent();
+        this.InitializeComponent();
 }
