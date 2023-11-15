@@ -417,14 +417,14 @@ using var device = await descriptor0.OpenAsync(
 
 ## About transcoder
 
-The "raw image data" obtained from a device may not be a JPEG or DIB bitmap, which we can easily handle.
+The "raw image data" obtained from a device may not be a JPEG or RGB DIB bitmap, which we can easily handle.
 Typically, video format is called "MJPEG" (Motion JPEG) or "YUV" if it is not a continuous stream such as MPEG.
 
 "MJPEG" is completely the same as JPEG, so FlashCap returns the image data as is.
 In contrast, the "YUV" format has the same data header format as a DIB bitmap, but the contents are completely different.
 Therefore, many image decoders will not be able to process it if it is saved as is in a file such as "output.bmp".
 
-Therefore, FlashCap automatically converts "YUV" format image data into "RGB" DIB format.
+Therefore, FlashCap automatically converts "YUV" format image data into RGB DIB format.
 This process is called "transcoding."
 Earlier, I explained that `ReferImage()` "basically no copying occurs here," but in the case of "YUV" format, transcoding occurs, so a kind of copying is performed.
 (FlashCap handles transcoding in multi-threaded, but even so, large image data can affect performance.)
@@ -435,7 +435,7 @@ If the image data is "YUV" and you do not have any problem, you can disable tran
 // Open device with transcoding disabled:
 using var device = await descriptor0.OpenAsync(
   descriptor0.Characteristics[0],
-  false,   // transcodeIfYUV == false
+  TranscodeFormats.DoNotTranscode,   // Do not transcode.
   async buferScope =>
   {
       // ...
@@ -443,6 +443,20 @@ using var device = await descriptor0.OpenAsync(
 
 // ...
 ```
+
+The `TranscodeFormats` enumeration value has the following choices:
+
+| `TranscodeFormats` | Details |
+|:----|:----|
+| `Auto` | Transcode if necessary and automatically select a transformation matrix. Depending on the resolution, `BT601`, `BT709`, or `BT2020` will be selected. |
+| `DoNotTranscode` | No transcoding at all; formats other than JPEG or PNG will be stored in the DIB bitmap as raw data. |
+| `BT601` | If necessary, transcode using the BT.601 conversion matrix. This is standard for resolutions up to HD. |
+| `BT709` | If necessary, transcode using the BT.709 conversion matrix. This is standard for resolutions up to FullHD. |
+| `BT2020` | If necessary, transcode using the BT.2020 conversion matrix. This is standard for resolutions beyond FullHD, such as 4K. |
+
+In addition to the above, there are `BT601FullRange`, `BT709FullRange`, and `BT2020FullRange`.
+These extend the assumed range of the luminance signal to the entire 8-bit range, but are less common.
+If `Auto` is selected, these `FullRange` matrices are not used.
 
 ## Callback handler and invoke trigger
 
@@ -615,7 +629,7 @@ var descriptor0 = devices.EnumerateDevices().ElementAt(0);
 // Open by specifying our frame processor.
 using var device = await descriptor0.OpenWitFrameProcessorAsync(
   descriptor0.Characteristics[0],
-  true,   // transcode
+  TranscodeFormats.Auto,
   new CoolFrameProcessor(buffer =>   // Using our frame processor.
   {
     // Captured pixel buffer is passed.
@@ -692,6 +706,8 @@ Apache-v2.
 
 ## History
 
+* 1.8.0:
+  * Fixed some incorrect conversion matrix coefficients for transcoding [#107](https://github.com/kekyo/FlashCap/issues/107)
 * 1.7.0:
   * Supported display property page on DirectShow device. [#112](https://github.com/kekyo/FlashCap/issues/112)
   * Added transcoding formats by `TranscodeFormats` enum type, declared BT.601, BT.709 and BT.2020. [#107](https://github.com/kekyo/FlashCap/issues/107)

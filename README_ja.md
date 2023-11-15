@@ -400,11 +400,11 @@ using var device = await descriptor0.OpenAsync(
 
 ## トランスコードについて
 
-デバイスから得られた「生の画像データ」は、私たちが扱いやすい、JPEGやDIBビットマップではない場合があります。一般的に、動画形式の画像データは、MPEGのような連続ストリームではない場合、"MJPEG" (Motion JPEG)や"YUV"と呼ばれる形式です。
+デバイスから得られた「生の画像データ」は、私たちが扱いやすい、JPEGやRGB DIBビットマップではない場合があります。一般的に、動画形式の画像データは、MPEGのような連続ストリームではない場合、"MJPEG" (Motion JPEG)や"YUV"と呼ばれる形式です。
 
 "MJPEG"は、中身が完全にJPEGと同じであるため、FlashCapはそのまま画像データとして返します。対して、"YUV"形式の場合は、データヘッダ形式はDIBビットマップと同じですが、中身は完全に別物です。従って、これをそのまま "output.bmp" のようなファイルで保存しても、多くの画像デコーダはこれを処理できません。
 
-そこで、FlashCapは、"YUV"形式の画像データの場合は、自動的に"RGB" DIB形式に変換します。この処理の事を「トランスコード」と呼んでいます。先ほど、`ReferImage()`は「基本的にコピーが発生しない」と説明しましたが、"YUV"形式の場合は、トランスコードが発生するため、一種のコピーが行われます。（FlashCapはトランスコードをマルチスレッドで処理しますが、それでも画像データが大きい場合は、性能に影響します。）
+そこで、FlashCapは、"YUV"形式の画像データの場合は、自動的にRGB DIB形式に変換します。この処理の事を「トランスコード」と呼んでいます。先ほど、`ReferImage()`は「基本的にコピーが発生しない」と説明しましたが、"YUV"形式の場合は、トランスコードが発生するため、一種のコピーが行われます。（FlashCapはトランスコードをマルチスレッドで処理しますが、それでも画像データが大きい場合は、性能に影響します。）
 
 もし、画像データが"YUV"形式であっても、そのままで問題ないのであれば、トランスコードを無効化することで、コピー処理を完全に1回のみにする事が出来ます:
 
@@ -412,7 +412,7 @@ using var device = await descriptor0.OpenAsync(
 // トランスコードを無効にしてデバイスを開く:
 using var device = await descriptor0.OpenAsync(
   descriptor0.Characteristics[0],
-  false,   // transcodeIfYUV == false
+  TranscodeFormats.DoNotTranscode,   // トランスコードさせない
   async buferScope =>
   {
       // ...
@@ -420,6 +420,20 @@ using var device = await descriptor0.OpenAsync(
 
 // ...
 ```
+
+`TranscodeFormats` 列挙値には以下の選択肢があります:
+
+| `TranscodeFormats` | 内容 |
+|:----|:----|
+| `Auto` | 必要であればトランスコードを行い、変換マトリックスを自動的に選択します。解像度に応じて、`BT601`, `BT709`, `BT2020` が選択されます。 |
+| `DoNotTranscode` | トランスコードを全く行いません。JPEG又はPNG以外のフォーマットは、生データのままDIBビットマップに格納されます。 |
+| `BT601` | 必要であれば、BT.601変換マトリックスを使用してトランスコードを行います。これはHDまでの解像度で標準的に使用されます。 |
+| `BT709` | 必要であれば、BT.709変換マトリックスを使用してトランスコードを行います。これはFullHDまでの解像度で標準的に使用されます。 |
+| `BT2020` | 必要であれば、BT.2020変換マトリックスを使用してトランスコードを行います。これは4K等のFullHDを超える解像度で標準的に使用されます。 |
+
+上記のほかに、 `BT601FullRange`, `BT709FullRange`, `BT2020FullRange`, が存在します。
+これらは、輝度信号の想定範囲を8ビット全体に広げますが、一般的ではありません。
+`Auto` を選択した場合は、これらの `FullRange` を使用しません。
 
 ## コールバックハンドラと呼び出し契機
 
@@ -561,7 +575,7 @@ var descriptor0 = devices.EnumerateDevices().ElementAt(0);
 // フレームプロセッサを指定してオープンする
 using var device = await descriptor0.OpenWitFrameProcessorAsync(
   descriptor0.Characteristics[0],
-  true,   // transcode
+  TranscodeFormats.Auto,
   new CoolFrameProcessor(buffer =>   // カスタムのフレームプロセッサを使う
   {
     // キャプチャされたピクセルバッファが渡される
@@ -631,6 +645,8 @@ Apache-v2.
 
 ## 履歴
 
+* 1.8.0:
+  * トランスコードの変換マトリックス係数が一部誤っていたのを修正 [#107](https://github.com/kekyo/FlashCap/issues/107)
 * 1.7.0:
   * DirectShowデバイスでプロパティページを表示出来るようになりました [#112](https://github.com/kekyo/FlashCap/issues/112)
   * `TranscodeFormats` 列挙型を使用して、BT.601, BT.709, BT.2020変換を指定できるようにしました [#107](https://github.com/kekyo/FlashCap/issues/107)
