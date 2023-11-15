@@ -469,7 +469,7 @@ or with the overloaded argument of `OpenAsync`:
 // Specifies the trigger for invoking the handler:
 using var device = await descriptor0.OpenAsync(
   descriptor0.Characteristics[0],
-  true,
+  TranscodeFormats.Auto,
   true,   // Specifying the invoking trigger (true: Scattering)
   10,     // Maximum number of queuing frames
   async buferScope =>

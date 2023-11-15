@@ -443,7 +443,7 @@ using var device = await descriptor0.OpenAsync(
 // ハンドラの呼び出し契機を指定する:
 using var device = await descriptor0.OpenAsync(
   descriptor0.Characteristics[0],
-  true,
+  TranscodeFormats.Auto,
   true,   // 呼び出し契機の指定 (true: Scattering)
   10,     // 最大滞留フレーム数
   async buferScope =>
