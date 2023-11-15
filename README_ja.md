@@ -633,6 +633,102 @@ FlashCapは、ビルド環境をクリーンに保っています。
 プルリクエストを歓迎します! 開発は`develop`ブランチ上で行って、リリース時に`main`ブランチにマージしています。
 そのため、プルリクエストを作る場合は、`develop`ブランチからあなたのトピックブランチを切って下さい。
 
+### V4L2を未対応のプラットフォームに移植する
+
+V4L2はLinuxのイメージキャプチャ標準APIです。
+FlashCapはV4L2に対応していて、これによりLinuxの様々なプラットフォームで動作します。以下に対応プラットフォームを挙げます:
+
+* i686, x86_64
+* aarch64, armv7l
+* mipsel
+
+ここに挙げた対応プラットフォームは、単に私が動作確認出来た、つまり現実のハードウェアを持ち合わせていて、
+FlashCapを使って実際にカメラのキャプチャに成功したものです。
+
+それでは、他のプラットフォーム、例えばmips64,riscv64,loongarch64で動作するか言えば、動作しません。
+理由は、以下の通りです:
+
+* 私が動作確認できない: 実際のハードウェアやSBC (Single Board Computer) コンポーネントを持ち合わせていないので、物理的な確認が出来ない。
+* .NETランタイム、又はmonoが移植されていない。またはstableな移植が存在しない。
+
+.NETランタイムの問題については、時間が解決する可能性はあります。
+そこで、もしFlashCapを未対応のLinuxプラットフォームに移植するつもりがあるのであれば、
+概要を示すので参考にしてください。
+
+* `FlashCap.V4L2Generator` は、V4L2への移植に必要な相互運用ソースコードを自動生成するためのジェネレータです。
+  このプロジェクトは、[Clang](https://clang.llvm.org/) が出力するAST JSONファイルを使用して、
+  V4L2のヘッダファイルから、正しいABI構造を厳密に適用したC#の相互運用定義ソースコードを生成します。
+* 従って、まずターゲットとするLinuxのABIに対応したClangが必要になります。
+  この理由により、安定的なABIが定まっていない環境に移植することはできません。
+* 同様に、`FlashCap.V4L2Generator` を動作させるために、ターゲットとするLinuxで動作するmono又は.NETランタイムが必要です。
+* ターゲットLinuxがDebian系の移植であれば、これらは `apt` パッケージなどから入手可能かもしれません。
+  `sudo apt install build-essential clang mono-devel` などでインストール出来れば、可能性が高まります。
+
+最初に、 `FlashCap.V4L2Generator` をビルドする必要があります。
+ターゲットのLinux環境で.NET SDKが使用できない場合は、monoの `mcs` を使ってコードをコンパイルする `build-mono.sh` を使用して下さい。
+
+その後、大まかな手順は、 `dumper.sh` というスクリプトに示されているので、
+内容をターゲットの環境に合わせて書き換えて下さい。
+
+`FlashCap.V4L2Generator` が生成したソースコードは、 `FlashCap.Core/Internal/V4L2/` に配置されます。
+これを使用するには、 `NativeMethods_V4L2.cs` のタイプイニシャライザの `switch` 文に、
+新しいプラットフォームの分岐を加えて下さい。
+
+```csharp
+switch (buf.machine)
+{
+    case "x86_64":
+    case "amd64":
+        Interop = new NativeMethods_V4L2_Interop_x86_64();
+        break;
+    case "i686":
+    case "i586":
+    case "i486":
+    case "i386":
+        Interop = new NativeMethods_V4L2_Interop_i686();
+        break;
+    case "aarch64":
+        Interop = new NativeMethods_V4L2_Interop_aarch64();
+        break;
+    case "armv9l":
+    case "armv8l":
+    case "armv7l":
+    case "armv6l":
+        Interop = new NativeMethods_V4L2_Interop_armv7l();
+        break;
+    case "mips":
+    case "mipsel":
+        Interop = new NativeMethods_V4L2_Interop_mips();
+        break;
+
+    // (ここに新しい移植を加えます...)
+
+    default:
+        throw new InvalidOperationException(
+            $"FlashCap: Architecture '{buf.machine}' is not supported.");
+}
+```
+
+あとは、神に祈ります :)
+Avaloniaのサンプルコードを使用して確認すると良いでしょう。
+Avaloniaが動作しない環境の場合は、OneShotサンプルコードで試した後、
+これを拡張して連続したビットマップを保存して確認する方法もあります。
+
+これで成功したら、PRを歓迎します。
+
+このプロセスで生成されたコードは、他のプラットフォームとほぼ同一のコードと言えるため、
+私が直接ハードウェアで検証出来ていませんが、恐らくPRを受け入れることが出来るでしょう。
+以下の情報も提供してください（ドキュメントに記載されます）:
+
+* ターゲットの物理マシン製品名
+* キャプチャユニットやカメラの製品名
+* これらの接続方法（例えばUSB接続・PCIe接続・内臓カメラなど）
+* 一般的な小売り業者から入手出来ない場合は、具体的な入手先
+* どうしても解消できなかった制約がある場合の説明（例えば特定の映像特性が動かないなど）
+
+TIPS: なぜV4L2Generatorが必要になるかというと、.NET相互運用機能で想定されている各種デフォルトは、
+Windows環境に最適化されていて、ターゲットのABIと互換性がないからです。
+
 
 ----
 
