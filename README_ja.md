@@ -742,6 +742,7 @@ Apache-v2.
 ## 履歴
 
 * 1.8.0:
+  * .NET 8.0 SDKに対応しました。
   * トランスコードの変換マトリックス係数が一部誤っていたのを修正 [#107](https://github.com/kekyo/FlashCap/issues/107)
 * 1.7.0:
   * DirectShowデバイスでプロパティページを表示出来るようになりました [#112](https://github.com/kekyo/FlashCap/issues/112)

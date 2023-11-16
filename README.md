@@ -808,6 +808,7 @@ Apache-v2.
 ## History
 
 * 1.8.0:
+  * Supported .NET 8.0 SDK.
   * Fixed some incorrect conversion matrix coefficients for transcoding [#107](https://github.com/kekyo/FlashCap/issues/107)
 * 1.7.0:
   * Supported display property page on DirectShow device. [#112](https://github.com/kekyo/FlashCap/issues/112)
