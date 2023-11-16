@@ -199,6 +199,7 @@ internal static class NativeMethods
         YUYV = 0x56595559,   // FOURCC
         UYVY = 0x59565955,   // FOURCC
         MJPG = 0x47504A4D,   // FOURCC
+        HDYC = 0x43594448    // FOURCC (BlackMagic input (UYVY))
     }
 
     private static int CalculateClrUsed(
@@ -498,6 +499,7 @@ internal static class NativeMethods
             Compression.UYVY => PixelFormats.UYVY,
             Compression.YUYV => PixelFormats.YUYV,
             Compression.YUY2 => PixelFormats.YUYV,
+            Compression.HDYC => PixelFormats.YUYV,
             _ => PixelFormats.Unknown,
         };
 

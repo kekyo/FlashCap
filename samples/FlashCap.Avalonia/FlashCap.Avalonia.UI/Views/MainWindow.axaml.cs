@@ -13,7 +13,7 @@ using Avalonia.Markup.Xaml;
 
 namespace FlashCap.Avalonia.Views;
 
-public sealed class MainWindow : Window
+public sealed partial class MainWindow : Window
 {
     public MainWindow() =>
         this.InitializeComponent();

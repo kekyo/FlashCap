@@ -182,7 +182,7 @@ Couldn't detect any devices on FlashCap:
 
 Fully sample code is here:
 
-* [Avalonia](samples/FlashCap.Avalonia/)
+* [Avalonia11 application](samples/FlashCap.Avalonia/)
 * [WPF application](samples/FlashCap.Wpf/)
 * [Windows Forms application](samples/FlashCap.WindowsForms/)
 * [Console application](samples/FlashCap.OneShot/)
@@ -231,6 +231,36 @@ var characteristics = descriptor0.Characteristics.
 
 FlashCap enumerates all formats returned by the device.
 Therefore, by checking the information in `VideoCharacteristics` with `PixelFormats.Unknown`, you can analyze what formats the device supports.
+
+### Displaying camera device property page
+
+It is possible to display camera device property page.
+
+![PropertyPage](Images/PropertyPage.png)
+
+```csharp
+using var device = await descriptor.OpenAsync(
+    characteristics,
+    async bufferScope =>
+    {
+        // ...
+    });
+
+// if the camera device supports property pages
+if (device.HasPropertyPage)
+{
+    // Get parent window handle from Avalonia window
+    if (this.window.TryGetPlatformHandle()?.Handle is { } handle)
+    {
+        // show the camera device's property page
+        await device.ShowPropertyPageAsync(handle);
+    }
+}
+```
+
+Currently, property pages can only be displayed when the target is a DirectShow device.
+
+See [Avalonia sample code](samples/FlashCap.Avalonia/) and [WPF sample code](samples/FlashCap.Wpf/) for a complete implementation.
 
 
 ----
@@ -387,14 +417,14 @@ using var device = await descriptor0.OpenAsync(
 
 ## About transcoder
 
-The "raw image data" obtained from a device may not be a JPEG or DIB bitmap, which we can easily handle.
+The "raw image data" obtained from a device may not be a JPEG or RGB DIB bitmap, which we can easily handle.
 Typically, video format is called "MJPEG" (Motion JPEG) or "YUV" if it is not a continuous stream such as MPEG.
 
 "MJPEG" is completely the same as JPEG, so FlashCap returns the image data as is.
 In contrast, the "YUV" format has the same data header format as a DIB bitmap, but the contents are completely different.
 Therefore, many image decoders will not be able to process it if it is saved as is in a file such as "output.bmp".
 
-Therefore, FlashCap automatically converts "YUV" format image data into "RGB" DIB format.
+Therefore, FlashCap automatically converts "YUV" format image data into RGB DIB format.
 This process is called "transcoding."
 Earlier, I explained that `ReferImage()` "basically no copying occurs here," but in the case of "YUV" format, transcoding occurs, so a kind of copying is performed.
 (FlashCap handles transcoding in multi-threaded, but even so, large image data can affect performance.)
@@ -405,7 +435,7 @@ If the image data is "YUV" and you do not have any problem, you can disable tran
 // Open device with transcoding disabled:
 using var device = await descriptor0.OpenAsync(
   descriptor0.Characteristics[0],
-  false,   // transcodeIfYUV == false
+  TranscodeFormats.DoNotTranscode,   // Do not transcode.
   async buferScope =>
   {
       // ...
@@ -413,6 +443,20 @@ using var device = await descriptor0.OpenAsync(
 
 // ...
 ```
+
+The `TranscodeFormats` enumeration value has the following choices:
+
+| `TranscodeFormats` | Details |
+|:----|:----|
+| `Auto` | Transcode if necessary and automatically select a transformation matrix. Depending on the resolution, `BT601`, `BT709`, or `BT2020` will be selected. |
+| `DoNotTranscode` | No transcoding at all; formats other than JPEG or PNG will be stored in the DIB bitmap as raw data. |
+| `BT601` | If necessary, transcode using the BT.601 conversion matrix. This is standard for resolutions up to HD. |
+| `BT709` | If necessary, transcode using the BT.709 conversion matrix. This is standard for resolutions up to FullHD. |
+| `BT2020` | If necessary, transcode using the BT.2020 conversion matrix. This is standard for resolutions beyond FullHD, such as 4K. |
+
+In addition to the above, there are `BT601FullRange`, `BT709FullRange`, and `BT2020FullRange`.
+These extend the assumed range of the luminance signal to the entire 8-bit range, but are less common.
+If `Auto` is selected, these `FullRange` matrices are not used.
 
 ## Callback handler and invoke trigger
 
@@ -425,7 +469,7 @@ or with the overloaded argument of `OpenAsync`:
 // Specifies the trigger for invoking the handler:
 using var device = await descriptor0.OpenAsync(
   descriptor0.Characteristics[0],
-  true,
+  TranscodeFormats.Auto,
   true,   // Specifying the invoking trigger (true: Scattering)
   10,     // Maximum number of queuing frames
   async buferScope =>
@@ -585,7 +629,7 @@ var descriptor0 = devices.EnumerateDevices().ElementAt(0);
 // Open by specifying our frame processor.
 using var device = await descriptor0.OpenWitFrameProcessorAsync(
   descriptor0.Characteristics[0],
-  true,   // transcode
+  TranscodeFormats.Auto,
   new CoolFrameProcessor(buffer =>   // Using our frame processor.
   {
     // Captured pixel buffer is passed.
@@ -632,6 +676,128 @@ So, you can implement your own image data processing to achieve the fastest poss
 
 ----
 
+## Build FlashCap
+
+FlashCap keeps a clean build environment.
+Basically, if you have Visual Studio 2022 .NET development environment installed, you can build it as is.
+(Please add the WPF and Windows Forms options. These are required to build the sample code)
+
+1. Clone this repository.
+2. Build `FlashCap.sln`.
+   * Build it with `dotnet build`.
+   * Or open `FlashCap.sln` with Visual Studio 2022 and build it.
+
+NOTE: FlashCap itself should build in a Linux environment,
+but since the sample code has a Windows-dependent implementation,
+we assume Windows as the development environment.
+
+Pull requests are welcome! Development is on the `develop` branch and merged into the `main` branch at release time.
+Therefore, if you make a pull request, please make new your topic branch from the `develop` branch.
+
+### Porting V4L2 to unsupported platforms
+
+V4L2 is the Linux image capture standard API.
+FlashCap supports V4L2 API, which allows it to run on a variety of Linux platforms.
+The supported platforms are listed below:
+
+* i686, x86_64
+* aarch64, armv7l
+* mipsel
+
+The supported platforms listed here are simply those that I have been able to verify work,
+I have real hardware and have successfully captured the camera using FlashCap.
+
+If you ask me if it works on other platforms, such as mips64, riscv64, or loongarch64, it will not work.
+The reasons are as follows:
+
+* I cannot confirm that it works:
+  I don't have real hardware and/or SBC (Single Board Computer) component,
+  so I can't physically check.
+* .NET runtime or mono has not been ported, or there is no stable port.
+
+.NET runtime, time may solve the problem.
+So, if you intend to port FlashCap to an unsupported Linux platform,
+please refer to the following for a porting overview:
+
+* `FlashCap.V4L2Generator` is a generator to automatically generate the interoperable source code needed to port to V4L2.
+  This project is using the AST JSON files output by [Clang](https://clang.llvm.org/),
+  generate C# interoperability definition source code from V4L2 header files with the correct ABI structure strictly applied.
+* Therefore, you will first need Clang for the target Linux ABI.
+  For this reason, it cannot be ported into an environment where a stable ABI has not been established.
+* Similarly, to run `FlashCap.V4L2Generator`, you need mono or .NET runtime running on the target Linux.
+* If the target Linux is a Debian-type port, these may be available from the `apt` package, for example:
+  `sudo apt install build-essential clang mono-devel`, etc., it is more likely.
+
+First, you need to build `FlashCap.V4L2Generator`.
+When .NET SDK is not available in the target Linux environment,
+we provide a `build-mono.sh` that compiles the code using mono `mcs` compiler.
+
+Then, the rough procedure is shown in the script `dumper.sh`.
+Customize the script to suit your target environment.
+
+The source code generated by `FlashCap.V4L2Generator` is placed into `FlashCap.Core/Internal/V4L2/`.
+To use it, in the `switch` statement of the type initializer in `NativeMethods_V4L2.cs`,
+Add a new platform branch.
+
+```csharp
+switch (buf.machine)
+{
+    case "x86_64":
+    case "amd64":
+        Interop = new NativeMethods_V4L2_Interop_x86_64();
+        break;
+    case "i686":
+    case "i586":
+    case "i486":
+    case "i386":
+        Interop = new NativeMethods_V4L2_Interop_i686();
+        break;
+    case "aarch64":
+        Interop = new NativeMethods_V4L2_Interop_aarch64();
+        break;
+    case "armv9l":
+    case "armv8l":
+    case "armv7l":
+    case "armv6l":
+        Interop = new NativeMethods_V4L2_Interop_armv7l();
+        break;
+    case "mips":
+    case "mipsel":
+        Interop = new NativeMethods_V4L2_Interop_mips();
+        break;
+
+    // (Insert your cool platform ported interop...)
+
+    default:
+        throw new InvalidOperationException(
+            $"FlashCap: Architecture '{buf.machine}' is not supported.");
+}
+```
+
+And pray to God for the rest :)
+You may want to use the Avalonia sample code to verify this.
+If your environment does not run Avalonia, after trying with the OneShot sample code,
+You can also extend this to save a continuous bitmap and check it.
+
+If this is successful, PRs are welcome.
+
+Because the code generated by this process can be said to be nearly identical to the code on other platforms,
+I have not been able to verify it directly on my stock hardware, but I can probably accept the PR.
+Please also provide the following information (This will be noted in the documentation):
+
+* Target physical machine product name.
+* Capture unit or camera product name.
+* These connection methods (e.g., USB, PCIe connection, embedded cam etc.)
+* Specific source if not available from a typical retailer.
+* Explanation of any limitations that could not be resolved (e.g., certain video characteristics do not work)
+
+TIPS: The reason why V4L2Generator is needed is that the various defaults assumed
+by the .NET interoperability feature are optimized
+for the Windows environment and are not compatible with the variation for target ABI.
+
+
+----
+
 ## License
 
 Apache-v2.
@@ -641,6 +807,15 @@ Apache-v2.
 
 ## History
 
+* 1.8.0:
+  * Supported .NET 8.0 SDK.
+  * Fixed some incorrect conversion matrix coefficients for transcoding [#107](https://github.com/kekyo/FlashCap/issues/107)
+* 1.7.0:
+  * Supported display property page on DirectShow device. [#112](https://github.com/kekyo/FlashCap/issues/112)
+  * Added transcoding formats by `TranscodeFormats` enum type, declared BT.601, BT.709 and BT.2020. [#107](https://github.com/kekyo/FlashCap/issues/107)
+  * Supported BlackMagic specific YUYV format. [#105](https://github.com/kekyo/FlashCap/issues/105)
+  * Some methods/functions are marked as `Obsolete` . Change them according to the warnings.
+  * Supported .NET 8.0 RC2.
 * 1.6.0:
   * Fixed problem with some formats not being enumerated in V4L2.
   * Unsupported formats are now visible as `PixelFormats.Unknown` instead of being implicitly excluded.

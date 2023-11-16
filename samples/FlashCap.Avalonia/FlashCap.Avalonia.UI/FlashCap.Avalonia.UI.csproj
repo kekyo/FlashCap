@@ -2,13 +2,16 @@
     
   <PropertyGroup>
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <IncludeAvaloniaGenerators>true</IncludeAvaloniaGenerators>
   </PropertyGroup>
     
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="0.10.21" />
-    <PackageReference Include="Avalonia.Diagnostics" Version="0.10.21" />
-    <PackageReference Include="Epoxy.Avalonia" Version="1.9.0" />
-    <PackageReference Include="SkiaImageView.Avalonia" Version="1.4.0" />
+    <PackageReference Include="Avalonia" Version="11.0.5" />
+    <PackageReference Include="Avalonia.Diagnostics" Version="11.0.5" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.5" />
+    <PackageReference Include="Epoxy.Avalonia11" Version="1.11.0" />
+    <PackageReference Include="SkiaImageView.Avalonia11" Version="1.5.0" />
   </ItemGroup>
     
   <ItemGroup>

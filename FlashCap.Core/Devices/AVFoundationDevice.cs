@@ -23,7 +23,7 @@ public sealed class AVFoundationDevice : CaptureDevice
     private AVCaptureSession? session;
     private FrameProcessor? frameProcessor;
     private IntPtr bitmapHeader;
-    private bool transcodeIfYUV;
+    private TranscodeFormats transcodeFormat;
 
     public AVFoundationDevice(string uniqueID, string modelID) :
         base(uniqueID, modelID)
@@ -49,10 +49,10 @@ public sealed class AVFoundationDevice : CaptureDevice
         await base.OnDisposeAsync().ConfigureAwait(false);
     }
 
-    protected override Task OnInitializeAsync(VideoCharacteristics characteristics, bool transcodeIfYUV, FrameProcessor frameProcessor, CancellationToken ct)
+    protected override Task OnInitializeAsync(VideoCharacteristics characteristics, TranscodeFormats transcodeFormat, FrameProcessor frameProcessor, CancellationToken ct)
     {
         this.frameProcessor = frameProcessor;
-        this.transcodeIfYUV = transcodeIfYUV;
+        this.transcodeFormat = transcodeFormat;
         this.Characteristics = characteristics;
 
         if (!NativeMethods_AVFoundation.PixelFormatMap.TryGetValue(characteristics.PixelFormat, out var pixelFormatType) ||
@@ -134,7 +134,7 @@ public sealed class AVFoundationDevice : CaptureDevice
 
     protected override void OnCapture(IntPtr pData, int size, long timestampMicroseconds, long frameIndex, PixelBuffer buffer)
     {
-        buffer.CopyIn(this.bitmapHeader, pData, size, timestampMicroseconds, frameIndex, this.transcodeIfYUV);
+        buffer.CopyIn(this.bitmapHeader, pData, size, timestampMicroseconds, frameIndex, this.transcodeFormat);
     }
 
     private sealed class VideoBufferHandler : AVCaptureVideoDataOutputSampleBuffer

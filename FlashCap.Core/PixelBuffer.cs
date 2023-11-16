@@ -1,4 +1,4 @@
-﻿////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////
 //
 // FlashCap - Independent camera capture library.
 // Copyright (c) Kouji Matsui (@kozy_kekyo, @kekyo@mastodon.cloud)
@@ -20,7 +20,7 @@ public sealed class PixelBuffer
     private byte[]? transcodedImageContainer = null;
     private bool isValidTranscodedImage;
     private long timestampMicroseconds;
-    private bool transcodeIfYUV;
+    private TranscodeFormats transcodeFormat;
 
     internal PixelBuffer()
     {
@@ -29,7 +29,7 @@ public sealed class PixelBuffer
     internal unsafe void CopyIn(
         IntPtr pih, IntPtr pData, int size,
         long timestampMicroseconds, long frameIndex,
-        bool transcodeIfYUV)
+        TranscodeFormats transcodeFormat)
     {
         this.FrameIndex = frameIndex;
         this.timestampMicroseconds = timestampMicroseconds;
@@ -69,7 +69,7 @@ public sealed class PixelBuffer
                         pData,
                         (IntPtr)size);
 
-                    this.transcodeIfYUV = false;
+                    this.transcodeFormat = TranscodeFormats.DoNotTranscode;
                 }
                 else
                 {
@@ -94,7 +94,7 @@ public sealed class PixelBuffer
                         pData,
                         (IntPtr)size);
 
-                    this.transcodeIfYUV = transcodeIfYUV;
+                    this.transcodeFormat = transcodeFormat;
                 }
             }
         }
@@ -121,7 +121,7 @@ public sealed class PixelBuffer
                 throw new InvalidOperationException("Extracted before capture.");
             }
 
-            if (this.transcodeIfYUV)
+            if (this.transcodeFormat != TranscodeFormats.DoNotTranscode)
             {
                 if (this.isValidTranscodedImage && this.transcodedImageContainer != null)
                 {
@@ -182,7 +182,8 @@ public sealed class PixelBuffer
 #endif
                             BitmapTranscoder.Transcode(
                                 pBih->biWidth, pBih->biHeight,
-                                pBih->biCompression, false,
+                                pBih->biCompression,
+                                this.transcodeFormat,
                                 pImageContainer + pBfh->bfOffBits,
                                 pTranscodedImageContainer + pBfhTo->bfOffBits);
 

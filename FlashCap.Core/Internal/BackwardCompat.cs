@@ -43,6 +43,23 @@ namespace System
 }
 #endif
 
+#if NETFRAMEWORK || NETSTANDARD1_3
+namespace System
+{
+    internal readonly struct ValueTuple<T1, T2>
+    {
+        public readonly T1 Item1;
+        public readonly T2 Item2;
+
+        public ValueTuple(T1 item1, T2 item2)
+        {
+            this.Item1 = item1;
+            this.Item2 = item2;
+        }
+    }
+}
+#endif
+
 namespace System.Linq
 {
     internal static partial class EnumerableExtension

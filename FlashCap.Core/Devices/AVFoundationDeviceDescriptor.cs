@@ -30,10 +30,10 @@ public sealed class AVFoundationDeviceDescriptor : CaptureDeviceDescriptor
 
     protected override Task<CaptureDevice> OnOpenWithFrameProcessorAsync(
         VideoCharacteristics characteristics,
-        bool transcodeIfYUV,
+        TranscodeFormats transcodeFormat,
         FrameProcessor frameProcessor,
         CancellationToken ct) =>
         this.InternalOnOpenWithFrameProcessorAsync(
             new AVFoundationDevice(this.uniqueId, this.Name),
-            characteristics, transcodeIfYUV, frameProcessor, ct);
+            characteristics, transcodeFormat, frameProcessor, ct);
 }

@@ -11,7 +11,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		build-nupkg.bat = build-nupkg.bat
 		build-nupkg.sh = build-nupkg.sh
 		.github\workflows\build.yaml = .github\workflows\build.yaml
-		.github\dependabot.yml = .github\dependabot.yml
 		Directory.Build.props = Directory.Build.props
 		README.md = README.md
 		README_ja.md = README_ja.md
@@ -35,7 +34,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.Core", "FlashCap.C
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "FSharp.FlashCap", "FSharp.FlashCap\FSharp.FlashCap.fsproj", "{AAD7F2E9-C6F7-4BDA-9D49-08469C2C7A1D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlashCap.OneShot", "samples\FlashCap.OneShot\FlashCap.OneShot.csproj", "{2914E44E-F6F4-4BF0-B0BB-962DE4D505AE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.OneShot", "samples\FlashCap.OneShot\FlashCap.OneShot.csproj", "{2914E44E-F6F4-4BF0-B0BB-962DE4D505AE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
