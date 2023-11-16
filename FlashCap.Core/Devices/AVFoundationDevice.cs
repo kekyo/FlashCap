@@ -156,7 +156,6 @@ public sealed class AVFoundationDevice : CaptureDevice
             var pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
             if (pixelBuffer == IntPtr.Zero)
             {
-                CFRelease(sampleBuffer);
                 return;
             }
 
