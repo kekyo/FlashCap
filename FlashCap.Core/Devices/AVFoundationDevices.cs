@@ -13,7 +13,6 @@ using System.Threading.Tasks;
 using FlashCap.Internal;
 using FlashCap.Utilities;
 using static FlashCap.Internal.NativeMethods_AVFoundation.LibAVFoundation;
-using static FlashCap.Internal.NativeMethods_AVFoundation.LibCoreVideo;
 
 namespace FlashCap.Devices;
 
@@ -30,53 +29,65 @@ public sealed class AVFoundationDevices : CaptureDevices
         }
 
         using var discovery = AVCaptureDeviceDiscoverySession.DiscoverySessionWithVideoDevices();
-        return discovery.Devices
-            .Select(static device =>
+        foreach (var device in discovery.Devices)
+        {
+            using var deviceInput = new AVCaptureDeviceInput(device);
+            using var deviceOutput = new AVCaptureVideoDataOutput();
+
+            using var session = new AVCaptureSession();
+
+            session.AddInput(deviceInput);
+            session.AddOutput(deviceOutput);
+
+            var characteristics = new List<VideoCharacteristics>();
+
+            foreach (var format in device.Formats)
             {
-                using var deviceInput = new AVCaptureDeviceInput(device);
-                using var deviceOutput = new AVCaptureVideoDataOutput();
+                device.LockForConfiguration();
+                device.ActiveFormat = format;
+                device.UnlockForConfiguration();
 
-                using var session = new AVCaptureSession();
+                var pixelFormatsNative = deviceOutput.AvailableVideoCVPixelFormatTypes;
+                var pixelFormatsMapped = NativeMethods_AVFoundation.PixelFormatMap
+                    .Where(pair => pixelFormatsNative.Contains(pair.Value));
 
-                session.AddInput(deviceInput);
-                session.AddOutput(deviceOutput);
+                foreach (var pixelFormat in pixelFormatsMapped)
+                {
+                    var description = format.FormatDescription;
+                    var dimensions = description.Dimensions;
 
-                var supportedPixelFormats = NativeMethods_AVFoundation.PixelFormatMap;
-                var availablePixelFormats = (
-                    from available in deviceOutput.AvailableVideoCVPixelFormatTypes
-                    join supported in supportedPixelFormats on available equals supported.Value into temp
-                    from supported in temp.Select(format => format.Key).DefaultIfEmpty(PixelFormats.Unknown)
-                    select new KeyValuePair<PixelFormats, string>(supported, GetFourCCName(available)))
-                    .ToArray();
+                    foreach (var frameDurationRange in format.VideoSupportedFrameRateRanges)
+                    {
+                        var frameMinDuration = frameDurationRange.MinFrameDuration;
+                        var frameMaxDuration = frameDurationRange.MaxFrameDuration;
 
-                return new AVFoundationDeviceDescriptor(
-                    device.UniqueID,
-                    device.ModelID,
-                    device.LocalizedName,
-                    device.Formats
-                        .SelectMany(format =>
+                        var minFps = new Fraction(frameMinDuration.TimeScale, (int)frameMinDuration.Value);
+                        var maxFps = new Fraction(frameMaxDuration.TimeScale, (int)frameMaxDuration.Value);
+
+                        var availableFps = NativeMethods.DefactoStandardFramesPerSecond
+                            .Where(fps => fps >= minFps && fps <= maxFps)
+                            .Concat(new[] { minFps, maxFps })
+                            .Distinct()
+                            .OrderByDescending(fps => fps);
+
+                        foreach (var fps in availableFps)
                         {
-                            var description = format.FormatDescription;
-                            var dimensions = description.Dimensions;
+                            characteristics.Add(
+                                new VideoCharacteristics(
+                                    pixelFormat.Key,
+                                    dimensions.Width,
+                                    dimensions.Height,
+                                    fps));
+                        }
+                    }
+                }
+            }
 
-                            return format.VideoSupportedFrameRateRanges
-                                .SelectMany(frameDurationRange =>
-                                {
-                                    var frameMinDuration = frameDurationRange.MinFrameDuration;
-                                    var frameMaxDuration = frameDurationRange.MaxFrameDuration;
-
-                                    var minFps = new Fraction(frameMinDuration.TimeScale, (int)frameMinDuration.Value);
-                                    var maxFps = new Fraction(frameMaxDuration.TimeScale, (int)frameMaxDuration.Value);
-
-                                    return NativeMethods.DefactoStandardFramesPerSecond
-                                        .Where(fps => fps >= minFps && fps <= maxFps)
-                                        .OrderByDescending(fps => fps)
-                                        .SelectMany(fps =>
-                                            availablePixelFormats.Select(
-                                                format => new VideoCharacteristics(format.Key, dimensions.Width, dimensions.Height, fps, format.Value, isDiscrete: true, format.Value)));
-                                });
-                        })
-                        .ToArray());
-            });
+            yield return new AVFoundationDeviceDescriptor(
+                device.UniqueID,
+                device.ModelID,
+                device.LocalizedName,
+                characteristics.ToArray());
+        }
     }
 }

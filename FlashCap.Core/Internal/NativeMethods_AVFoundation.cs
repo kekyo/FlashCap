@@ -1123,7 +1123,7 @@ internal static class NativeMethods_AVFoundation
                 LibCoreFoundation.CFRelease(number);
             }
 
-            public void SetSampleBufferDelegate(AVCaptureVideoDataOutputSampleBuffer sampleBufferDelegate, LibCoreFoundation.DispatchQueue  sampleBufferCallbackQueue) =>
+            public void SetSampleBufferDelegate(AVCaptureVideoDataOutputSampleBuffer sampleBufferDelegate, LibCoreFoundation.DispatchQueue sampleBufferCallbackQueue) =>
                 LibObjC.SendNoResult(
                     Handle,
                     LibObjC.GetSelector("setSampleBufferDelegate:queue:"),
@@ -1226,7 +1226,7 @@ internal static class NativeMethods_AVFoundation
                     .FromIntPtr(handle)
                     .Free();
             };
-       }
+        }
 
         public sealed class AVCaptureSession : LibObjC.NSObject
         {
