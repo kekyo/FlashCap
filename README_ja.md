@@ -155,6 +155,7 @@ await deviceObservable.StartAsync();
 * eMeet HD Webcam C970L (Windows/Linux)
 * Microsoft LifeCam Cinema HD720 (Windows/Linux)
 * Unnamed cheap USB capture module (Windows/Linux)
+* Spirer RP28WD305 (Linux)
 
 確認したコンピューター:
 
@@ -170,6 +171,7 @@ await deviceObservable.StartAsync();
 * Acer Aspire One ZA3 inside camera (i686, Linux)
 * Imagination Creator Ci20 (mipsel, Linux)
 * Radxa ROCK5B (aarch64, Linux)
+* Loongson-LS3A5000-7A2000-1w-EVB-V1.21 (loongarch64, Linux)
 
 確認した、動作しない環境:
 
@@ -641,11 +643,12 @@ FlashCapはV4L2に対応していて、これによりLinuxの様々なプラッ
 * i686, x86_64
 * aarch64, armv7l
 * mipsel
+* loongarch64
 
-ここに挙げた対応プラットフォームは、単に私が動作確認出来た、つまり現実のハードウェアを持ち合わせていて、
+ここに挙げた対応プラットフォームは、単に私やコントリビューターが動作確認出来た、つまり現実のハードウェアを持ち合わせていて、
 FlashCapを使って実際にカメラのキャプチャに成功したものです。
 
-それでは、他のプラットフォーム、例えばmips64,riscv64,loongarch64で動作するか言えば、動作しません。
+それでは、他のプラットフォーム、例えばmips64,riscv32/64,sparc64で動作するか言えば、動作しません。
 理由は、以下の通りです:
 
 * 私が動作確認できない: 実際のハードウェアやSBC (Single Board Computer) コンポーネントを持ち合わせていないので、物理的な確認が出来ない。
@@ -663,6 +666,7 @@ FlashCapを使って実際にカメラのキャプチャに成功したもので
 * 同様に、`FlashCap.V4L2Generator` を動作させるために、ターゲットとするLinuxで動作するmono又は.NETランタイムが必要です。
 * ターゲットLinuxがDebian系の移植であれば、これらは `apt` パッケージなどから入手可能かもしれません。
   `sudo apt install build-essential clang mono-devel` などでインストール出来れば、可能性が高まります。
+* [#100](https://github.com/kekyo/FlashCap/issues/100) の取り組みも参考になると思います。
 
 最初に、 `FlashCap.V4L2Generator` をビルドする必要があります。
 ターゲットのLinux環境で.NET SDKが使用できない場合は、monoの `mcs` を使ってコードをコンパイルする `build-mono.sh` を使用して下さい。
@@ -699,6 +703,9 @@ switch (buf.machine)
     case "mips":
     case "mipsel":
         Interop = new NativeMethods_V4L2_Interop_mips();
+        break;
+    case "loongarch64":
+        Interop = new NativeMethods_V4L2_Interop_loongarch64();
         break;
 
     // (ここに新しい移植を加えます...)
@@ -741,6 +748,8 @@ Apache-v2.
 
 ## 履歴
 
+* 1.9.0:
+  * loongarch64 Linuxに対応しました [#100](https://github.com/kekyo/FlashCap/issues/100)
 * 1.8.0:
   * .NET 8.0 SDKに対応しました。
   * トランスコードの変換マトリックス係数が一部誤っていたのを修正 [#107](https://github.com/kekyo/FlashCap/issues/107)

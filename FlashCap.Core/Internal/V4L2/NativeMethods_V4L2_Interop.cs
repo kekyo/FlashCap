@@ -1,6 +1,6 @@
-// This is auto generated code by FlashCap.V4L2Generator [0.14.6]. Do not edit.
-// Linux version 5.13.0-39-generic (buildd@lcy02-amd64-080) (gcc (Ubuntu 9.4.0-1ubuntu1~20.04.1) 9.4.0, GNU ld (GNU Binutils for Ubuntu) 2.34) #44~20.04.1-Ubuntu SMP Thu Mar 24 16:43:35 UTC 2022
-// Fri, 15 Apr 2022 03:57:16 GMT
+// This is auto generated code by FlashCap.V4L2Generator [1.8.0]. Do not edit.
+// Linux version 4.19.0-19-loongson-3 (abuild@10.40.52.160) (gcc version 8.3.0 (Loongnix 8.3.0-6.lnd.vec.36)) #1 SMP 4.19.190.8.14 Thu Aug 24 08:54:20 UTC 2023
+// Thu, 14 Dec 2023 01:30:19 GMT
 
 using System;
 using System.Runtime.InteropServices;
@@ -56,7 +56,6 @@ namespace FlashCap.Internal.V4L2
             SDR_CAPTURE = 11,
             SDR_OUTPUT = 12,
             META_CAPTURE = 13,
-            META_OUTPUT = 14,
             PRIVATE = 128,
         }
 
@@ -219,12 +218,6 @@ namespace FlashCap.Internal.V4L2
             }
 
             uint reserved2
-            {
-                get;
-                set;
-            }
-
-            int request_fd
             {
                 get;
                 set;
@@ -892,12 +885,6 @@ namespace FlashCap.Internal.V4L2
             }
 
             uint memory
-            {
-                get;
-                set;
-            }
-
-            uint capabilities
             {
                 get;
                 set;
