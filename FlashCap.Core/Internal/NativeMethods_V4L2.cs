@@ -61,6 +61,9 @@ internal static class NativeMethods_V4L2
             case "mipsel":
                 Interop = new NativeMethods_V4L2_Interop_mips();
                 break;
+            case "loongarch64":
+                Interop = new NativeMethods_V4L2_Interop_loongarch64();
+                break;
             default:
                 throw new InvalidOperationException(
                     $"FlashCap: Architecture '{buf.machine}' is not supported.");
