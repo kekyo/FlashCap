@@ -154,6 +154,7 @@ Verified capture devices / cameras:
 * eMeet HD Webcam C970L (Windows/Linux)
 * Microsoft LifeCam Cinema HD720 (Windows/Linux)
 * Unnamed cheap USB capture module (Windows/Linux)
+* Spirer RP28WD305 (Linux)
 
 Verified computers:
 
@@ -169,6 +170,7 @@ Verified computers:
 * Acer Aspire One ZA3 inside camera (i686, Linux)
 * Imagination Creator Ci20 (mipsel, Linux)
 * Radxa ROCK5B (aarch64, Linux)
+* Loongson-LS3A5000-7A2000-1w-EVB-V1.21 (loongarch64, Linux)
 
 Couldn't detect any devices on FlashCap:
 
@@ -703,11 +705,12 @@ The supported platforms are listed below:
 * i686, x86_64
 * aarch64, armv7l
 * mipsel
+* loongarch64
 
-The supported platforms listed here are simply those that I have been able to verify work,
-I have real hardware and have successfully captured the camera using FlashCap.
+The supported platforms listed here are simply those that I and contributors have been able to verify work,
+successfully captured the camera using FlashCap.
 
-If you ask me if it works on other platforms, such as mips64, riscv64, or loongarch64, it will not work.
+If you ask me if it works on other platforms, such as mips64, riscv32/64, or sparc64, it will not work.
 The reasons are as follows:
 
 * I cannot confirm that it works:
@@ -727,6 +730,7 @@ please refer to the following for a porting overview:
 * Similarly, to run `FlashCap.V4L2Generator`, you need mono or .NET runtime running on the target Linux.
 * If the target Linux is a Debian-type port, these may be available from the `apt` package, for example:
   `sudo apt install build-essential clang mono-devel`, etc., it is more likely.
+* The efforts of [issue #100](https://github.com/kekyo/FlashCap/issues/100) would also be helpful.
 
 First, you need to build `FlashCap.V4L2Generator`.
 When .NET SDK is not available in the target Linux environment,
@@ -764,6 +768,9 @@ switch (buf.machine)
     case "mips":
     case "mipsel":
         Interop = new NativeMethods_V4L2_Interop_mips();
+        break;
+    case "loongarch64":
+        Interop = new NativeMethods_V4L2_Interop_loongarch64();
         break;
 
     // (Insert your cool platform ported interop...)
@@ -807,6 +814,8 @@ Apache-v2.
 
 ## History
 
+* 1.9.0:
+  * loongarch64 Linux is now supported [#100](https://github.com/kekyo/FlashCap/issues/100)
 * 1.8.0:
   * Supported .NET 8.0 SDK.
   * Fixed some incorrect conversion matrix coefficients for transcoding [#107](https://github.com/kekyo/FlashCap/issues/107)
