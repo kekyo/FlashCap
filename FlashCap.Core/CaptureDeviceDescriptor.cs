@@ -22,6 +22,7 @@ public enum DeviceTypes
     VideoForWindows,
     DirectShow,
     V4L2,
+    AVFoundation,
 }
 
 public enum TranscodeFormats

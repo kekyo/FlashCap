@@ -26,6 +26,8 @@ public class CaptureDevices
                 Concat(new VideoForWindowsDevices().OnEnumerateDescriptors()),
             NativeMethods.Platforms.Linux =>
                 new V4L2Devices().OnEnumerateDescriptors(),
+            NativeMethods.Platforms.MacOS =>
+                new AVFoundationDevices().OnEnumerateDescriptors(),
             _ =>
                 ArrayEx.Empty<CaptureDeviceDescriptor>(),
         };
