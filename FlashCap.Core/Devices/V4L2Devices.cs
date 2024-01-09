@@ -119,14 +119,19 @@ public sealed class V4L2Devices : CaptureDevices
         }).
         SelectMany(frmivalenum =>
         {
-            // v4l2_fract is "interval", so makes fps to do reciprocal.
-            // (numerator <--> denominator)
+            
             static IEnumerable<FramesPerSecond> EnumerateStepWise(
                 v4l2_frmival_stepwise stepwise)
             {
-                var min = new Fraction((int)stepwise.min.denominator, (int)stepwise.min.numerator);
-                var max = new Fraction((int)stepwise.max.denominator, (int)stepwise.max.numerator);
+                // v4l2_fract is "interval", so do reciprocal to make fps.
+                // (numerator <--> denominator)
+
+                // Since we're inverting the interval to get the FPS, we also need to swap the meaning of min/max
+                var min = new Fraction((int)stepwise.max.denominator, (int)stepwise.max.numerator);
+                var max = new Fraction((int)stepwise.min.denominator, (int)stepwise.min.numerator);
+
                 var step = new Fraction((int)stepwise.step.denominator, (int)stepwise.step.numerator);
+                
                 return NativeMethods.DefactoStandardFramesPerSecond.
                     Where(fps =>
                         fps >= min && fps <= max &&
@@ -138,8 +143,13 @@ public sealed class V4L2Devices : CaptureDevices
             static IEnumerable<FramesPerSecond> EnumerateContinuous(
                 v4l2_frmival_stepwise stepwise)
             {
-                var min = new Fraction((int)stepwise.min.denominator, (int)stepwise.min.numerator);
-                var max = new Fraction((int)stepwise.max.denominator, (int)stepwise.max.numerator);
+                // v4l2_fract is "interval", so do reciprocal to make fps.
+                // (numerator <--> denominator)
+
+                // Since we're inverting the interval to get the FPS, we also need to swap the meaning of min/max
+                var min = new Fraction((int)stepwise.max.denominator, (int)stepwise.max.numerator);
+                var max = new Fraction((int)stepwise.min.denominator, (int)stepwise.min.numerator);
+
                 return NativeMethods.DefactoStandardFramesPerSecond.
                     Where(fps => fps >= min && fps <= max).
                     OrderByDescending(fps => fps).
