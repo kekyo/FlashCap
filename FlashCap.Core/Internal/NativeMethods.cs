@@ -450,6 +450,7 @@ internal static class NativeMethods
         Fraction.Create(12000, 1001),
         Fraction.Create(10),
         Fraction.Create(5),
+        Fraction.Create(1),
     };
     
     ////////////////////////////////////////////////////////////////////////
