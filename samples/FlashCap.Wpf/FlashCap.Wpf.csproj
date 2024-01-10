@@ -6,6 +6,7 @@
     <LangVersion>latest</LangVersion>
     <Nullable>Enable</Nullable>
     <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <DebugType>portable</DebugType>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
