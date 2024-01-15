@@ -63,11 +63,11 @@ public sealed class V4L2Devices : CaptureDevices
                 NativeMethods.DefactoStandardResolutions.
                     Where(r =>
                         r.Width >= stepwise.min_width &&
-                        r.Width <= stepwise.max_height &&
-                        (r.Width - stepwise.min_width % stepwise.step_width) == 0 &&
+                        r.Width <= stepwise.max_width &&
+                        ((r.Width - stepwise.min_width) % stepwise.step_width) == 0 &&
                         r.Height >= stepwise.min_height &&
                         r.Height <= stepwise.max_height &&
-                        (r.Height - stepwise.min_height % stepwise.step_height) == 0).
+                        ((r.Height - stepwise.min_height) % stepwise.step_height) == 0).
                     OrderByDescending(r => r).
                     Select(r => new FrameSize
                         { Width = r.Width, Height = r.Height, IsDiscrete = false, });
@@ -77,7 +77,7 @@ public sealed class V4L2Devices : CaptureDevices
                 NativeMethods.DefactoStandardResolutions.
                     Where(r =>
                         r.Width >= stepwise.min_width &&
-                        r.Width <= stepwise.max_height &&
+                        r.Width <= stepwise.max_width &&
                         r.Height >= stepwise.min_height &&
                         r.Height <= stepwise.max_height).
                     OrderByDescending(r => r).
