@@ -15,6 +15,7 @@ namespace FlashCap.Internal.V4L2
 {
     partial class NativeMethods_V4L2_Interop
     {
+        public virtual uint V4L2_BUF_FLAG_ERROR => 0x40U;
         public virtual uint V4L2_PIX_FMT_YUY2 => 844715353U;
         public virtual uint V4L2_PIX_FMT_ARGB => 1111970369U;
         
