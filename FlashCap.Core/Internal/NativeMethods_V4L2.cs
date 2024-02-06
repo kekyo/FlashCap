@@ -91,6 +91,7 @@ internal static class NativeMethods_V4L2
         pixelFormats.Add(Interop.V4L2_PIX_FMT_UYVY, PixelFormats.UYVY);
         pixelFormats.Add(Interop.V4L2_PIX_FMT_YUYV, PixelFormats.YUYV);
         pixelFormats.Add(Interop.V4L2_PIX_FMT_YUY2, PixelFormats.YUYV);
+        pixelFormats.Add(Interop.V4L2_PIX_FMT_NV12, PixelFormats.NV12);
     }
 
     public static bool IsKnownPixelFormat(uint pix_fmt) =>
@@ -324,6 +325,8 @@ internal static class NativeMethods_V4L2
                 return new[] { Interop.V4L2_PIX_FMT_UYVY };
             case PixelFormats.YUYV:
                 return new[] { Interop.V4L2_PIX_FMT_YUYV, Interop.V4L2_PIX_FMT_YUY2 };
+            case PixelFormats.NV12:
+                return new[] { Interop.V4L2_PIX_FMT_NV12 };
             case PixelFormats.JPEG:
                 return new[] { Interop.V4L2_PIX_FMT_MJPEG, Interop.V4L2_PIX_FMT_JPEG, (uint)NativeMethods.Compression.BI_JPEG };
             case PixelFormats.PNG:

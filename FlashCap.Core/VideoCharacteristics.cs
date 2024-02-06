@@ -25,6 +25,7 @@ public enum PixelFormats
     PNG,
     UYVY,
     YUYV,
+    NV12
 }
 
 public sealed class VideoCharacteristics :
@@ -80,6 +81,7 @@ public sealed class VideoCharacteristics :
             PixelFormats.ARGB32 => 32,
             PixelFormats.UYVY => 16,
             PixelFormats.YUYV => 16,
+            PixelFormats.NV12 => 12,
             _ => 0,
         };
     
