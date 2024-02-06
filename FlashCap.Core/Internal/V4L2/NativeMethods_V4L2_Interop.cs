@@ -1,6 +1,6 @@
-// This is auto generated code by FlashCap.V4L2Generator [1.8.0]. Do not edit.
-// Linux version 4.19.0-19-loongson-3 (abuild@10.40.52.160) (gcc version 8.3.0 (Loongnix 8.3.0-6.lnd.vec.36)) #1 SMP 4.19.190.8.14 Thu Aug 24 08:54:20 UTC 2023
-// Thu, 14 Dec 2023 01:30:19 GMT
+// This is auto generated code by FlashCap.V4L2Generator [0.0.301]. Do not edit.
+// Linux version 5.4.0-169-generic (buildd@lcy02-amd64-102) (gcc version 9.4.0 (Ubuntu 9.4.0-1ubuntu1~20.04.2)) #187-Ubuntu SMP Thu Nov 23 14:52:28 UTC 2023
+// Tue, 06 Feb 2024 02:38:45 GMT
 
 using System;
 using System.Runtime.InteropServices;
@@ -21,6 +21,7 @@ namespace FlashCap.Internal.V4L2
         public virtual uint V4L2_PIX_FMT_ARGB32 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_JPEG => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_MJPEG => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_NV12 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_RGB24 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_RGB332 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_RGB565 => throw new NotImplementedException();
@@ -56,6 +57,7 @@ namespace FlashCap.Internal.V4L2
             SDR_CAPTURE = 11,
             SDR_OUTPUT = 12,
             META_CAPTURE = 13,
+            META_OUTPUT = 14,
             PRIVATE = 128,
         }
 
@@ -218,6 +220,12 @@ namespace FlashCap.Internal.V4L2
             }
 
             uint reserved2
+            {
+                get;
+                set;
+            }
+
+            int request_fd
             {
                 get;
                 set;
@@ -885,6 +893,12 @@ namespace FlashCap.Internal.V4L2
             }
 
             uint memory
+            {
+                get;
+                set;
+            }
+
+            uint capabilities
             {
                 get;
                 set;
