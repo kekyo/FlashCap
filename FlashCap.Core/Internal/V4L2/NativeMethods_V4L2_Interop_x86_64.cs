@@ -1,6 +1,6 @@
-// This is auto generated code by FlashCap.V4L2Generator [0.14.6]. Do not edit.
-// Linux version 5.13.0-39-generic (buildd@lcy02-amd64-080) (gcc (Ubuntu 9.4.0-1ubuntu1~20.04.1) 9.4.0, GNU ld (GNU Binutils for Ubuntu) 2.34) #44~20.04.1-Ubuntu SMP Thu Mar 24 16:43:35 UTC 2022
-// Fri, 15 Apr 2022 03:59:31 GMT
+// This is auto generated code by FlashCap.V4L2Generator [0.0.301]. Do not edit.
+// Linux version 5.4.0-169-generic (buildd@lcy02-amd64-102) (gcc version 9.4.0 (Ubuntu 9.4.0-1ubuntu1~20.04.2)) #187-Ubuntu SMP Thu Nov 23 14:52:28 UTC 2023
+// Tue, 06 Feb 2024 02:26:04 GMT
 
 using System;
 using System.Runtime.InteropServices;
@@ -10,7 +10,7 @@ namespace FlashCap.Internal.V4L2
     internal sealed class NativeMethods_V4L2_Interop_x86_64 : NativeMethods_V4L2_Interop
     {
         // Common
-        public override string Label => "Linux version 5.13.0-39-generic (buildd@lcy02-amd64-080) (gcc (Ubuntu 9.4.0-1ubuntu1~20.04.1) 9.4.0, GNU ld (GNU Binutils for Ubuntu) 2.34) #44~20.04.1-Ubuntu SMP Thu Mar 24 16:43:35 UTC 2022";
+        public override string Label => "Linux version 5.4.0-169-generic (buildd@lcy02-amd64-102) (gcc version 9.4.0 (Ubuntu 9.4.0-1ubuntu1~20.04.2)) #187-Ubuntu SMP Thu Nov 23 14:52:28 UTC 2023";
         public override string Architecture => "x86_64";
         public override int sizeof_size_t => 8;
         public override int sizeof_off_t => 8;
@@ -21,6 +21,7 @@ namespace FlashCap.Internal.V4L2
         public override uint V4L2_PIX_FMT_ARGB32 => 875708738U;
         public override uint V4L2_PIX_FMT_JPEG => 1195724874U;
         public override uint V4L2_PIX_FMT_MJPEG => 1196444237U;
+        public override uint V4L2_PIX_FMT_NV12 => 842094158U;
         public override uint V4L2_PIX_FMT_RGB24 => 859981650U;
         public override uint V4L2_PIX_FMT_RGB332 => 826427218U;
         public override uint V4L2_PIX_FMT_RGB565 => 1346520914U;
