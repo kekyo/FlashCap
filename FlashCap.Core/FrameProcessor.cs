@@ -111,8 +111,9 @@ public abstract class FrameProcessor
             {
                 if (this.parent is { } parent)
                 {
+                    var buffer = this.Buffer;
                     base.OnReleaseNow();
-                    this.parent.ReleasePixelBuffer(this.Buffer);
+                    this.parent.ReleasePixelBuffer(buffer);
                     this.parent = null;
                 }
             }
