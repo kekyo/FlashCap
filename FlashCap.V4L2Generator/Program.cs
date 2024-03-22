@@ -64,30 +64,6 @@ namespace FlashCap
         private static readonly HashSet<string> symbolExactIncludeList =
             new HashSet<string>()
         {
-            "V4L2_CAP_VIDEO_CAPTURE",
-            "V4L2_PIX_FMT_ABGR32",
-            "V4L2_PIX_FMT_ARGB32",
-            "V4L2_PIX_FMT_JPEG",
-            "V4L2_PIX_FMT_MJPEG",
-            "V4L2_PIX_FMT_RGB24",
-            "V4L2_PIX_FMT_RGB332",
-            "V4L2_PIX_FMT_RGB565X",
-            "V4L2_PIX_FMT_RGB565",
-            "V4L2_PIX_FMT_UYVY",
-            "V4L2_PIX_FMT_XRGB32",
-            "V4L2_PIX_FMT_YUYV",
-            "V4L2_PIX_FMT_NV12",
-            "VIDIOC_DQBUF",
-            "VIDIOC_ENUM_FMT",
-            "VIDIOC_ENUM_FRAMEINTERVALS",
-            "VIDIOC_ENUM_FRAMESIZES",
-            "VIDIOC_QBUF",
-            "VIDIOC_QUERYBUF",
-            "VIDIOC_QUERYCAP",
-            "VIDIOC_REQBUFS",
-            "VIDIOC_S_FMT",
-            "VIDIOC_STREAMOFF",
-            "VIDIOC_STREAMON",
             "v4l2_buf_type",
             "v4l2_field",
             "v4l2_frmivaltypes",
@@ -462,7 +438,10 @@ namespace FlashCap
 
                 tw.WriteLine("        // Definitions");
                 foreach (var definition in root.Definitions.
-                    Where(d => symbolExactIncludeList.Contains(d.Key)).
+                    Where(d => symbolExactIncludeList.Contains(d.Key) ||
+                       d.Key.StartsWith("V4L2_CAP_") ||
+                       d.Key.StartsWith("V4L2_PIX_FMT_") ||
+                       d.Key.StartsWith("VIDIOC_")).
                     OrderBy(d => d.Key))
                 {
                     if (isBase)
