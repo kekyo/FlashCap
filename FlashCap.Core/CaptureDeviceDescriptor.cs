@@ -46,7 +46,7 @@ public abstract class CaptureDeviceDescriptor
 {
     private readonly AsyncLock locker = new();
 
-    protected readonly BufferPool DefaultBufferPool;
+    internal readonly BufferPool defaultBufferPool;
 
     protected CaptureDeviceDescriptor(
         string name, string description,
@@ -56,7 +56,7 @@ public abstract class CaptureDeviceDescriptor
         this.Name = name;
         this.Description = description;
         this.Characteristics = characteristics;
-        this.DefaultBufferPool = defaultBufferPool;
+        this.defaultBufferPool = defaultBufferPool;
     }
 
     public abstract object Identity { get; }

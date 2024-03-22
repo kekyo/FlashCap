@@ -39,7 +39,7 @@ module public CaptureDeviceDescriptorExtension =
             ?ct: CancellationToken) : Async<CaptureDevice> =
             self.InternalOpenWithFrameProcessorAsync(
                 characteristics, TranscodeFormats.Auto,
-                new DelegatedQueuingProcessor(pixelBufferArrived, 1, new DefaultBufferPool()),
+                new DelegatedQueuingProcessor(pixelBufferArrived, 1, self.defaultBufferPool),
                 asCT ct) |> Async.AwaitTask
 
         member self.openDevice(
@@ -50,7 +50,7 @@ module public CaptureDeviceDescriptorExtension =
             self.InternalOpenWithFrameProcessorAsync(
                 characteristics,
                 transcodeFormat,
-                new DelegatedQueuingProcessor(pixelBufferArrived, 1, new DefaultBufferPool()),
+                new DelegatedQueuingProcessor(pixelBufferArrived, 1, self.defaultBufferPool),
                 asCT ct) |> Async.AwaitTask
 
         member self.openDevice(
@@ -64,8 +64,8 @@ module public CaptureDeviceDescriptorExtension =
                 characteristics,
                 transcodeFormat,
                 (match isScattering with
-                 | true -> (new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames, new DefaultBufferPool()) :> FrameProcessor)
-                 | false -> (new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames, new DefaultBufferPool()) :> FrameProcessor)),
+                 | true -> (new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames, self.defaultBufferPool) :> FrameProcessor)
+                 | false -> (new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames, self.defaultBufferPool) :> FrameProcessor)),
                 asCT ct) |> Async.AwaitTask
 
         //////////////////////////////////////////////////////////////////////////////////
@@ -77,7 +77,7 @@ module public CaptureDeviceDescriptorExtension =
             self.InternalOpenWithFrameProcessorAsync(
                 characteristics,
                 TranscodeFormats.Auto,
-                new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, 1, new DefaultBufferPool()),
+                new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, 1, self.defaultBufferPool),
                 asCT ct) |> Async.AwaitTask
         
         member self.openDevice(
@@ -88,7 +88,7 @@ module public CaptureDeviceDescriptorExtension =
             self.InternalOpenWithFrameProcessorAsync(
                 characteristics,
                 transcodeFormat,
-                new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, 1, new DefaultBufferPool()),
+                new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, 1, self.defaultBufferPool),
                 asCT ct) |> Async.AwaitTask
 
         member self.openDevice(
@@ -102,8 +102,8 @@ module public CaptureDeviceDescriptorExtension =
                 characteristics,
                 transcodeFormat,
                 (match isScattering with
-                 | true -> (new DelegatedScatteringTaskProcessor(asTask pixelBufferArrived, maxQueuingFrames, new DefaultBufferPool()) :> FrameProcessor)
-                 | false -> (new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, maxQueuingFrames, new DefaultBufferPool()) :> FrameProcessor)),
+                 | true -> (new DelegatedScatteringTaskProcessor(asTask pixelBufferArrived, maxQueuingFrames, self.defaultBufferPool) :> FrameProcessor)
+                 | false -> (new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, maxQueuingFrames, self.defaultBufferPool) :> FrameProcessor)),
                 asCT ct) |> Async.AwaitTask
 
         //////////////////////////////////////////////////////////////////////////////////
@@ -116,7 +116,7 @@ module public CaptureDeviceDescriptorExtension =
                     characteristics,
                     TranscodeFormats.Auto,
                     (new DelegatedQueuingProcessor(
-                        new PixelBufferArrivedDelegate(observerProxy.OnPixelBufferArrived), 1, new DefaultBufferPool())), asCT ct) |> Async.AwaitTask
+                        new PixelBufferArrivedDelegate(observerProxy.OnPixelBufferArrived), 1, self.defaultBufferPool)), asCT ct) |> Async.AwaitTask
                 return new ObservableCaptureDevice(captureDevice, observerProxy)
             }
 
@@ -129,7 +129,7 @@ module public CaptureDeviceDescriptorExtension =
                     characteristics,
                     transcodeFormat,
                     (new DelegatedQueuingProcessor(
-                        new PixelBufferArrivedDelegate(observerProxy.OnPixelBufferArrived), 1, new DefaultBufferPool())), asCT ct) |> Async.AwaitTask
+                        new PixelBufferArrivedDelegate(observerProxy.OnPixelBufferArrived), 1, self.defaultBufferPool)), asCT ct) |> Async.AwaitTask
                 return new ObservableCaptureDevice(captureDevice, observerProxy)
             }
  
@@ -145,8 +145,8 @@ module public CaptureDeviceDescriptorExtension =
                     characteristics,
                     transcodeFormat,
                     (match isScattering with
-                     | true -> (new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames, new DefaultBufferPool()) :> FrameProcessor)
-                     | false -> (new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames, new DefaultBufferPool()) :> FrameProcessor)), asCT ct) |> Async.AwaitTask
+                     | true -> (new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames, self.defaultBufferPool) :> FrameProcessor)
+                     | false -> (new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames, self.defaultBufferPool) :> FrameProcessor)), asCT ct) |> Async.AwaitTask
                 return new ObservableCaptureDevice(captureDevice, observerProxy)
             }
 

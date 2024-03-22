@@ -34,7 +34,7 @@ public static class CaptureDeviceDescriptorExtension
         CancellationToken ct = default) =>
         descriptor.OpenWithFrameProcessorAsync(
             characteristics, TranscodeFormats.Auto,
-            new DelegatedQueuingProcessor(pixelBufferArrived, 1, new DefaultBufferPool()),
+            new DelegatedQueuingProcessor(pixelBufferArrived, 1, descriptor.defaultBufferPool),
             ct);
 
     public static Task<CaptureDevice> OpenAsync(
@@ -45,7 +45,7 @@ public static class CaptureDeviceDescriptorExtension
         CancellationToken ct = default) =>
         descriptor.OpenWithFrameProcessorAsync(
             characteristics, transcodeFormat,
-            new DelegatedQueuingProcessor(pixelBufferArrived, 1, new DefaultBufferPool()),
+            new DelegatedQueuingProcessor(pixelBufferArrived, 1, descriptor.defaultBufferPool),
             ct);
 
     public static Task<CaptureDevice> OpenAsync(
@@ -59,8 +59,8 @@ public static class CaptureDeviceDescriptorExtension
         descriptor.OpenWithFrameProcessorAsync(
             characteristics, transcodeFormat,
             isScattering ?
-                new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames, new DefaultBufferPool()) :
-                new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames, new DefaultBufferPool()),
+                new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames, descriptor.defaultBufferPool) :
+                new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames, descriptor.defaultBufferPool),
             ct);
 
     //////////////////////////////////////////////////////////////////////////////////
@@ -72,7 +72,7 @@ public static class CaptureDeviceDescriptorExtension
         CancellationToken ct = default) =>
         descriptor.OpenWithFrameProcessorAsync(
             characteristics, TranscodeFormats.Auto,
-            new DelegatedQueuingTaskProcessor(pixelBufferArrived, 1, new DefaultBufferPool()),
+            new DelegatedQueuingTaskProcessor(pixelBufferArrived, 1, descriptor.defaultBufferPool),
             ct);
 
     public static Task<CaptureDevice> OpenAsync(
@@ -83,7 +83,7 @@ public static class CaptureDeviceDescriptorExtension
         CancellationToken ct = default) =>
         descriptor.OpenWithFrameProcessorAsync(
             characteristics, transcodeFormat,
-            new DelegatedQueuingTaskProcessor(pixelBufferArrived, 1, new DefaultBufferPool()),
+            new DelegatedQueuingTaskProcessor(pixelBufferArrived, 1, descriptor.defaultBufferPool),
             ct);
 
     public static Task<CaptureDevice> OpenAsync(
@@ -97,8 +97,8 @@ public static class CaptureDeviceDescriptorExtension
         descriptor.OpenWithFrameProcessorAsync(
             characteristics, transcodeFormat,
             isScattering ?
-                new DelegatedScatteringTaskProcessor(pixelBufferArrived, maxQueuingFrames, new DefaultBufferPool()) :
-                new DelegatedQueuingTaskProcessor(pixelBufferArrived, maxQueuingFrames, new DefaultBufferPool()),
+                new DelegatedScatteringTaskProcessor(pixelBufferArrived, maxQueuingFrames, descriptor.defaultBufferPool) :
+                new DelegatedQueuingTaskProcessor(pixelBufferArrived, maxQueuingFrames, descriptor.defaultBufferPool),
             ct);
 
     //////////////////////////////////////////////////////////////////////////////////
@@ -111,7 +111,7 @@ public static class CaptureDeviceDescriptorExtension
         var observerProxy = new ObservableCaptureDevice.ObserverProxy();
         var captureDevice = await descriptor.OpenWithFrameProcessorAsync(
             characteristics, TranscodeFormats.Auto,
-            new DelegatedQueuingProcessor(observerProxy.OnPixelBufferArrived, 1, new DefaultBufferPool()),
+            new DelegatedQueuingProcessor(observerProxy.OnPixelBufferArrived, 1, descriptor.defaultBufferPool),
             ct).
             ConfigureAwait(false);
 
@@ -127,7 +127,7 @@ public static class CaptureDeviceDescriptorExtension
         var observerProxy = new ObservableCaptureDevice.ObserverProxy();
         var captureDevice = await descriptor.OpenWithFrameProcessorAsync(
             characteristics, transcodeFormat,
-            new DelegatedQueuingProcessor(observerProxy.OnPixelBufferArrived, 1, new DefaultBufferPool()),
+            new DelegatedQueuingProcessor(observerProxy.OnPixelBufferArrived, 1, descriptor.defaultBufferPool),
             ct).
             ConfigureAwait(false);
 
@@ -146,8 +146,8 @@ public static class CaptureDeviceDescriptorExtension
         var captureDevice = await descriptor.OpenWithFrameProcessorAsync(
             characteristics, transcodeFormat,
             isScattering ?
-                new DelegatedScatteringProcessor(observerProxy.OnPixelBufferArrived, maxQueuingFrames, new DefaultBufferPool()) :
-                new DelegatedQueuingProcessor(observerProxy.OnPixelBufferArrived, maxQueuingFrames, new DefaultBufferPool()),
+                new DelegatedScatteringProcessor(observerProxy.OnPixelBufferArrived, maxQueuingFrames, descriptor.defaultBufferPool) :
+                new DelegatedQueuingProcessor(observerProxy.OnPixelBufferArrived, maxQueuingFrames, descriptor.defaultBufferPool),
             ct).
             ConfigureAwait(false);
 
