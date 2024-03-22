@@ -8,6 +8,7 @@
     <UseWPF>true</UseWPF>
     <DebugType>portable</DebugType>
     <DebugSymbols>true</DebugSymbols>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
   <ItemGroup>
