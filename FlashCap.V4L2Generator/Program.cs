@@ -172,7 +172,9 @@ namespace FlashCap
             string sourceHeaderFileName,
             string clangAstJsonFileName,
             string dumperFileName,
-            string architecture)
+            string architecture,
+            string clangVersion,
+            string gccVersion)
         {
             var versionLabel = LoadVersionLabel();
             
@@ -220,6 +222,8 @@ namespace FlashCap
             {
                 tw.WriteLine($"// This is auto generated code by FlashCap.V4L2Generator [{ThisAssembly.AssemblyVersion}]. Do not edit.");
                 tw.WriteLine($"// {versionLabel}");
+                tw.WriteLine($"// {clangVersion.Replace("\r", "").Replace("\n", "")}");
+                tw.WriteLine($"// {gccVersion.Replace("\r", "").Replace("\n", "")}");
                 tw.WriteLine($"// {DateTimeOffset.Now:R}");
                 tw.WriteLine();
                 
@@ -237,6 +241,8 @@ namespace FlashCap
                 tw.WriteLine();
                 tw.WriteLine("  printf(\"  \\\"label\\\": \\\"{0}\\\",\\n\");", versionLabel);
                 tw.WriteLine("  printf(\"  \\\"architecture\\\": \\\"{0}\\\",\\n\");", architecture);
+                tw.WriteLine("  printf(\"  \\\"clangVersion\\\": \\\"{0}\\\",\\n\");", clangVersion);
+                tw.WriteLine("  printf(\"  \\\"gccVersion\\\": \\\"{0}\\\",\\n\");", gccVersion);
                 tw.WriteLine("  printf(\"  \\\"sizeof_size_t\\\": %d,\\n\", (int)sizeof(size_t));");
                 tw.WriteLine("  printf(\"  \\\"sizeof_off_t\\\": %d,\\n\", (int)sizeof(off_t));");
                 tw.WriteLine();
@@ -400,6 +406,8 @@ namespace FlashCap
             {
                 tw.WriteLine($"// This is auto generated code by FlashCap.V4L2Generator [{ThisAssembly.AssemblyVersion}]. Do not edit.");
                 tw.WriteLine($"// {root.Label}");
+                tw.WriteLine($"// {root.ClangVersion}");
+                tw.WriteLine($"// {root.GccVersion}");
                 tw.WriteLine($"// {DateTimeOffset.Now:R}");
                 tw.WriteLine();
 
@@ -424,6 +432,8 @@ namespace FlashCap
                 {
                     tw.WriteLine("        public abstract string Label { get; }");
                     tw.WriteLine("        public abstract string Architecture { get; }");
+                    tw.WriteLine("        public virtual string ClangVersion => throw new NotImplementedException();");
+                    tw.WriteLine("        public virtual string GccVersion => throw new NotImplementedException();");
                     tw.WriteLine("        public abstract int sizeof_size_t { get; }");
                     tw.WriteLine("        public abstract int sizeof_off_t { get; }");
                 }
@@ -431,6 +441,8 @@ namespace FlashCap
                 {
                     tw.WriteLine("        public override string Label => \"{0}\";", root.Label);
                     tw.WriteLine("        public override string Architecture => \"{0}\";", root.Architecture);
+                    tw.WriteLine("        public override string ClangVersion => \"{0}\";", root.ClangVersion);
+                    tw.WriteLine("        public override string GccVersion => \"{0}\";", root.GccVersion);
                     tw.WriteLine("        public override int sizeof_size_t => {0};", root.sizeof_size_t);
                     tw.WriteLine("        public override int sizeof_off_t => {0};", root.sizeof_off_t);
                 }
@@ -656,7 +668,7 @@ namespace FlashCap
             {
                 case 1:
                     Console.Write("  Generating dumper source code ...");
-                    GenerateStructureDumper(args[1], args[2], args[3], args[4]);
+                    GenerateStructureDumper(args[1], args[2], args[3], args[4], args[5], args[6]);
                     Console.WriteLine(" done.");
                     break;
                 case 2:
