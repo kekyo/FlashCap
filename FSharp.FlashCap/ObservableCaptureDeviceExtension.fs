@@ -23,13 +23,5 @@ module public ObservableCaptureDeviceExtension =
         member self.stop(?ct: CancellationToken) =
             self.InternalStopAsync(asCT ct) |> Async.AwaitTask
 
-        [<Obsolete("This function is obsoleted, please use `start` instead.")>]
-        member self.startAsync(?ct: CancellationToken) =
-            self.InternalStartAsync(asCT ct) |> Async.AwaitTask
-
-        [<Obsolete("This function is obsoleted, please use `stop` instead.")>]
-        member self.stopAsync(?ct: CancellationToken) =
-            self.InternalStopAsync(asCT ct) |> Async.AwaitTask
-
         member self.subscribe(observer: IObserver<PixelBufferScope>) =
             self.InternalSubscribe(observer)

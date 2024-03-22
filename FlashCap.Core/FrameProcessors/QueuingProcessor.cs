@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 
 namespace FlashCap.FrameProcessors;
 
-internal abstract class QueuingProcessor :
+public abstract class QueuingProcessor :
     FrameProcessor
 {
     private readonly int maxQueuingFrames;
@@ -25,7 +25,8 @@ internal abstract class QueuingProcessor :
     private volatile bool aborting;
     private Task? worker;
 
-    protected QueuingProcessor(int maxQueuingFrames)
+    private protected QueuingProcessor(int maxQueuingFrames, BufferPool bufferPool) :
+        base(bufferPool)
     {
         this.maxQueuingFrames = maxQueuingFrames;
         this.worker = Task.Factory.StartNew(
@@ -135,14 +136,14 @@ internal abstract class QueuingProcessor :
     protected abstract void ThreadEntry();
 }
 
-internal sealed class DelegatedQueuingProcessor :
+public sealed class DelegatedQueuingProcessor :
     QueuingProcessor
 {
     private PixelBufferArrivedDelegate pixelBufferArrived;
 
     public DelegatedQueuingProcessor(
-        PixelBufferArrivedDelegate pixelBufferArrived, int maxQueuingFrames) :
-        base(maxQueuingFrames) =>
+        PixelBufferArrivedDelegate pixelBufferArrived, int maxQueuingFrames, BufferPool bufferPool) :
+        base(maxQueuingFrames, bufferPool) =>
         this.pixelBufferArrived = pixelBufferArrived;
 
     protected override void ThreadEntry()
@@ -176,14 +177,14 @@ internal sealed class DelegatedQueuingProcessor :
     }
 }
 
-internal sealed class DelegatedQueuingTaskProcessor :
+public sealed class DelegatedQueuingTaskProcessor :
     QueuingProcessor
 {
     private PixelBufferArrivedTaskDelegate pixelBufferArrived;
 
     public DelegatedQueuingTaskProcessor(
-        PixelBufferArrivedTaskDelegate pixelBufferArrived, int maxQueuingFrames) :
-        base(maxQueuingFrames) =>
+        PixelBufferArrivedTaskDelegate pixelBufferArrived, int maxQueuingFrames, BufferPool bufferPool) :
+        base(maxQueuingFrames, bufferPool) =>
         this.pixelBufferArrived = pixelBufferArrived;
 
     protected override async void ThreadEntry()

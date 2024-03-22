@@ -16,6 +16,16 @@ namespace FlashCap.Devices;
 
 public sealed class DirectShowDevices : CaptureDevices
 {
+    public DirectShowDevices() :
+        this(new DefaultBufferPool())
+    {
+    }
+
+    public DirectShowDevices(BufferPool defaultBufferPool) :
+        base(defaultBufferPool)
+    {
+    }
+
     protected override IEnumerable<CaptureDeviceDescriptor> OnEnumerateDescriptors() =>
         NativeMethods_DirectShow.EnumerateDeviceMoniker(
             NativeMethods_DirectShow.CLSID_VideoInputDeviceCategory).
@@ -42,7 +52,8 @@ public sealed class DirectShowDevices : CaptureDevices
                                 Distinct().
                                 OrderByDescending(vc => vc).
                                 ToArray()) :
-                            ArrayEx.Empty<VideoCharacteristics>()) :
+                            ArrayEx.Empty<VideoCharacteristics>(),
+                        this.DefaultBufferPool) :
                     null) :
             null);
 }

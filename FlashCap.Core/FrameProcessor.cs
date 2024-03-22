@@ -16,11 +16,16 @@ namespace FlashCap;
 
 public abstract class FrameProcessor
 {
+    private readonly BufferPool bufferPool;
     private readonly Stack<PixelBuffer> reserver = new();
 
-    protected FrameProcessor()
+    protected FrameProcessor() :
+        this(new DefaultBufferPool())
     {
     }
+
+    protected FrameProcessor(BufferPool bufferPool) =>
+        this.bufferPool = bufferPool;
 
     [Obsolete("Dispose method overriding is obsoleted. Switch OnDisposeAsync instead.", true)]
     protected virtual void Dispose() =>
@@ -59,7 +64,7 @@ public abstract class FrameProcessor
         }
         if (buffer == null)
         {
-            buffer = new PixelBuffer();
+            buffer = new PixelBuffer(this.bufferPool);
         }
         return buffer;
     }
@@ -111,8 +116,9 @@ public abstract class FrameProcessor
             {
                 if (this.parent is { } parent)
                 {
+                    var buffer = this.Buffer;
                     base.OnReleaseNow();
-                    this.parent.ReleasePixelBuffer(this.Buffer);
+                    this.parent.ReleasePixelBuffer(buffer);
                     this.parent = null;
                 }
             }

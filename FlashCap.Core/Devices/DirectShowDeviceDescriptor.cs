@@ -18,8 +18,9 @@ public sealed class DirectShowDeviceDescriptor : CaptureDeviceDescriptor
 
     internal DirectShowDeviceDescriptor(
         string devicePath, string name, string description,
-        VideoCharacteristics[] characteristics) :
-        base(name, description, characteristics) =>
+        VideoCharacteristics[] characteristics,
+        BufferPool defaultBufferPool) :
+        base(name, description, characteristics, defaultBufferPool) =>
         this.devicePath = devicePath;
 
     public override object Identity =>

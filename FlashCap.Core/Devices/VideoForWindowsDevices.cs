@@ -16,6 +16,16 @@ namespace FlashCap.Devices;
 
 public sealed class VideoForWindowsDevices : CaptureDevices
 {
+    public VideoForWindowsDevices() :
+        this(new DefaultBufferPool())
+    {
+    }
+
+    public VideoForWindowsDevices(BufferPool defaultBufferPool) :
+        base(defaultBufferPool)
+    {
+    }
+
     protected override IEnumerable<CaptureDeviceDescriptor> OnEnumerateDescriptors() =>
         Enumerable.Range(0, NativeMethods_VideoForWindows.MaxVideoForWindowsDevices).
         Collect(index =>
@@ -52,7 +62,8 @@ public sealed class VideoForWindowsDevices : CaptureDevices
                             NativeMethods.Compression.YUYV, 640, 480, 16, 30, false)!,
                         NativeMethods.CreateVideoCharacteristics(
                             NativeMethods.Compression.YUYV, 640, 480, 16, 15, false)!,
-                    });
+                    },
+                    this.DefaultBufferPool);
             }
             else
             {

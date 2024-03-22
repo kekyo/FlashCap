@@ -37,13 +37,16 @@
                           SelectedItem="{Binding Characteristics, Mode=TwoWay}" />
             </StackPanel>
             <StackPanel Orientation="Horizontal">
-                <Button IsEnabled="{Binding IsEnabledStartCapture}"
+                <Button BorderBrush="White" BorderThickness="1"
+                        IsEnabled="{Binding IsEnabledStartCapture}"
                         Content="Start capture"
                         Command="{Binding StartCapture}" />
-                <Button IsEnabled="{Binding IsEnabledStopCapture}"
+                <Button BorderBrush="White" BorderThickness="1"
+                        IsEnabled="{Binding IsEnabledStopCapture}"
                         Content="Stop capture"
                         Command="{Binding StopCapture}" />
-                <Button IsEnabled="{Binding IsEnabledShowPropertyPage}"
+                <Button BorderBrush="White" BorderThickness="1"
+                        IsEnabled="{Binding IsEnabledShowPropertyPage}"
                         Content="Show property page"
                         Command="{Binding ShowPropertyPage}" />
             </StackPanel>

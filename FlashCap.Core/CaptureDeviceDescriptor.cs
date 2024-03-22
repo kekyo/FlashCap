@@ -46,13 +46,17 @@ public abstract class CaptureDeviceDescriptor
 {
     private readonly AsyncLock locker = new();
 
+    internal readonly BufferPool defaultBufferPool;
+
     protected CaptureDeviceDescriptor(
         string name, string description,
-        VideoCharacteristics[] characteristics)
+        VideoCharacteristics[] characteristics,
+        BufferPool defaultBufferPool)
     {
         this.Name = name;
         this.Description = description;
         this.Characteristics = characteristics;
+        this.defaultBufferPool = defaultBufferPool;
     }
 
     public abstract object Identity { get; }
@@ -129,7 +133,7 @@ public abstract class CaptureDeviceDescriptor
                 pixelBuffer.InternalReleaseNow();
 
                 tcs.TrySetResult(image.Array);
-            }, 1),
+            }, 1, new DefaultBufferPool()),
             ct);
 
         await device.InternalStartAsync(ct);

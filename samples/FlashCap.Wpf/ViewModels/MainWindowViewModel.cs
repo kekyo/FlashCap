@@ -8,7 +8,6 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using Epoxy;
-using FlashCap.Devices;
 using SkiaSharp;
 using System;
 using System.Collections.ObjectModel;
@@ -180,8 +179,10 @@ public sealed class MainWindowViewModel
 
             this.Characteristics = this.CharacteristicsList.FirstOrDefault();
 #endif
-
-            this.UpdateCurrentState(States.Ready);
+            if (this.Characteristics != null)
+            {
+                this.UpdateCurrentState(States.Ready);
+            }
         }
         else
         {

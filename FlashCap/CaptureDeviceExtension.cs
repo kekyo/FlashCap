@@ -34,12 +34,4 @@ public static class CaptureDeviceExtension
     public static Task<bool> ShowPropertyPageAsync(
         this CaptureDevice captureDevice, IntPtr parentWindow, CancellationToken ct = default) =>
         captureDevice.InternalShowPropertyPageAsync(parentWindow, ct);
-
-    [Obsolete("Start method will be deprecated. Switch to use StartAsync method.")]
-    public static void Start(this CaptureDevice captureDevice) =>
-        _ = captureDevice.InternalStartAsync(default);
-
-    [Obsolete("Stop method will be deprecated. Switch to use StopAsync method.")]
-    public static void Stop(this CaptureDevice captureDevice) =>
-        _ = captureDevice.InternalStopAsync(default);
 }

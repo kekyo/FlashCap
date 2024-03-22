@@ -28,14 +28,6 @@ public static class ObservableCaptureDeviceExtension
     public static Task StopAsync(this ObservableCaptureDevice observableCaptureDevice, CancellationToken ct = default) =>
         observableCaptureDevice.InternalStopAsync(ct);
 
-    [Obsolete("Start method will be deprecated. Switch to use StartAsync method.")]
-    public static void Start(this ObservableCaptureDevice observableCaptureDevice) =>
-        _ = observableCaptureDevice.InternalStartAsync(default);
-
-    [Obsolete("Stop method will be deprecated. Switch to use StopAsync method.")]
-    public static void Stop(this ObservableCaptureDevice observableCaptureDevice) =>
-        _ = observableCaptureDevice.InternalStopAsync(default);
-
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
