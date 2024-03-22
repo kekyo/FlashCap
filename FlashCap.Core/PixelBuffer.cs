@@ -15,6 +15,8 @@ namespace FlashCap;
 
 public sealed class PixelBuffer
 {
+    private readonly BufferPool bufferPool;
+
     private byte[]? imageContainer;
     private int imageContainerSize;
     private byte[]? transcodedImageContainer = null;
@@ -22,9 +24,8 @@ public sealed class PixelBuffer
     private long timestampMicroseconds;
     private TranscodeFormats transcodeFormat;
 
-    internal PixelBuffer()
-    {
-    }
+    internal PixelBuffer(BufferPool bufferPool) =>
+        this.bufferPool = bufferPool;
 
     internal unsafe void CopyIn(
         IntPtr pih, IntPtr pData, int size,
@@ -52,7 +53,7 @@ public sealed class PixelBuffer
             {
                 Debug.WriteLine($"Allocated: CurrentSize={this.imageContainer?.Length ?? 0}, Size={totalSize}");
 
-                this.imageContainer = new byte[totalSize];
+                this.imageContainer = this.bufferPool.Rent(totalSize, false);
             }
 
             this.imageContainerSize = totalSize;
@@ -131,7 +132,7 @@ public sealed class PixelBuffer
                     }
                     else
                     {
-                        var copied1 = new byte[this.transcodedImageContainer.Length];
+                        var copied1 = this.bufferPool.Rent(this.transcodedImageContainer.Length, true);
                         Array.Copy(this.transcodedImageContainer, copied1, copied1.Length);
                         return new ArraySegment<byte>(copied1);
                     }
@@ -153,7 +154,7 @@ public sealed class PixelBuffer
                         if (this.transcodedImageContainer == null ||
                             this.transcodedImageContainer.Length != totalSize)
                         {
-                            this.transcodedImageContainer = new byte[totalSize];
+                            this.transcodedImageContainer = this.bufferPool.Rent(totalSize, true);
                         }
 
                         fixed (byte* pTranscodedImageContainer = this.transcodedImageContainer)
@@ -219,7 +220,7 @@ public sealed class PixelBuffer
                     break;
             }
 
-            var copied = new byte[this.imageContainerSize];
+            var copied = this.bufferPool.Rent(this.imageContainerSize, true);
             Array.Copy(this.imageContainer, copied, copied.Length);
 
             Debug.WriteLine($"Copied: CurrentSize={this.imageContainer.Length}, Size={this.imageContainerSize}");

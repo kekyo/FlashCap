@@ -16,19 +16,6 @@ namespace FlashCap;
 
 public static class CaptureDeviceDescriptorExtension
 {
-    [Obsolete("This overload is obsoleted, please use TranscodeFormats parameter instead.")]
-    public static Task<CaptureDevice> OpenWithFrameProcessorAsync(
-        this CaptureDeviceDescriptor descriptor,
-        VideoCharacteristics characteristics,
-        bool transcodeIfYUV,
-        FrameProcessor frameProcessor,
-        CancellationToken ct = default) =>
-        descriptor.InternalOpenWithFrameProcessorAsync(
-            characteristics,
-            transcodeIfYUV ? TranscodeFormats.Auto : TranscodeFormats.DoNotTranscode,
-            frameProcessor,
-            ct);
-
     public static Task<CaptureDevice> OpenWithFrameProcessorAsync(
         this CaptureDeviceDescriptor descriptor,
         VideoCharacteristics characteristics,
@@ -47,19 +34,7 @@ public static class CaptureDeviceDescriptorExtension
         CancellationToken ct = default) =>
         descriptor.OpenWithFrameProcessorAsync(
             characteristics, TranscodeFormats.Auto,
-            new DelegatedQueuingProcessor(pixelBufferArrived, 1),
-            ct);
-
-    [Obsolete("This overload is obsoleted, please use TranscodeFormats parameter instead.")]
-    public static Task<CaptureDevice> OpenAsync(
-        this CaptureDeviceDescriptor descriptor,
-        VideoCharacteristics characteristics,
-        bool transcodeIfYUV,
-        PixelBufferArrivedDelegate pixelBufferArrived,
-        CancellationToken ct = default) =>
-        descriptor.OpenWithFrameProcessorAsync(
-            characteristics, transcodeIfYUV,
-            new DelegatedQueuingProcessor(pixelBufferArrived, 1),
+            new DelegatedQueuingProcessor(pixelBufferArrived, 1, new DefaultBufferPool()),
             ct);
 
     public static Task<CaptureDevice> OpenAsync(
@@ -70,23 +45,7 @@ public static class CaptureDeviceDescriptorExtension
         CancellationToken ct = default) =>
         descriptor.OpenWithFrameProcessorAsync(
             characteristics, transcodeFormat,
-            new DelegatedQueuingProcessor(pixelBufferArrived, 1),
-            ct);
-
-    [Obsolete("This overload is obsoleted, please use TranscodeFormats parameter instead.")]
-    public static Task<CaptureDevice> OpenAsync(
-        this CaptureDeviceDescriptor descriptor,
-        VideoCharacteristics characteristics,
-        bool transcodeIfYUV,
-        bool isScattering,
-        int maxQueuingFrames,
-        PixelBufferArrivedDelegate pixelBufferArrived,
-        CancellationToken ct = default) =>
-        descriptor.OpenWithFrameProcessorAsync(
-            characteristics, transcodeIfYUV,
-            isScattering ?
-                new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames) :
-                new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames),
+            new DelegatedQueuingProcessor(pixelBufferArrived, 1, new DefaultBufferPool()),
             ct);
 
     public static Task<CaptureDevice> OpenAsync(
@@ -100,8 +59,8 @@ public static class CaptureDeviceDescriptorExtension
         descriptor.OpenWithFrameProcessorAsync(
             characteristics, transcodeFormat,
             isScattering ?
-                new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames) :
-                new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames),
+                new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames, new DefaultBufferPool()) :
+                new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames, new DefaultBufferPool()),
             ct);
 
     //////////////////////////////////////////////////////////////////////////////////
@@ -113,19 +72,7 @@ public static class CaptureDeviceDescriptorExtension
         CancellationToken ct = default) =>
         descriptor.OpenWithFrameProcessorAsync(
             characteristics, TranscodeFormats.Auto,
-            new DelegatedQueuingTaskProcessor(pixelBufferArrived, 1),
-            ct);
-
-    [Obsolete("This overload is obsoleted, please use TranscodeFormats parameter instead.")]
-    public static Task<CaptureDevice> OpenAsync(
-        this CaptureDeviceDescriptor descriptor,
-        VideoCharacteristics characteristics,
-        bool transcodeIfYUV,
-        PixelBufferArrivedTaskDelegate pixelBufferArrived,
-        CancellationToken ct = default) =>
-        descriptor.OpenWithFrameProcessorAsync(
-            characteristics, transcodeIfYUV,
-            new DelegatedQueuingTaskProcessor(pixelBufferArrived, 1),
+            new DelegatedQueuingTaskProcessor(pixelBufferArrived, 1, new DefaultBufferPool()),
             ct);
 
     public static Task<CaptureDevice> OpenAsync(
@@ -136,23 +83,7 @@ public static class CaptureDeviceDescriptorExtension
         CancellationToken ct = default) =>
         descriptor.OpenWithFrameProcessorAsync(
             characteristics, transcodeFormat,
-            new DelegatedQueuingTaskProcessor(pixelBufferArrived, 1),
-            ct);
-
-    [Obsolete("This overload is obsoleted, please use TranscodeFormats parameter instead.")]
-    public static Task<CaptureDevice> OpenAsync(
-        this CaptureDeviceDescriptor descriptor,
-        VideoCharacteristics characteristics,
-        bool transcodeIfYUV,
-        bool isScattering,
-        int maxQueuingFrames,
-        PixelBufferArrivedTaskDelegate pixelBufferArrived,
-        CancellationToken ct = default) =>
-        descriptor.OpenWithFrameProcessorAsync(
-            characteristics, transcodeIfYUV,
-            isScattering ?
-                new DelegatedScatteringTaskProcessor(pixelBufferArrived, maxQueuingFrames) :
-                new DelegatedQueuingTaskProcessor(pixelBufferArrived, maxQueuingFrames),
+            new DelegatedQueuingTaskProcessor(pixelBufferArrived, 1, new DefaultBufferPool()),
             ct);
 
     public static Task<CaptureDevice> OpenAsync(
@@ -166,8 +97,8 @@ public static class CaptureDeviceDescriptorExtension
         descriptor.OpenWithFrameProcessorAsync(
             characteristics, transcodeFormat,
             isScattering ?
-                new DelegatedScatteringTaskProcessor(pixelBufferArrived, maxQueuingFrames) :
-                new DelegatedQueuingTaskProcessor(pixelBufferArrived, maxQueuingFrames),
+                new DelegatedScatteringTaskProcessor(pixelBufferArrived, maxQueuingFrames, new DefaultBufferPool()) :
+                new DelegatedQueuingTaskProcessor(pixelBufferArrived, maxQueuingFrames, new DefaultBufferPool()),
             ct);
 
     //////////////////////////////////////////////////////////////////////////////////
@@ -180,24 +111,7 @@ public static class CaptureDeviceDescriptorExtension
         var observerProxy = new ObservableCaptureDevice.ObserverProxy();
         var captureDevice = await descriptor.OpenWithFrameProcessorAsync(
             characteristics, TranscodeFormats.Auto,
-            new DelegatedQueuingProcessor(observerProxy.OnPixelBufferArrived, 1),
-            ct).
-            ConfigureAwait(false);
-
-        return new ObservableCaptureDevice(captureDevice, observerProxy);
-    }
-
-    [Obsolete("This overload is obsoleted, please use TranscodeFormats parameter instead.")]
-    public static async Task<ObservableCaptureDevice> AsObservableAsync(
-        this CaptureDeviceDescriptor descriptor,
-        VideoCharacteristics characteristics,
-        bool transcodeIfYUV,
-        CancellationToken ct = default)
-    {
-        var observerProxy = new ObservableCaptureDevice.ObserverProxy();
-        var captureDevice = await descriptor.OpenWithFrameProcessorAsync(
-            characteristics, transcodeIfYUV,
-            new DelegatedQueuingProcessor(observerProxy.OnPixelBufferArrived, 1),
+            new DelegatedQueuingProcessor(observerProxy.OnPixelBufferArrived, 1, new DefaultBufferPool()),
             ct).
             ConfigureAwait(false);
 
@@ -213,28 +127,7 @@ public static class CaptureDeviceDescriptorExtension
         var observerProxy = new ObservableCaptureDevice.ObserverProxy();
         var captureDevice = await descriptor.OpenWithFrameProcessorAsync(
             characteristics, transcodeFormat,
-            new DelegatedQueuingProcessor(observerProxy.OnPixelBufferArrived, 1),
-            ct).
-            ConfigureAwait(false);
-
-        return new ObservableCaptureDevice(captureDevice, observerProxy);
-    }
-
-    [Obsolete("This overload is obsoleted, please use TranscodeFormats parameter instead.")]
-    public static async Task<ObservableCaptureDevice> AsObservableAsync(
-        this CaptureDeviceDescriptor descriptor,
-        VideoCharacteristics characteristics,
-        bool transcodeIfYUV,
-        bool isScattering,
-        int maxQueuingFrames,
-        CancellationToken ct = default)
-    {
-        var observerProxy = new ObservableCaptureDevice.ObserverProxy();
-        var captureDevice = await descriptor.OpenWithFrameProcessorAsync(
-            characteristics, transcodeIfYUV,
-            isScattering ?
-                new DelegatedScatteringProcessor(observerProxy.OnPixelBufferArrived, maxQueuingFrames) :
-                new DelegatedQueuingProcessor(observerProxy.OnPixelBufferArrived, maxQueuingFrames),
+            new DelegatedQueuingProcessor(observerProxy.OnPixelBufferArrived, 1, new DefaultBufferPool()),
             ct).
             ConfigureAwait(false);
 
@@ -253,8 +146,8 @@ public static class CaptureDeviceDescriptorExtension
         var captureDevice = await descriptor.OpenWithFrameProcessorAsync(
             characteristics, transcodeFormat,
             isScattering ?
-                new DelegatedScatteringProcessor(observerProxy.OnPixelBufferArrived, maxQueuingFrames) :
-                new DelegatedQueuingProcessor(observerProxy.OnPixelBufferArrived, maxQueuingFrames),
+                new DelegatedScatteringProcessor(observerProxy.OnPixelBufferArrived, maxQueuingFrames, new DefaultBufferPool()) :
+                new DelegatedQueuingProcessor(observerProxy.OnPixelBufferArrived, maxQueuingFrames, new DefaultBufferPool()),
             ct).
             ConfigureAwait(false);
 
@@ -268,17 +161,6 @@ public static class CaptureDeviceDescriptorExtension
         VideoCharacteristics characteristics,
         CancellationToken ct = default) =>
         descriptor.InternalTakeOneShotAsync(characteristics, TranscodeFormats.Auto, ct);
-
-    [Obsolete("This overload is obsoleted, please use TranscodeFormats parameter instead.")]
-    public static Task<byte[]> TakeOneShotAsync(
-        this CaptureDeviceDescriptor descriptor,
-        VideoCharacteristics characteristics,
-        bool transcodeIfYUV,
-        CancellationToken ct = default) =>
-        descriptor.InternalTakeOneShotAsync(
-            characteristics,
-            transcodeIfYUV ? TranscodeFormats.Auto : TranscodeFormats.DoNotTranscode,
-            ct);
 
     public static Task<byte[]> TakeOneShotAsync(
         this CaptureDeviceDescriptor descriptor,

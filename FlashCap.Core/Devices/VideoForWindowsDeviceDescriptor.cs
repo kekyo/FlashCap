@@ -18,8 +18,9 @@ public sealed class VideoForWindowsDeviceDescriptor : CaptureDeviceDescriptor
 
     internal VideoForWindowsDeviceDescriptor(
         int deviceIndex, string name, string description,
-        VideoCharacteristics[] characteristics) :
-        base(name, description, characteristics) =>
+        VideoCharacteristics[] characteristics,
+        BufferPool defaultBufferPool) :
+        base(name, description, characteristics, defaultBufferPool) =>
         this.deviceIndex = deviceIndex;
 
     public override object Identity =>
