@@ -19,7 +19,7 @@ public sealed class PixelBuffer
 
     private byte[]? imageContainer;
     private int imageContainerSize;
-    private byte[]? transcodedImageContainer = null;
+    private byte[]? transcodedImageContainer;
     private bool isValidTranscodedImage;
     private long timestampMicroseconds;
     private TranscodeFormats transcodeFormat;
@@ -48,18 +48,25 @@ public sealed class PixelBuffer
 
         lock (this)
         {
-            if (this.imageContainer == null ||
-                this.imageContainer.Length < totalSize)
-            {
-                Debug.WriteLine($"Allocated: CurrentSize={this.imageContainer?.Length ?? 0}, Size={totalSize}");
+            var imageContainer = this.imageContainer;
 
-                this.imageContainer = this.bufferPool.Rent(totalSize, false);
+            if (imageContainer == null ||
+                imageContainer.Length < totalSize)
+            {
+                if (imageContainer != null)
+                {
+                    this.bufferPool.Return(imageContainer);
+                }
+                imageContainer = this.bufferPool.Rent(totalSize, false);
+                this.imageContainer = imageContainer;
+
+                Debug.WriteLine($"Allocated: Size={totalSize}");
             }
 
             this.imageContainerSize = totalSize;
             this.isValidTranscodedImage = false;
 
-            fixed (byte* pImageContainer = this.imageContainer!)
+            fixed (byte* pImageContainer = imageContainer)
             {
                 if (pBih->biCompression == NativeMethods.Compression.MJPG ||
                     pBih->biCompression == NativeMethods.Compression.BI_JPEG ||
@@ -117,24 +124,28 @@ public sealed class PixelBuffer
     {
         lock (this)
         {
-            if (this.imageContainer == null)
+            var imageContainer = this.imageContainer;
+            if (imageContainer == null)
             {
                 throw new InvalidOperationException("Extracted before capture.");
             }
 
             if (this.transcodeFormat != TranscodeFormats.DoNotTranscode)
             {
-                if (this.isValidTranscodedImage && this.transcodedImageContainer != null)
+                var transcodedImageContainer = this.transcodedImageContainer;
+                if (this.isValidTranscodedImage && transcodedImageContainer != null)
                 {
                     if (strategy == BufferStrategies.ForceReuse)
                     {
-                        return new ArraySegment<byte>(this.transcodedImageContainer);
+                        return new ArraySegment<byte>(transcodedImageContainer);
                     }
                     else
                     {
-                        var copied1 = this.bufferPool.Rent(this.transcodedImageContainer.Length, true);
-                        Array.Copy(this.transcodedImageContainer, copied1, copied1.Length);
-                        return new ArraySegment<byte>(copied1);
+                        var copiedImageContainer = new byte[transcodedImageContainer.Length];
+                        Array.Copy(transcodedImageContainer,
+                            copiedImageContainer, copiedImageContainer.Length);
+
+                        return new ArraySegment<byte>(copiedImageContainer);
                     }
                 }
 
@@ -154,6 +165,10 @@ public sealed class PixelBuffer
                         if (this.transcodedImageContainer == null ||
                             this.transcodedImageContainer.Length != totalSize)
                         {
+                            if (this.transcodedImageContainer != null)
+                            {
+                                this.bufferPool.Return(this.transcodedImageContainer);
+                            }
                             this.transcodedImageContainer = this.bufferPool.Rent(totalSize, true);
                         }
 
@@ -200,9 +215,7 @@ public sealed class PixelBuffer
                         }
                         else
                         {
-                            var copied1 = this.transcodedImageContainer;
-                            this.transcodedImageContainer = null;
-                            return new ArraySegment<byte>(copied1);
+                            return new ArraySegment<byte>(this.transcodedImageContainer);
                         }
                     }
                 }
@@ -211,19 +224,19 @@ public sealed class PixelBuffer
             switch (strategy)
             {
                 case BufferStrategies.ForceReuse:
-                    return new ArraySegment<byte>(this.imageContainer, 0, this.imageContainerSize);
+                    return new ArraySegment<byte>(imageContainer, 0, this.imageContainerSize);
                 case BufferStrategies.CopyWhenDifferentSizeOrReuse:
-                    if (this.imageContainer.Length == this.imageContainerSize)
+                    if (imageContainer.Length == this.imageContainerSize)
                     {
-                        return new ArraySegment<byte>(this.imageContainer);
+                        return new ArraySegment<byte>(imageContainer);
                     }
                     break;
             }
 
             var copied = this.bufferPool.Rent(this.imageContainerSize, true);
-            Array.Copy(this.imageContainer, copied, copied.Length);
+            Array.Copy(imageContainer, copied, copied.Length);
 
-            Debug.WriteLine($"Copied: CurrentSize={this.imageContainer.Length}, Size={this.imageContainerSize}");
+            Debug.WriteLine($"Copied: CurrentSize={imageContainer.Length}, Size={this.imageContainerSize}");
 
             return new ArraySegment<byte>(copied);
         }
