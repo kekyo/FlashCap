@@ -748,22 +748,22 @@ switch (buf.machine)
 {
     case "x86_64":
     case "amd64":
-        Interop = new NativeMethods_V4L2_Interop_x86_64();
-        break;
     case "i686":
     case "i586":
     case "i486":
     case "i386":
-        Interop = new NativeMethods_V4L2_Interop_i686();
+        Interop = IntPtr.Size == 8 ?
+            new NativeMethods_V4L2_Interop_x86_64() :
+            new NativeMethods_V4L2_Interop_i686();
         break;
     case "aarch64":
-        Interop = new NativeMethods_V4L2_Interop_aarch64();
-        break;
     case "armv9l":
     case "armv8l":
     case "armv7l":
     case "armv6l":
-        Interop = new NativeMethods_V4L2_Interop_armv7l();
+        Interop = IntPtr.Size == 8 ?
+            new NativeMethods_V4L2_Interop_aarch64() :
+            new NativeMethods_V4L2_Interop_armv7l();
         break;
     case "mips":
     case "mipsel":
