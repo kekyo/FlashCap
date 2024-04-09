@@ -255,7 +255,6 @@ namespace FlashCap.Internal.V4L2
         public override uint VIDIOC_QUERYMENU => 3224131109U;
         public override uint VIDIOC_QUERYSTD => 2148030015U;
         public override uint VIDIOC_REQBUFS => 3222558216U;
-        public override uint VIDIOC_RESERVED => 22017U;
         public override uint VIDIOC_S_AUDIO => 1077171746U;
         public override uint VIDIOC_S_AUDOUT => 1077171762U;
         public override uint VIDIOC_S_CROP => 1075074620U;
@@ -434,6 +433,13 @@ namespace FlashCap.Internal.V4L2
                 set => this.reserved2_ = (uint)value;
             }
 
+            [FieldOffset(64)] private int request_fd_;
+            public int request_fd
+            {
+                get => this.request_fd_;
+                set => this.request_fd_ = (int)value;
+            }
+
             [FieldOffset(64)] private uint reserved_;
             public uint reserved
             {
@@ -557,11 +563,18 @@ namespace FlashCap.Internal.V4L2
                 set => this.pixelformat_ = (uint)value;
             }
 
-            [FieldOffset(48)] private fixed uint reserved_[4];
+            [FieldOffset(48)] private uint mbus_code_;
+            public uint mbus_code
+            {
+                get => this.mbus_code_;
+                set => this.mbus_code_ = (uint)value;
+            }
+
+            [FieldOffset(52)] private fixed uint reserved_[3];
             public uint[] reserved
             {
-                get { fixed (uint* p = this.reserved_) { return get(p, 4); } }
-                set { fixed (uint* p = this.reserved_) { set(p, value, 4); } }
+                get { fixed (uint* p = this.reserved_) { return get(p, 3); } }
+                set { fixed (uint* p = this.reserved_) { set(p, value, 3); } }
             }
 
         }
@@ -1215,11 +1228,18 @@ namespace FlashCap.Internal.V4L2
                 set => this.memory_ = (uint)value;
             }
 
-            [FieldOffset(12)] private fixed uint reserved_[2];
+            [FieldOffset(12)] private uint capabilities_;
+            public uint capabilities
+            {
+                get => this.capabilities_;
+                set => this.capabilities_ = (uint)value;
+            }
+
+            [FieldOffset(16)] private fixed uint reserved_[1];
             public uint[] reserved
             {
-                get { fixed (uint* p = this.reserved_) { return get(p, 2); } }
-                set { fixed (uint* p = this.reserved_) { set(p, value, 2); } }
+                get { fixed (uint* p = this.reserved_) { return get(p, 1); } }
+                set { fixed (uint* p = this.reserved_) { set(p, value, 1); } }
             }
 
         }
