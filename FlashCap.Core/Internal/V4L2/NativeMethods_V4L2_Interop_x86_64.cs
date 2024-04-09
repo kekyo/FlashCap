@@ -1,8 +1,8 @@
 // This is auto generated code by FlashCap.V4L2Generator [0.14.6]. Do not edit.
-// Linux version 5.10.102.1-microsoft-standard-WSL2 (oe-user@oe-host) (x86_64-msft-linux-gcc (GCC) 9.3.0, GNU ld (GNU Binutils) 2.34.0.20200220) #1 SMP Wed Mar 2 00:30:59 UTC 2022
+// Linux version 6.5.0-26-generic (buildd@lcy02-amd64-051) (x86_64-linux-gnu-gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0, GNU ld (GNU Binutils for Ubuntu) 2.38) #26~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Mar 12 10:22:43 UTC 2
 // Ubuntu clang version 11.1.0-6
 // gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04) 
-// Fri, 22 Mar 2024 10:16:40 GMT
+// Tue, 09 Apr 2024 12:42:23 GMT
 
 using System;
 using System.Runtime.InteropServices;
@@ -12,7 +12,7 @@ namespace FlashCap.Internal.V4L2
     internal sealed class NativeMethods_V4L2_Interop_x86_64 : NativeMethods_V4L2_Interop
     {
         // Common
-        public override string Label => "Linux version 5.10.102.1-microsoft-standard-WSL2 (oe-user@oe-host) (x86_64-msft-linux-gcc (GCC) 9.3.0, GNU ld (GNU Binutils) 2.34.0.20200220) #1 SMP Wed Mar 2 00:30:59 UTC 2022";
+        public override string Label => "Linux version 6.5.0-26-generic (buildd@lcy02-amd64-051) (x86_64-linux-gnu-gcc-12 (Ubuntu 12.3.0-1ubuntu1~22.04) 12.3.0, GNU ld (GNU Binutils for Ubuntu) 2.38) #26~22.04.1-Ubuntu SMP PREEMPT_DYNAMIC Tue Mar 12 10:22:43 UTC 2";
         public override string Architecture => "x86_64";
         public override string ClangVersion => "Ubuntu clang version 11.1.0-6";
         public override string GccVersion => "gcc version 11.4.0 (Ubuntu 11.4.0-1ubuntu1~22.04) ";
