@@ -76,6 +76,7 @@ namespace FlashCap
             "V4L2_PIX_FMT_UYVY",
             "V4L2_PIX_FMT_XRGB32",
             "V4L2_PIX_FMT_YUYV",
+            "V4L2_PIX_FMT_NV12",
             "VIDIOC_DQBUF",
             "VIDIOC_ENUM_FMT",
             "VIDIOC_ENUM_FRAMEINTERVALS",
