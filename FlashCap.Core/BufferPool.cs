@@ -7,6 +7,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -19,114 +21,117 @@ public abstract class BufferPool
     {
     }
 
-    public abstract byte[] Rent(int size, bool exactSize);
+    public abstract byte[] Rent(int minimumSize);
     public abstract void Return(byte[] buffer);
 }
 
 public sealed class DefaultBufferPool :
     BufferPool
 {
-    // Imported from:
-    // https://github.com/kekyo/GitReader/blob/main/GitReader.Core/Internal/BufferPool.cs
-
-    // Tried and tested, but simple strategies were the fastest.
-    // Probably because each buffer table and lookup fragments on the CPU cache.
-
-    private const int bufferHolderLength = 13;
-
-    [DebuggerStepThrough]
-    private sealed class BufferHolder
+    private sealed class BufferElement
     {
-        private readonly byte[]?[] buffers;
+        private readonly int size;
+        private readonly WeakReference wr;
 
-        public BufferHolder(int maxReservedBufferElements) =>
-            this.buffers = new byte[maxReservedBufferElements][];
-
-        public byte[]? Rent(int size, bool exactSize)
+        public BufferElement(byte[] buffer)
         {
-            for (var index = 0; index < this.buffers.Length; index++)
-            {
-                var buffer = this.buffers[index];
-                if (buffer != null && (exactSize ? (buffer.Length == size) : (buffer.Length >= size)))
-                {
-                    if (Interlocked.CompareExchange(ref this.buffers[index], null, buffer) == buffer)
-                    {
-                        return buffer;
-                    }
-                }
-            }
-
-            return null;
+            this.size = buffer.Length;
+            this.wr = new WeakReference(buffer);
         }
 
-        public bool Return(byte[] buffer)
-        {
-            for (var index = 0; index < this.buffers.Length; index++)
-            {
-                if (this.buffers[index] == null)
-                {
-                    if (Interlocked.CompareExchange(ref this.buffers[index], buffer, null) == null)
-                    {
-                        return true;
-                    }
-                }
-            }
+        public bool IsAvailable =>
+            this.wr.IsAlive;
 
-            // It was better to simply discard a buffer instance than the cost of extending the table.
-            return false;
-        }
+        public bool IsAvailableAndFit(int minimumSize) =>
+            this.wr.IsAlive && (minimumSize <= this.size);
+
+        public byte[]? ExtractBuffer() =>
+            (byte[]?)this.wr.Target;
     }
 
-    private readonly BufferHolder[] bufferHolders;
-    private int saved;
+    private readonly BufferElement?[] bufferElements;
 
     public DefaultBufferPool() : this(16)
     {
     }
 
     public DefaultBufferPool(int maxReservedBufferElements) =>
-        this.bufferHolders = Enumerable.Range(0, bufferHolderLength).
-        Select(_ => new BufferHolder(maxReservedBufferElements)).
-        ToArray();
+        this.bufferElements = new BufferElement?[maxReservedBufferElements];
 
-    public override byte[] Rent(int size, bool exactSize)
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
+    public int UnsafeAvailableCount =>
+        this.bufferElements.Count(bufferHolder => bufferHolder?.IsAvailable ?? false);
+
+    public override byte[] Rent(int minimumSize)
     {
-        // NOTE: Size is determined on a "less than" basis when not exact size,
-        // which may result in placement in different buckets and missed opportunities for reuse.
-        // This implementation is ignored penalties.
-        int saved;
-        var bufferHolder = this.bufferHolders[size % this.bufferHolders.Length];
-        if (bufferHolder.Rent(size, exactSize) is { } b)
+        for (var index = 0; index < this.bufferElements.Length; index++)
         {
-            saved = Interlocked.Decrement(ref this.saved);
-        }
-        else
-        {
-            b = new byte[size];
-            saved = this.saved;
+            var bufferElement = this.bufferElements[index];
+
+            // First phase:
+            // * Determined: size and exactSize
+            // * NOT determined: Availability
+            if (bufferElement?.IsAvailableAndFit(minimumSize) ?? false)
+            {
+                if (object.ReferenceEquals(
+                    Interlocked.CompareExchange(
+                        ref this.bufferElements[index],
+                        null,
+                        bufferElement),
+                        bufferElement) &&
+                    // Second phase
+                    // * Determined: size, exactSize and availability
+                    bufferElement.ExtractBuffer() is { } buffer)
+                {
+#if DEBUG
+                    Debug.WriteLine($"DefaultBufferPool: Rend: Size={buffer.Length}/{minimumSize}, Index={index}");
+#endif
+                    return buffer;
+                }
+            }
+            else if (!(bufferElement?.IsAvailable ?? true))
+            {
+                // Remove corrected element (and forgot).
+                Interlocked.CompareExchange(
+                    ref this.bufferElements[index],
+                    null,
+                    bufferElement);
+            }
         }
 
 #if DEBUG
-        Debug.WriteLine($"DefaultBufferPool: Rend: Size={b.Length}/{size}, ExactSize={exactSize}, Saved={saved}");
+        Debug.WriteLine($"DefaultBufferPool: Created: Size={minimumSize}");
 #endif
-        return b;
+        return new byte[minimumSize];
     }
 
     public override void Return(byte[] buffer)
     {
-        int saved;
-        var bufferHolder = this.bufferHolders[buffer.Length % this.bufferHolders.Length];
-        if (bufferHolder.Return(buffer))
+        var newBufferElement = new BufferElement(buffer);
+
+        for (var index = 0; index < this.bufferElements.Length; index++)
         {
-            saved = Interlocked.Increment(ref this.saved);
-        }
-        else
-        {
-            saved = this.saved;
+            var bufferElement = this.bufferElements[index];
+            if (bufferElement == null || !bufferElement.IsAvailable)
+            {
+                if (object.ReferenceEquals(
+                    Interlocked.CompareExchange(
+                        ref this.bufferElements[index],
+                        newBufferElement,
+                        bufferElement),
+                    bufferElement))
+                {
+#if DEBUG
+                    Debug.WriteLine($"DefaultBufferPool: Returned: Size={buffer.Length}, Index={index}");
+#endif
+                    return;
+                }
+            }
         }
 
+        // It was better to simply discard a buffer instance than the cost of extending the table.
 #if DEBUG
-        Debug.WriteLine($"DefaultBufferPool: Returned: Size={buffer.Length}, Saved={saved}");
+        Debug.WriteLine($"DefaultBufferPool: Discarded: Size={buffer.Length}");
 #endif
     }
 }

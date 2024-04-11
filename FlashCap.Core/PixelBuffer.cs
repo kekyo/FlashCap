@@ -57,7 +57,7 @@ public sealed class PixelBuffer
                 {
                     this.bufferPool.Return(imageContainer);
                 }
-                imageContainer = this.bufferPool.Rent(totalSize, false);
+                imageContainer = this.bufferPool.Rent(totalSize);
                 this.imageContainer = imageContainer;
 
                 Debug.WriteLine($"Allocated: Size={totalSize}");
@@ -162,17 +162,14 @@ public sealed class PixelBuffer
                             sizeof(NativeMethods.BITMAPINFOHEADER) +
                             sizeImage;
 
-                        if (this.transcodedImageContainer == null ||
-                            this.transcodedImageContainer.Length != totalSize)
+                        if (transcodedImageContainer == null)
                         {
-                            if (this.transcodedImageContainer != null)
-                            {
-                                this.bufferPool.Return(this.transcodedImageContainer);
-                            }
-                            this.transcodedImageContainer = this.bufferPool.Rent(totalSize, true);
+                            transcodedImageContainer = new byte[totalSize];
+                            this.transcodedImageContainer = transcodedImageContainer;
                         }
+                        Debug.Assert(transcodedImageContainer.Length == totalSize);
 
-                        fixed (byte* pTranscodedImageContainer = this.transcodedImageContainer)
+                        fixed (byte* pTranscodedImageContainer = transcodedImageContainer)
                         {
                             var pBfhTo = (NativeMethods.BITMAPFILEHEADER*)pTranscodedImageContainer;
                             var pBihTo = (NativeMethods.BITMAPINFOHEADER*)(pBfhTo + 1);
@@ -211,11 +208,11 @@ public sealed class PixelBuffer
                         if (strategy == BufferStrategies.ForceReuse)
                         {
                             this.isValidTranscodedImage = true;
-                            return new ArraySegment<byte>(this.transcodedImageContainer);
+                            return new ArraySegment<byte>(transcodedImageContainer);
                         }
                         else
                         {
-                            return new ArraySegment<byte>(this.transcodedImageContainer);
+                            return new ArraySegment<byte>(transcodedImageContainer);
                         }
                     }
                 }
@@ -225,15 +222,12 @@ public sealed class PixelBuffer
             {
                 case BufferStrategies.ForceReuse:
                     return new ArraySegment<byte>(imageContainer, 0, this.imageContainerSize);
-                case BufferStrategies.CopyWhenDifferentSizeOrReuse:
-                    if (imageContainer.Length == this.imageContainerSize)
-                    {
-                        return new ArraySegment<byte>(imageContainer);
-                    }
-                    break;
+                case BufferStrategies.CopyWhenDifferentSizeOrReuse when
+                    imageContainer.Length == this.imageContainerSize:
+                    return new ArraySegment<byte>(imageContainer);
             }
 
-            var copied = this.bufferPool.Rent(this.imageContainerSize, true);
+            var copied = new byte[this.imageContainerSize];
             Array.Copy(imageContainer, copied, copied.Length);
 
             Debug.WriteLine($"Copied: CurrentSize={imageContainer.Length}, Size={this.imageContainerSize}");
