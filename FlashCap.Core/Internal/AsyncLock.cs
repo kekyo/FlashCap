@@ -44,7 +44,11 @@ internal sealed class AsyncLock
         }
 
         var tcs = new TaskCompletionSource<Disposer>();
-        ct.Register(() => tcs.TrySetCanceled());
+        var ctr = ct.Register(() => tcs.TrySetCanceled());
+
+        tcs.Task.ContinueWith(_ =>
+            ctr.Dispose(),
+            TaskContinuationOptions.ExecuteSynchronously);
 
         lock (this.queue)
         {
