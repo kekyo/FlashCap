@@ -25,11 +25,3 @@ module public CaptureDeviceExtension =
 
         member self.showPropertyPage(parentWindow: nativeint, ?ct: CancellationToken) =
             self.InternalShowPropertyPageAsync(parentWindow, asCT ct) |> Async.AwaitTask
-
-        [<Obsolete("This function is obsoleted, please use `start` instead.")>]
-        member self.startAsync(?ct: CancellationToken) =
-            self.InternalStartAsync(asCT ct) |> Async.AwaitTask
-
-        [<Obsolete("This function is obsoleted, please use `stop` instead.")>]
-        member self.stopAsync(?ct: CancellationToken) =
-            self.InternalStopAsync(asCT ct) |> Async.AwaitTask

@@ -22,6 +22,16 @@ namespace FlashCap.Devices;
 
 public sealed class V4L2Devices : CaptureDevices
 {
+    public V4L2Devices() :
+        this(new DefaultBufferPool())
+    {
+    }
+
+    public V4L2Devices(BufferPool defaultBufferPool) :
+        base(defaultBufferPool)
+    {
+    }
+
     private static IEnumerable<v4l2_fmtdesc> EnumerateFormatDesc(
         int fd) =>
         Enumerable.Range(0, 1000).
@@ -203,7 +213,8 @@ public sealed class V4L2Devices : CaptureDevices
                                             frmsize.IsDiscrete && framesPerSecond.IsDiscrete)))).
                             Distinct().
                             OrderByDescending(vc => vc).
-                            ToArray());
+                            ToArray(),
+                            this.DefaultBufferPool);
                     }
                     else
                     {

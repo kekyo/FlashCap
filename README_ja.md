@@ -487,6 +487,66 @@ deviceObservable.
     // ...
 ```
 
+## バッファプーリングのカスタマイズ (Advanced topic)
+
+FlashCapは、再利用されるバッファのための、バッファプーリングインターフェイスを持っています。
+これは、`BufferPool` 基底クラスで、このクラスを継承して実装します。
+
+既定の実装は `DefaultBufferPool` クラスで、自動的に使用されます。
+このクラスは単純な実装ですが、弱参照を使用して、使われなくなったバッファをGCが回収可能にしています。
+
+バッファプーリングを独自の実装で置き換えたい場合は、以下の2個の抽象メソッドを実装します:
+
+```csharp
+// バッファプーリングの基底クラス
+public abstract class BufferPool
+{
+  protected BufferPool()
+  { /* ... */ }
+
+  // バッファを取得する
+  public abstract byte[] Rent(int minimumSize);
+
+  // バッファを解放する
+  public abstract void Return(byte[] buffer);
+}
+```
+
+* `Rent()`メソッドは、引数で指定されたサイズ以上のバッファを返す必要があります。
+* `Return()`メソッドは、引数で指定されたバッファがもう使われないため、プーリングで引き取るようにします。
+
+.NETにはGCがあるため、最も単純な（かつ、プーリングを行わない）実装は、以下のようになります:
+
+```csharp
+public sealed class FakeBufferPool : BufferPool
+{
+    public override byte[] Rent(int minimumSize) =>
+        // 常に生成
+        new byte[minimumSize];
+
+    public override void Return(byte[] buffer)
+    {
+        // (`buffer` 参照を放置して、GCが回収するに任せる)
+    }
+}
+```
+
+例えば、.NET Core世代の `System.Buffers` には `ArrayPool` クラスがあることをご存じの方も居るでしょう。
+`BufferPool`を拡張することで、このような既存のバッファプーリング実装や、独自の実装を使用することが出来ます。
+
+このようにして独自のクラスを実装した場合は、`CaptureDevices`のコンストラクタに渡して、FlashCapに使用させます:
+
+```csharp
+// バッファプーリングインスタンスを生成して使用
+var bufferPool = new FakeBufferPool();
+
+var devices = new CaptureDevices(bufferPool);
+
+// ...
+```
+
+この`CaptureDevices`のインスタンスから列挙された全てのデバイスで、共通のバッファプーリングとして使用されます。
+
 ## フレームプロセッサをマスターする (Advanced topic)
 
 地下ダンジョンへようこそ。FlashCapのフレームプロセッサは、磨けば光る宝石です。しかし、余程のことが無い限り、フレームプロセッサを理解する必要はありません。この解説は、やむを得ずフレームプロセッサを扱う場合の参考にして下さい。また、FlashCapが[デフォルトで内蔵するフレームプロセッサの実装](https://github.com/kekyo/FlashCap/tree/main/FlashCap/FrameProcessors)も参考になるでしょう。

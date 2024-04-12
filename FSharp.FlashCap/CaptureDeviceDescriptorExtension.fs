@@ -39,7 +39,7 @@ module public CaptureDeviceDescriptorExtension =
             ?ct: CancellationToken) : Async<CaptureDevice> =
             self.InternalOpenWithFrameProcessorAsync(
                 characteristics, TranscodeFormats.Auto,
-                new DelegatedQueuingProcessor(pixelBufferArrived, 1),
+                new DelegatedQueuingProcessor(pixelBufferArrived, 1, self.defaultBufferPool),
                 asCT ct) |> Async.AwaitTask
 
         member self.openDevice(
@@ -50,7 +50,7 @@ module public CaptureDeviceDescriptorExtension =
             self.InternalOpenWithFrameProcessorAsync(
                 characteristics,
                 transcodeFormat,
-                new DelegatedQueuingProcessor(pixelBufferArrived, 1),
+                new DelegatedQueuingProcessor(pixelBufferArrived, 1, self.defaultBufferPool),
                 asCT ct) |> Async.AwaitTask
 
         member self.openDevice(
@@ -64,8 +64,8 @@ module public CaptureDeviceDescriptorExtension =
                 characteristics,
                 transcodeFormat,
                 (match isScattering with
-                 | true -> (new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)
-                 | false -> (new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)),
+                 | true -> (new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames, self.defaultBufferPool) :> FrameProcessor)
+                 | false -> (new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames, self.defaultBufferPool) :> FrameProcessor)),
                 asCT ct) |> Async.AwaitTask
 
         //////////////////////////////////////////////////////////////////////////////////
@@ -77,7 +77,7 @@ module public CaptureDeviceDescriptorExtension =
             self.InternalOpenWithFrameProcessorAsync(
                 characteristics,
                 TranscodeFormats.Auto,
-                new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, 1),
+                new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, 1, self.defaultBufferPool),
                 asCT ct) |> Async.AwaitTask
         
         member self.openDevice(
@@ -88,7 +88,7 @@ module public CaptureDeviceDescriptorExtension =
             self.InternalOpenWithFrameProcessorAsync(
                 characteristics,
                 transcodeFormat,
-                new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, 1),
+                new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, 1, self.defaultBufferPool),
                 asCT ct) |> Async.AwaitTask
 
         member self.openDevice(
@@ -102,8 +102,8 @@ module public CaptureDeviceDescriptorExtension =
                 characteristics,
                 transcodeFormat,
                 (match isScattering with
-                 | true -> (new DelegatedScatteringTaskProcessor(asTask pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)
-                 | false -> (new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)),
+                 | true -> (new DelegatedScatteringTaskProcessor(asTask pixelBufferArrived, maxQueuingFrames, self.defaultBufferPool) :> FrameProcessor)
+                 | false -> (new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, maxQueuingFrames, self.defaultBufferPool) :> FrameProcessor)),
                 asCT ct) |> Async.AwaitTask
 
         //////////////////////////////////////////////////////////////////////////////////
@@ -116,7 +116,7 @@ module public CaptureDeviceDescriptorExtension =
                     characteristics,
                     TranscodeFormats.Auto,
                     (new DelegatedQueuingProcessor(
-                        new PixelBufferArrivedDelegate(observerProxy.OnPixelBufferArrived), 1)), asCT ct) |> Async.AwaitTask
+                        new PixelBufferArrivedDelegate(observerProxy.OnPixelBufferArrived), 1, self.defaultBufferPool)), asCT ct) |> Async.AwaitTask
                 return new ObservableCaptureDevice(captureDevice, observerProxy)
             }
 
@@ -129,7 +129,7 @@ module public CaptureDeviceDescriptorExtension =
                     characteristics,
                     transcodeFormat,
                     (new DelegatedQueuingProcessor(
-                        new PixelBufferArrivedDelegate(observerProxy.OnPixelBufferArrived), 1)), asCT ct) |> Async.AwaitTask
+                        new PixelBufferArrivedDelegate(observerProxy.OnPixelBufferArrived), 1, self.defaultBufferPool)), asCT ct) |> Async.AwaitTask
                 return new ObservableCaptureDevice(captureDevice, observerProxy)
             }
  
@@ -145,8 +145,8 @@ module public CaptureDeviceDescriptorExtension =
                     characteristics,
                     transcodeFormat,
                     (match isScattering with
-                     | true -> (new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)
-                     | false -> (new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)), asCT ct) |> Async.AwaitTask
+                     | true -> (new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames, self.defaultBufferPool) :> FrameProcessor)
+                     | false -> (new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames, self.defaultBufferPool) :> FrameProcessor)), asCT ct) |> Async.AwaitTask
                 return new ObservableCaptureDevice(captureDevice, observerProxy)
             }
 
@@ -167,164 +167,4 @@ module public CaptureDeviceDescriptorExtension =
             self.InternalTakeOneShotAsync(
                 characteristics,
                 transcodeFormat,
-                asCT ct) |> Async.AwaitTask
-
-        //////////////////////////////////////////////////////////////////////////////////
-
-        [<Obsolete("This function is obsoleted, please use `openDevice` instead.")>]
-        [<EditorBrowsable(EditorBrowsableState.Never)>]
-        member self.openAsync(
-            characteristics: VideoCharacteristics,
-            pixelBufferArrived: PixelBufferScope -> unit,
-            ?ct: CancellationToken) : Async<CaptureDevice> =
-            self.InternalOpenWithFrameProcessorAsync(
-                characteristics, TranscodeFormats.Auto,
-                new DelegatedQueuingProcessor(pixelBufferArrived, 1),
-                asCT ct) |> Async.AwaitTask
-
-        [<Obsolete("This function is obsoleted, please use `openDevice` instead.")>]
-        [<EditorBrowsable(EditorBrowsableState.Never)>]
-        member self.openAsync(
-            characteristics: VideoCharacteristics,
-            transcodeIfYUV: bool,
-            pixelBufferArrived: PixelBufferScope -> unit,
-            ?ct: CancellationToken) : Async<CaptureDevice> =
-            self.InternalOpenWithFrameProcessorAsync(
-                characteristics,
-                toFormat transcodeIfYUV,
-                new DelegatedQueuingProcessor(pixelBufferArrived, 1),
-                asCT ct) |> Async.AwaitTask
-
-        [<Obsolete("This function is obsoleted, please use `openDevice` instead.")>]
-        [<EditorBrowsable(EditorBrowsableState.Never)>]
-        member self.openAsync(
-            characteristics: VideoCharacteristics,
-            transcodeIfYUV: bool,
-            isScattering: bool,
-            maxQueuingFrames: int,
-            pixelBufferArrived: PixelBufferScope -> unit,
-            ?ct: CancellationToken) : Async<CaptureDevice> =
-            self.InternalOpenWithFrameProcessorAsync(
-                characteristics,
-                toFormat transcodeIfYUV,
-                (match isScattering with
-                 | true -> (new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)
-                 | false -> (new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)),
-                asCT ct) |> Async.AwaitTask
-
-        //////////////////////////////////////////////////////////////////////////////////
-
-        [<Obsolete("This function is obsoleted, please use `openDevice` instead.")>]
-        [<EditorBrowsable(EditorBrowsableState.Never)>]
-        member self.openAsync(
-            characteristics: VideoCharacteristics,
-            pixelBufferArrived: PixelBufferScope -> Async<unit>,
-            ?ct: CancellationToken) : Async<CaptureDevice> =
-            self.InternalOpenWithFrameProcessorAsync(
-                characteristics,
-                TranscodeFormats.Auto,
-                new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, 1),
-                asCT ct) |> Async.AwaitTask
-        
-        [<Obsolete("This function is obsoleted, please use `openDevice` instead.")>]
-        [<EditorBrowsable(EditorBrowsableState.Never)>]
-        member self.openAsync(
-            characteristics: VideoCharacteristics,
-            transcodeIfYUV: bool,
-            pixelBufferArrived: PixelBufferScope -> Async<unit>,
-            ?ct: CancellationToken) : Async<CaptureDevice> =
-            self.InternalOpenWithFrameProcessorAsync(
-                characteristics,
-                toFormat transcodeIfYUV,
-                new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, 1),
-                asCT ct) |> Async.AwaitTask
-
-        [<Obsolete("This function is obsoleted, please use `openDevice` instead.")>]
-        [<EditorBrowsable(EditorBrowsableState.Never)>]
-        member self.openAsync(
-            characteristics: VideoCharacteristics,
-            transcodeIfYUV: bool,
-            isScattering: bool,
-            maxQueuingFrames: int,
-            pixelBufferArrived: PixelBufferScope -> Async<unit>,
-            ?ct: CancellationToken) : Async<CaptureDevice> =
-            self.InternalOpenWithFrameProcessorAsync(
-                characteristics,
-                toFormat transcodeIfYUV,
-                (match isScattering with
-                 | true -> (new DelegatedScatteringTaskProcessor(asTask pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)
-                 | false -> (new DelegatedQueuingTaskProcessor(asTask pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)),
-                asCT ct) |> Async.AwaitTask
-
-        //////////////////////////////////////////////////////////////////////////////////
-        
-        [<Obsolete("This function is obsoleted, please use `asObservable` instead.")>]
-        [<EditorBrowsable(EditorBrowsableState.Never)>]
-        member self.asObservableAsync(
-            characteristics: VideoCharacteristics,
-            ?ct: CancellationToken) : Async<ObservableCaptureDevice> = async {
-                let observerProxy = new ObservableCaptureDevice.ObserverProxy()
-                let! captureDevice = self.InternalOpenWithFrameProcessorAsync(
-                    characteristics,
-                    TranscodeFormats.Auto,
-                    (new DelegatedQueuingProcessor(
-                        new PixelBufferArrivedDelegate(observerProxy.OnPixelBufferArrived), 1)), asCT ct) |> Async.AwaitTask
-                return new ObservableCaptureDevice(captureDevice, observerProxy)
-            }
-
-        [<Obsolete("This function is obsoleted, please use `asObservable` instead.")>]
-        [<EditorBrowsable(EditorBrowsableState.Never)>]
-        member self.asObservableAsync(
-            characteristics: VideoCharacteristics,
-            transcodeIfYUV: bool,
-            ?ct: CancellationToken) : Async<ObservableCaptureDevice> = async {
-                let observerProxy = new ObservableCaptureDevice.ObserverProxy()
-                let! captureDevice = self.InternalOpenWithFrameProcessorAsync(
-                    characteristics,
-                    toFormat transcodeIfYUV,
-                    (new DelegatedQueuingProcessor(
-                        new PixelBufferArrivedDelegate(observerProxy.OnPixelBufferArrived), 1)), asCT ct) |> Async.AwaitTask
-                return new ObservableCaptureDevice(captureDevice, observerProxy)
-            }
- 
-        [<Obsolete("This function is obsoleted, please use `asObservable` instead.")>]
-        [<EditorBrowsable(EditorBrowsableState.Never)>]
-        member self.asObservableAsync(
-            characteristics: VideoCharacteristics,
-            transcodeIfYUV: bool,
-            isScattering: bool,
-            maxQueuingFrames: int,
-            ?ct: CancellationToken) : Async<ObservableCaptureDevice> = async {
-                let observerProxy = new ObservableCaptureDevice.ObserverProxy()
-                let pixelBufferArrived = new PixelBufferArrivedDelegate(observerProxy.OnPixelBufferArrived)
-                let! captureDevice = self.InternalOpenWithFrameProcessorAsync(
-                    characteristics,
-                    toFormat transcodeIfYUV,
-                    (match isScattering with
-                     | true -> (new DelegatedScatteringProcessor(pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)
-                     | false -> (new DelegatedQueuingProcessor(pixelBufferArrived, maxQueuingFrames) :> FrameProcessor)), asCT ct) |> Async.AwaitTask
-                return new ObservableCaptureDevice(captureDevice, observerProxy)
-            }
-
-        //////////////////////////////////////////////////////////////////////////////////
-
-        [<Obsolete("This function is obsoleted, please use `takeOneShot` instead.")>]
-        [<EditorBrowsable(EditorBrowsableState.Never)>]
-        member self.takeOneShotAsync(
-            characteristics: VideoCharacteristics,
-            ?ct: CancellationToken) : Async<byte[]> =
-            self.InternalTakeOneShotAsync(
-                characteristics,
-                TranscodeFormats.Auto,
-                asCT ct) |> Async.AwaitTask
-
-        [<Obsolete("This function is obsoleted, please use `takeOneShot` instead.")>]
-        [<EditorBrowsable(EditorBrowsableState.Never)>]
-        member self.takeOneShotAsync(
-            characteristics: VideoCharacteristics,
-            transcodeIfYUV: bool,
-            ?ct: CancellationToken) : Async<byte[]> =
-            self.InternalTakeOneShotAsync(
-                characteristics,
-                toFormat transcodeIfYUV,
                 asCT ct) |> Async.AwaitTask

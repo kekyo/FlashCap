@@ -15,17 +15,18 @@ using System.Threading.Tasks;
 
 namespace FlashCap.FrameProcessors;
 
-internal abstract class ScatteringProcessor :
+public abstract class ScatteringProcessor :
     FrameProcessor
 {
     private readonly int maxQueuingFrames;
     private readonly WaitCallback pixelBufferArrivedEntry;
 
-    protected volatile int processing = 1;
-    protected volatile bool aborting;
-    protected AsyncManualResetEvent final = new();
+    private protected volatile int processing = 1;
+    private protected volatile bool aborting;
+    private protected AsyncManualResetEvent final = new();
 
-    protected ScatteringProcessor(int maxQueuingFrames)
+    private protected ScatteringProcessor(int maxQueuingFrames, BufferPool bufferPool) :
+        base(bufferPool)
     {
         this.maxQueuingFrames = maxQueuingFrames;
         this.pixelBufferArrivedEntry = this.PixelBufferArrivedEntry;
@@ -80,14 +81,14 @@ internal abstract class ScatteringProcessor :
     protected abstract void PixelBufferArrivedEntry(object? parameter);
 }
 
-internal sealed class DelegatedScatteringProcessor :
+public sealed class DelegatedScatteringProcessor :
     ScatteringProcessor
 {
     private PixelBufferArrivedDelegate pixelBufferArrived;
 
     public DelegatedScatteringProcessor(
-        PixelBufferArrivedDelegate pixelBufferArrived, int maxQueuingFrames) :
-        base(maxQueuingFrames) =>
+        PixelBufferArrivedDelegate pixelBufferArrived, int maxQueuingFrames, BufferPool bufferPool) :
+        base(maxQueuingFrames, bufferPool) =>
         this.pixelBufferArrived = pixelBufferArrived;
 
     protected override async Task OnDisposeAsync()
@@ -129,14 +130,14 @@ internal sealed class DelegatedScatteringProcessor :
     }
 }
 
-internal sealed class DelegatedScatteringTaskProcessor :
+public sealed class DelegatedScatteringTaskProcessor :
     ScatteringProcessor
 {
     private PixelBufferArrivedTaskDelegate pixelBufferArrived;
 
     public DelegatedScatteringTaskProcessor(
-        PixelBufferArrivedTaskDelegate pixelBufferArrived, int maxQueuingFrames) :
-        base(maxQueuingFrames) =>
+        PixelBufferArrivedTaskDelegate pixelBufferArrived, int maxQueuingFrames, BufferPool bufferPool) :
+        base(maxQueuingFrames, bufferPool) =>
         this.pixelBufferArrived = pixelBufferArrived;
 
     protected override async Task OnDisposeAsync()
