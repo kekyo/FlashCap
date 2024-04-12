@@ -83,9 +83,7 @@ public sealed class DefaultBufferPool :
                     // * Determined: size, exactSize and availability
                     bufferElement.ExtractBuffer() is { } buffer)
                 {
-#if DEBUG
                     Debug.WriteLine($"DefaultBufferPool: Rend: Size={buffer.Length}/{minimumSize}, Index={index}");
-#endif
                     return buffer;
                 }
             }
@@ -99,9 +97,7 @@ public sealed class DefaultBufferPool :
             }
         }
 
-#if DEBUG
         Debug.WriteLine($"DefaultBufferPool: Created: Size={minimumSize}");
-#endif
         return new byte[minimumSize];
     }
 
@@ -121,17 +117,13 @@ public sealed class DefaultBufferPool :
                         bufferElement),
                     bufferElement))
                 {
-#if DEBUG
                     Debug.WriteLine($"DefaultBufferPool: Returned: Size={buffer.Length}, Index={index}");
-#endif
                     return;
                 }
             }
         }
 
         // It was better to simply discard a buffer instance than the cost of extending the table.
-#if DEBUG
         Debug.WriteLine($"DefaultBufferPool: Discarded: Size={buffer.Length}");
-#endif
     }
 }
