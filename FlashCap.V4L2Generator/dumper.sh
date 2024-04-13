@@ -1,10 +1,12 @@
 #!/bin/bash
 
+#sudo apt install clang-13 build-essential mono-devel
 #sudo apt install clang-11 build-essential mono-devel
 #sudo apt install clang-10 build-essential mono-devel
 
-Clang=clang-11; export Clang
+Clang=clang-13; export Clang
 #Clang=clang-11; export Clang
+#Clang=clang-10; export Clang
 Configuration=Debug; export Configuration
 
 $Clang -v |& head -n 1 > clang_version.txt
