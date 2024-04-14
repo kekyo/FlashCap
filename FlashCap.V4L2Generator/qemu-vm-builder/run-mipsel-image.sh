@@ -6,8 +6,8 @@ qemu-system-mipsel \
   -M malta \
   -m 2048 \
   -hda debian-mipsel.qcow2 \
-  -kernel vmlinuz \
-  -initrd initrd.gz \
+  -kernel vmlinuz-mipsel \
+  -initrd initrd-mipsel.img \
   -nographic \
   -append "root=/dev/sda1 console=ttyS0 nokaslr" \
   -netdev user,id=net0,hostfwd=tcp:127.0.0.1:2222-:22 \
