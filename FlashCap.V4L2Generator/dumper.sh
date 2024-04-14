@@ -9,6 +9,8 @@ Clang=clang-13; export Clang
 #Clang=clang-10; export Clang
 Configuration=Debug; export Configuration
 
+#===============================================================
+
 $Clang -v |& head -n 1 > clang_version.txt
 gcc -v |& tail -n 1 > gcc_version.txt
 
