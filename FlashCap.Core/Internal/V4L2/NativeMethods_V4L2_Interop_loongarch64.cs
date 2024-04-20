@@ -991,11 +991,18 @@ namespace FlashCap.Internal.V4L2
                 set => this.capabilities_ = (uint)value;
             }
 
-            [FieldOffset(16)] private fixed uint reserved_[1];
-            public uint[] reserved
+            [FieldOffset(16)] private byte flags_;
+            public byte flags
             {
-                get { fixed (uint* p = this.reserved_) { return get(p, 1); } }
-                set { fixed (uint* p = this.reserved_) { set(p, value, 1); } }
+                get => this.flags_;
+                set => this.flags_ = (byte)value;
+            }
+
+            [FieldOffset(17)] private fixed byte reserved_[3];
+            public byte[] reserved
+            {
+                get { fixed (byte* p = this.reserved_) { return get(p, 3); } }
+                set { fixed (byte* p = this.reserved_) { set(p, value, 3); } }
             }
 
         }

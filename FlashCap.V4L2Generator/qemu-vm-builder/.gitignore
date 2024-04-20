@@ -1,0 +1,5 @@
+*.qcow2
+*.iso
+install/
+vmlinuz*
+initrd*

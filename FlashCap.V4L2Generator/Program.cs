@@ -174,7 +174,8 @@ namespace FlashCap
             string dumperFileName,
             string architecture,
             string clangVersion,
-            string gccVersion)
+            string gccVersion,
+            string dateTime)
         {
             var versionLabel = LoadVersionLabel();
             
@@ -224,7 +225,7 @@ namespace FlashCap
                 tw.WriteLine($"// {versionLabel}");
                 tw.WriteLine($"// {clangVersion.Replace("\r", "").Replace("\n", "")}");
                 tw.WriteLine($"// {gccVersion.Replace("\r", "").Replace("\n", "")}");
-                tw.WriteLine($"// {DateTimeOffset.Now:R}");
+                tw.WriteLine($"// {dateTime}");
                 tw.WriteLine();
                 
                 tw.WriteLine("#include <stdio.h>");
@@ -389,7 +390,8 @@ namespace FlashCap
         private static void GenerateInteropCode(
             string structureDumperJsonFileName,
             string basePath,
-            bool isBase)
+            bool isBase,
+            string dateTime)
         {
             var root = LoadMembersJson(structureDumperJsonFileName);
             if (root == null)
@@ -408,7 +410,7 @@ namespace FlashCap
                 tw.WriteLine($"// {root.Label}");
                 tw.WriteLine($"// {root.ClangVersion}");
                 tw.WriteLine($"// {root.GccVersion}");
-                tw.WriteLine($"// {DateTimeOffset.Now:R}");
+                tw.WriteLine($"// {dateTime}");
                 tw.WriteLine();
 
                 tw.WriteLine("using System;");
@@ -668,17 +670,17 @@ namespace FlashCap
             {
                 case 1:
                     Console.Write("  Generating dumper source code ...");
-                    GenerateStructureDumper(args[1], args[2], args[3], args[4], args[5], args[6]);
+                    GenerateStructureDumper(args[1], args[2], args[3], args[4], args[5], args[6], args[7]);
                     Console.WriteLine(" done.");
                     break;
                 case 2:
                     Console.Write("  Generating C# source code ...");
-                    GenerateInteropCode(args[1], args[2], false);
+                    GenerateInteropCode(args[1], args[2], false, args[3]);
                     Console.WriteLine(" done.");
                     break;
                 case 3:
                     Console.Write("  Generating C# base class source code ...");
-                    GenerateInteropCode(args[1], args[2], true);
+                    GenerateInteropCode(args[1], args[2], true, args[3]);
                     Console.WriteLine(" done.");
                     break;
             }

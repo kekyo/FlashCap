@@ -1,8 +1,8 @@
 // This is auto generated code by FlashCap.V4L2Generator [0.14.6]. Do not edit.
-// Linux version 4.15.0-173-generic (buildd@lcy02-amd64-037) (gcc version 7.5.0 (Ubuntu 7.5.0-3ubuntu1~18.04)) #182-Ubuntu SMP Fri Mar 18 15:54:23 UTC 2022
-// clang version 10.0.0-4ubuntu1~18.04.2 
-// gcc version 7.5.0 (Ubuntu 7.5.0-3ubuntu1~18.04) 
-// Tue, 09 Apr 2024 11:56:34 GMT
+// Linux version 6.1.0-20-686-pae (debian-kernel@lists.debian.org) (gcc-12 (Debian 12.2.0-14) 12.2.0, GNU ld (GNU Binutils for Debian) 2.40) #1 SMP PREEMPT_DYNAMIC Debian 6.1.85-1 (2024-04-11)
+// Debian clang version 13.0.1-11+b2
+// gcc version 12.2.0 (Debian 12.2.0-14) 
+// Sat, 13 Apr 2024 11:00:26 GMT
 
 using System;
 using System.Runtime.InteropServices;
@@ -12,10 +12,10 @@ namespace FlashCap.Internal.V4L2
     internal sealed class NativeMethods_V4L2_Interop_i686 : NativeMethods_V4L2_Interop
     {
         // Common
-        public override string Label => "Linux version 4.15.0-173-generic (buildd@lcy02-amd64-037) (gcc version 7.5.0 (Ubuntu 7.5.0-3ubuntu1~18.04)) #182-Ubuntu SMP Fri Mar 18 15:54:23 UTC 2022";
+        public override string Label => "Linux version 6.1.0-20-686-pae (debian-kernel@lists.debian.org) (gcc-12 (Debian 12.2.0-14) 12.2.0, GNU ld (GNU Binutils for Debian) 2.40) #1 SMP PREEMPT_DYNAMIC Debian 6.1.85-1 (2024-04-11)";
         public override string Architecture => "i686";
-        public override string ClangVersion => "clang version 10.0.0-4ubuntu1~18.04.2 ";
-        public override string GccVersion => "gcc version 7.5.0 (Ubuntu 7.5.0-3ubuntu1~18.04) ";
+        public override string ClangVersion => "Debian clang version 13.0.1-11+b2";
+        public override string GccVersion => "gcc version 12.2.0 (Debian 12.2.0-14) ";
         public override int sizeof_size_t => 4;
         public override int sizeof_off_t => 4;
 
@@ -25,7 +25,9 @@ namespace FlashCap.Internal.V4L2
         public override uint V4L2_CAP_DEVICE_CAPS => 2147483648U;
         public override uint V4L2_CAP_EXT_PIX_FORMAT => 2097152U;
         public override uint V4L2_CAP_HW_FREQ_SEEK => 1024U;
+        public override uint V4L2_CAP_IO_MC => 536870912U;
         public override uint V4L2_CAP_META_CAPTURE => 8388608U;
+        public override uint V4L2_CAP_META_OUTPUT => 134217728U;
         public override uint V4L2_CAP_MODULATOR => 524288U;
         public override uint V4L2_CAP_RADIO => 262144U;
         public override uint V4L2_CAP_RDS_CAPTURE => 256U;
@@ -50,43 +52,70 @@ namespace FlashCap.Internal.V4L2
         public override uint V4L2_CAP_VIDEO_OUTPUT_OVERLAY => 512U;
         public override uint V4L2_CAP_VIDEO_OVERLAY => 4U;
         public override uint V4L2_PIX_FMT_ABGR32 => 875713089U;
+        public override uint V4L2_PIX_FMT_ABGR444 => 842089025U;
+        public override uint V4L2_PIX_FMT_ABGR555 => 892420673U;
         public override uint V4L2_PIX_FMT_ARGB32 => 875708738U;
         public override uint V4L2_PIX_FMT_ARGB444 => 842093121U;
         public override uint V4L2_PIX_FMT_ARGB555 => 892424769U;
         public override uint V4L2_PIX_FMT_ARGB555X => 3039908417U;
+        public override uint V4L2_PIX_FMT_AYUV32 => 1448433985U;
         public override uint V4L2_PIX_FMT_BGR24 => 861030210U;
         public override uint V4L2_PIX_FMT_BGR32 => 877807426U;
         public override uint V4L2_PIX_FMT_BGR666 => 1213351746U;
+        public override uint V4L2_PIX_FMT_BGRA32 => 875708754U;
+        public override uint V4L2_PIX_FMT_BGRA444 => 842088775U;
+        public override uint V4L2_PIX_FMT_BGRA555 => 892420418U;
+        public override uint V4L2_PIX_FMT_BGRX32 => 875714642U;
+        public override uint V4L2_PIX_FMT_BGRX444 => 842094658U;
+        public override uint V4L2_PIX_FMT_BGRX555 => 892426306U;
         public override uint V4L2_PIX_FMT_CIT_YYVYUY => 1448364355U;
+        public override uint V4L2_PIX_FMT_CNF4 => 877022787U;
         public override uint V4L2_PIX_FMT_CPIA1 => 1095323715U;
         public override uint V4L2_PIX_FMT_DV => 1685288548U;
         public override uint V4L2_PIX_FMT_ET61X251 => 892483141U;
         public override uint V4L2_PIX_FMT_FLAG_PREMUL_ALPHA => 1U;
+        public override uint V4L2_PIX_FMT_FLAG_SET_CSC => 2U;
+        public override uint V4L2_PIX_FMT_FWHT => 1414027078U;
+        public override uint V4L2_PIX_FMT_FWHT_STATELESS => 1213679187U;
         public override uint V4L2_PIX_FMT_GREY => 1497715271U;
         public override uint V4L2_PIX_FMT_H263 => 859189832U;
         public override uint V4L2_PIX_FMT_H264 => 875967048U;
         public override uint V4L2_PIX_FMT_H264_MVC => 875967053U;
         public override uint V4L2_PIX_FMT_H264_NO_SC => 826496577U;
+        public override uint V4L2_PIX_FMT_H264_SLICE => 875967059U;
         public override uint V4L2_PIX_FMT_HEVC => 1129727304U;
+        public override uint V4L2_PIX_FMT_HEVC_SLICE => 892744275U;
         public override uint V4L2_PIX_FMT_HI240 => 875710792U;
         public override uint V4L2_PIX_FMT_HM12 => 842091848U;
         public override uint V4L2_PIX_FMT_HSV24 => 861295432U;
         public override uint V4L2_PIX_FMT_HSV32 => 878072648U;
         public override uint V4L2_PIX_FMT_INZI => 1230655049U;
+        public override uint V4L2_PIX_FMT_IPU3_SBGGR10 => 1647538281U;
+        public override uint V4L2_PIX_FMT_IPU3_SGBRG10 => 1731424361U;
+        public override uint V4L2_PIX_FMT_IPU3_SGRBG10 => 1194553449U;
+        public override uint V4L2_PIX_FMT_IPU3_SRGGB10 => 1915973737U;
+        public override uint V4L2_PIX_FMT_IPU3_Y10 => 2033414249U;
         public override uint V4L2_PIX_FMT_JL2005BCD => 808602698U;
         public override uint V4L2_PIX_FMT_JPEG => 1195724874U;
         public override uint V4L2_PIX_FMT_JPGL => 1279742026U;
         public override uint V4L2_PIX_FMT_KONICA420 => 1229868875U;
         public override uint V4L2_PIX_FMT_M420 => 808596557U;
         public override uint V4L2_PIX_FMT_MJPEG => 1196444237U;
+        public override uint V4L2_PIX_FMT_MM21 => 825380173U;
         public override uint V4L2_PIX_FMT_MPEG => 1195724877U;
         public override uint V4L2_PIX_FMT_MPEG1 => 826757197U;
         public override uint V4L2_PIX_FMT_MPEG2 => 843534413U;
+        public override uint V4L2_PIX_FMT_MPEG2_SLICE => 1395803981U;
         public override uint V4L2_PIX_FMT_MPEG4 => 877088845U;
         public override uint V4L2_PIX_FMT_MR97310A => 808530765U;
         public override uint V4L2_PIX_FMT_MT21C => 825381965U;
         public override uint V4L2_PIX_FMT_NV12 => 842094158U;
+        public override uint V4L2_PIX_FMT_NV12_16L16 => 842091848U;
+        public override uint V4L2_PIX_FMT_NV12_32L32 => 842093651U;
+        public override uint V4L2_PIX_FMT_NV12_4L4 => 842093654U;
         public override uint V4L2_PIX_FMT_NV12M => 842091854U;
+        public override uint V4L2_PIX_FMT_NV12M_10BE_8L128 => 2989577294U;
+        public override uint V4L2_PIX_FMT_NV12M_8L128 => 842088782U;
         public override uint V4L2_PIX_FMT_NV12MT => 842091860U;
         public override uint V4L2_PIX_FMT_NV12MT_16X16 => 842091862U;
         public override uint V4L2_PIX_FMT_NV16 => 909203022U;
@@ -99,12 +128,16 @@ namespace FlashCap.Internal.V4L2
         public override uint V4L2_PIX_FMT_NV61M => 825642318U;
         public override uint V4L2_PIX_FMT_OV511 => 825308495U;
         public override uint V4L2_PIX_FMT_OV518 => 942749007U;
+        public override uint V4L2_PIX_FMT_P010 => 808530000U;
+        public override uint V4L2_PIX_FMT_P010_4L4 => 808530004U;
         public override uint V4L2_PIX_FMT_PAC207 => 925905488U;
         public override uint V4L2_PIX_FMT_PAL8 => 944521552U;
         public override uint V4L2_PIX_FMT_PJPG => 1196444240U;
         public override uint V4L2_PIX_FMT_PRIV_MAGIC => 4276996862U;
         public override uint V4L2_PIX_FMT_PWC1 => 826496848U;
         public override uint V4L2_PIX_FMT_PWC2 => 843274064U;
+        public override uint V4L2_PIX_FMT_QC08C => 1127755857U;
+        public override uint V4L2_PIX_FMT_QC10C => 1127231825U;
         public override uint V4L2_PIX_FMT_RGB24 => 859981650U;
         public override uint V4L2_PIX_FMT_RGB32 => 876758866U;
         public override uint V4L2_PIX_FMT_RGB332 => 826427218U;
@@ -113,6 +146,12 @@ namespace FlashCap.Internal.V4L2
         public override uint V4L2_PIX_FMT_RGB555X => 1363298130U;
         public override uint V4L2_PIX_FMT_RGB565 => 1346520914U;
         public override uint V4L2_PIX_FMT_RGB565X => 1380075346U;
+        public override uint V4L2_PIX_FMT_RGBA32 => 875708993U;
+        public override uint V4L2_PIX_FMT_RGBA444 => 842088786U;
+        public override uint V4L2_PIX_FMT_RGBA555 => 892420434U;
+        public override uint V4L2_PIX_FMT_RGBX32 => 875709016U;
+        public override uint V4L2_PIX_FMT_RGBX444 => 842094674U;
+        public override uint V4L2_PIX_FMT_RGBX555 => 892426322U;
         public override uint V4L2_PIX_FMT_S5C_UYVY_JPG => 1229141331U;
         public override uint V4L2_PIX_FMT_SBGGR10 => 808535874U;
         public override uint V4L2_PIX_FMT_SBGGR10ALAW8 => 943800929U;
@@ -120,6 +159,8 @@ namespace FlashCap.Internal.V4L2
         public override uint V4L2_PIX_FMT_SBGGR10P => 1094795888U;
         public override uint V4L2_PIX_FMT_SBGGR12 => 842090306U;
         public override uint V4L2_PIX_FMT_SBGGR12P => 1128481392U;
+        public override uint V4L2_PIX_FMT_SBGGR14 => 875644738U;
+        public override uint V4L2_PIX_FMT_SBGGR14P => 1162166896U;
         public override uint V4L2_PIX_FMT_SBGGR16 => 844257602U;
         public override uint V4L2_PIX_FMT_SBGGR8 => 825770306U;
         public override uint V4L2_PIX_FMT_SE401 => 825242707U;
@@ -129,6 +170,8 @@ namespace FlashCap.Internal.V4L2
         public override uint V4L2_PIX_FMT_SGBRG10P => 1094797168U;
         public override uint V4L2_PIX_FMT_SGBRG12 => 842089031U;
         public override uint V4L2_PIX_FMT_SGBRG12P => 1128482672U;
+        public override uint V4L2_PIX_FMT_SGBRG14 => 875643463U;
+        public override uint V4L2_PIX_FMT_SGBRG14P => 1162168176U;
         public override uint V4L2_PIX_FMT_SGBRG16 => 909197895U;
         public override uint V4L2_PIX_FMT_SGBRG8 => 1196573255U;
         public override uint V4L2_PIX_FMT_SGRBG10 => 808534338U;
@@ -137,6 +180,8 @@ namespace FlashCap.Internal.V4L2
         public override uint V4L2_PIX_FMT_SGRBG10P => 1094805360U;
         public override uint V4L2_PIX_FMT_SGRBG12 => 842088770U;
         public override uint V4L2_PIX_FMT_SGRBG12P => 1128490864U;
+        public override uint V4L2_PIX_FMT_SGRBG14 => 875647559U;
+        public override uint V4L2_PIX_FMT_SGRBG14P => 1162176368U;
         public override uint V4L2_PIX_FMT_SGRBG16 => 909201991U;
         public override uint V4L2_PIX_FMT_SGRBG8 => 1195528775U;
         public override uint V4L2_PIX_FMT_SN9C10X => 808532307U;
@@ -153,34 +198,47 @@ namespace FlashCap.Internal.V4L2
         public override uint V4L2_PIX_FMT_SRGGB10P => 1094799984U;
         public override uint V4L2_PIX_FMT_SRGGB12 => 842090322U;
         public override uint V4L2_PIX_FMT_SRGGB12P => 1128485488U;
+        public override uint V4L2_PIX_FMT_SRGGB14 => 875644754U;
+        public override uint V4L2_PIX_FMT_SRGGB14P => 1162170992U;
         public override uint V4L2_PIX_FMT_SRGGB16 => 909199186U;
         public override uint V4L2_PIX_FMT_SRGGB8 => 1111967570U;
         public override uint V4L2_PIX_FMT_STV0680 => 808990291U;
+        public override uint V4L2_PIX_FMT_SUNXI_TILED_NV12 => 842093651U;
         public override uint V4L2_PIX_FMT_TM6000 => 808865108U;
         public override uint V4L2_PIX_FMT_UV8 => 540563029U;
         public override uint V4L2_PIX_FMT_UYVY => 1498831189U;
         public override uint V4L2_PIX_FMT_VC1_ANNEX_G => 1194410838U;
         public override uint V4L2_PIX_FMT_VC1_ANNEX_L => 1278296918U;
         public override uint V4L2_PIX_FMT_VP8 => 808996950U;
+        public override uint V4L2_PIX_FMT_VP8_FRAME => 1178095702U;
         public override uint V4L2_PIX_FMT_VP9 => 809062486U;
+        public override uint V4L2_PIX_FMT_VP9_FRAME => 1178161238U;
+        public override uint V4L2_PIX_FMT_VUYA32 => 1096373590U;
+        public override uint V4L2_PIX_FMT_VUYX32 => 1482249558U;
         public override uint V4L2_PIX_FMT_VYUY => 1498765654U;
         public override uint V4L2_PIX_FMT_WNVA => 1096175191U;
         public override uint V4L2_PIX_FMT_XBGR32 => 875713112U;
+        public override uint V4L2_PIX_FMT_XBGR444 => 842089048U;
+        public override uint V4L2_PIX_FMT_XBGR555 => 892420696U;
         public override uint V4L2_PIX_FMT_XRGB32 => 875714626U;
         public override uint V4L2_PIX_FMT_XRGB444 => 842093144U;
         public override uint V4L2_PIX_FMT_XRGB555 => 892424792U;
         public override uint V4L2_PIX_FMT_XRGB555X => 3039908440U;
         public override uint V4L2_PIX_FMT_XVID => 1145656920U;
+        public override uint V4L2_PIX_FMT_XYUV32 => 1448434008U;
         public override uint V4L2_PIX_FMT_Y10 => 540029273U;
         public override uint V4L2_PIX_FMT_Y10BPACK => 1110454617U;
+        public override uint V4L2_PIX_FMT_Y10P => 1345335641U;
         public override uint V4L2_PIX_FMT_Y12 => 540160345U;
         public override uint V4L2_PIX_FMT_Y12I => 1228026201U;
+        public override uint V4L2_PIX_FMT_Y14 => 540291417U;
         public override uint V4L2_PIX_FMT_Y16 => 540422489U;
         public override uint V4L2_PIX_FMT_Y16_BE => 2687906137U;
         public override uint V4L2_PIX_FMT_Y4 => 540291161U;
         public override uint V4L2_PIX_FMT_Y41P => 1345401945U;
         public override uint V4L2_PIX_FMT_Y6 => 540422233U;
         public override uint V4L2_PIX_FMT_Y8I => 541669465U;
+        public override uint V4L2_PIX_FMT_YUV24 => 861295961U;
         public override uint V4L2_PIX_FMT_YUV32 => 878073177U;
         public override uint V4L2_PIX_FMT_YUV410 => 961959257U;
         public override uint V4L2_PIX_FMT_YUV411P => 1345401140U;
@@ -192,6 +250,8 @@ namespace FlashCap.Internal.V4L2
         public override uint V4L2_PIX_FMT_YUV444M => 875711833U;
         public override uint V4L2_PIX_FMT_YUV555 => 1331058009U;
         public override uint V4L2_PIX_FMT_YUV565 => 1347835225U;
+        public override uint V4L2_PIX_FMT_YUVA32 => 1096176985U;
+        public override uint V4L2_PIX_FMT_YUVX32 => 1482052953U;
         public override uint V4L2_PIX_FMT_YUYV => 1448695129U;
         public override uint V4L2_PIX_FMT_YVU410 => 961893977U;
         public override uint V4L2_PIX_FMT_YVU420 => 842094169U;
@@ -1235,11 +1295,18 @@ namespace FlashCap.Internal.V4L2
                 set => this.capabilities_ = (uint)value;
             }
 
-            [FieldOffset(16)] private fixed uint reserved_[1];
-            public uint[] reserved
+            [FieldOffset(16)] private byte flags_;
+            public byte flags
             {
-                get { fixed (uint* p = this.reserved_) { return get(p, 1); } }
-                set { fixed (uint* p = this.reserved_) { set(p, value, 1); } }
+                get => this.flags_;
+                set => this.flags_ = (byte)value;
+            }
+
+            [FieldOffset(17)] private fixed byte reserved_[3];
+            public byte[] reserved
+            {
+                get { fixed (byte* p = this.reserved_) { return get(p, 3); } }
+                set { fixed (byte* p = this.reserved_) { set(p, value, 3); } }
             }
 
         }
