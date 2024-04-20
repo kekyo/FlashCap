@@ -876,6 +876,14 @@ Apache-v2.
 
 ## History
 
+* 1.10.0:
+  * Supported for NV12 format transcoding. [#132](https://github.com/kekyo/FlashCap/issues/132)
+  * Supported buffer pooling. [#135](https://github.com/kekyo/FlashCap/issues/135) [#138](https://github.com/kekyo/FlashCap/issues/138)
+  * Fixed leakage of cancel requests when asynchronous locks are waiting. [#142](https://github.com/kekyo/FlashCap/issues/142)
+  * Fixed V4L2 sometimes incorrectly selecting the interoperable library to use in mixed 64/32 userland environments such as x86_64 and aarch64. [#43](https://github.com/kekyo/FlashCap/issues/43)
+  * Fixed V4L2 where repeating `StartAsync()` and `StopAsync()` could cause no frames to be generated. [#124](https://github.com/kekyo/FlashCap/issues/124)
+  * Fixed V4L2 where devices and characteristics are not enumerated. [#126](https://github.com/kekyo/FlashCap/issues/126) [#127](https://github.com/kekyo/FlashCap/issues/127)
+  * (Maybe loongarch64 is degrade, PRs are welcome. See also: [#144](https://github.com/kekyo/FlashCap/pull/144))
 * 1.9.0:
   * loongarch64 Linux is now supported [#100](https://github.com/kekyo/FlashCap/issues/100)
 * 1.8.0:

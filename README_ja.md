@@ -808,6 +808,14 @@ Apache-v2.
 
 ## 履歴
 
+* 1.10.0:
+  * NV12フォーマットのトランスコードに対応しました。 [#132](https://github.com/kekyo/FlashCap/issues/132)
+  * バッファプーリングに対応しました。 [#135](https://github.com/kekyo/FlashCap/issues/135) [#138](https://github.com/kekyo/FlashCap/issues/138)
+  * 非同期ロックが待機する場合に、キャンセル要求がリークする事があるのを修正しました。 [#142](https://github.com/kekyo/FlashCap/issues/142)
+  * V4L2で、x86_64やaarch64のような64/32ユーザーランド混在環境で、使用すべき相互運用ライブラリを誤って選択する事がある問題を修正しました。 [#43](https://github.com/kekyo/FlashCap/issues/43)
+  * V4L2で、`StartAsync()`と`StopAsync()`を繰り返すと、フレームが発生しないくなる事がある問題を修正しました。 [#124](https://github.com/kekyo/FlashCap/issues/124)
+  * V4L2で、デバイスや特性が列挙されない場合がある問題を修正しました。 [#126](https://github.com/kekyo/FlashCap/issues/126) [#127](https://github.com/kekyo/FlashCap/issues/127)
+  * (もしかしたら、loongarch64はデグレードしているかもしれません。PRを歓迎します。参考: [#144](https://github.com/kekyo/FlashCap/pull/144))
 * 1.9.0:
   * loongarch64 Linuxに対応しました [#100](https://github.com/kekyo/FlashCap/issues/100)
 * 1.8.0:
