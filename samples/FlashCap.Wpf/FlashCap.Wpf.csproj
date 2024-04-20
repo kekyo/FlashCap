@@ -6,14 +6,16 @@
     <LangVersion>latest</LangVersion>
     <Nullable>Enable</Nullable>
     <UseWPF>true</UseWPF>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <DebugType>portable</DebugType>
     <DebugSymbols>true</DebugSymbols>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
     <PackageReference Include="SkiaImageView.Wpf" Version="1.5.0" />
-    <PackageReference Include="Epoxy.Wpf" Version="1.11.0" />
+    <PackageReference Include="Epoxy.Wpf" Version="1.13.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
   </ItemGroup>

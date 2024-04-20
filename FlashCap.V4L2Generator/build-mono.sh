@@ -1,5 +1,7 @@
 #!/bin/sh
 
+#sudo apt install mono-devel
+
 Configuration=Debug; export Configuration
 
 rm -rf bin/$Configuration/mono obj/$Configuration/mono

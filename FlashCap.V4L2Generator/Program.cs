@@ -64,29 +64,6 @@ namespace FlashCap
         private static readonly HashSet<string> symbolExactIncludeList =
             new HashSet<string>()
         {
-            "V4L2_CAP_VIDEO_CAPTURE",
-            "V4L2_PIX_FMT_ABGR32",
-            "V4L2_PIX_FMT_ARGB32",
-            "V4L2_PIX_FMT_JPEG",
-            "V4L2_PIX_FMT_MJPEG",
-            "V4L2_PIX_FMT_RGB24",
-            "V4L2_PIX_FMT_RGB332",
-            "V4L2_PIX_FMT_RGB565X",
-            "V4L2_PIX_FMT_RGB565",
-            "V4L2_PIX_FMT_UYVY",
-            "V4L2_PIX_FMT_XRGB32",
-            "V4L2_PIX_FMT_YUYV",
-            "VIDIOC_DQBUF",
-            "VIDIOC_ENUM_FMT",
-            "VIDIOC_ENUM_FRAMEINTERVALS",
-            "VIDIOC_ENUM_FRAMESIZES",
-            "VIDIOC_QBUF",
-            "VIDIOC_QUERYBUF",
-            "VIDIOC_QUERYCAP",
-            "VIDIOC_REQBUFS",
-            "VIDIOC_S_FMT",
-            "VIDIOC_STREAMOFF",
-            "VIDIOC_STREAMON",
             "v4l2_buf_type",
             "v4l2_field",
             "v4l2_frmivaltypes",
@@ -195,7 +172,10 @@ namespace FlashCap
             string sourceHeaderFileName,
             string clangAstJsonFileName,
             string dumperFileName,
-            string architecture)
+            string architecture,
+            string clangVersion,
+            string gccVersion,
+            string dateTime)
         {
             var versionLabel = LoadVersionLabel();
             
@@ -243,7 +223,9 @@ namespace FlashCap
             {
                 tw.WriteLine($"// This is auto generated code by FlashCap.V4L2Generator [{ThisAssembly.AssemblyVersion}]. Do not edit.");
                 tw.WriteLine($"// {versionLabel}");
-                tw.WriteLine($"// {DateTimeOffset.Now:R}");
+                tw.WriteLine($"// {clangVersion.Replace("\r", "").Replace("\n", "")}");
+                tw.WriteLine($"// {gccVersion.Replace("\r", "").Replace("\n", "")}");
+                tw.WriteLine($"// {dateTime}");
                 tw.WriteLine();
                 
                 tw.WriteLine("#include <stdio.h>");
@@ -260,6 +242,8 @@ namespace FlashCap
                 tw.WriteLine();
                 tw.WriteLine("  printf(\"  \\\"label\\\": \\\"{0}\\\",\\n\");", versionLabel);
                 tw.WriteLine("  printf(\"  \\\"architecture\\\": \\\"{0}\\\",\\n\");", architecture);
+                tw.WriteLine("  printf(\"  \\\"clangVersion\\\": \\\"{0}\\\",\\n\");", clangVersion);
+                tw.WriteLine("  printf(\"  \\\"gccVersion\\\": \\\"{0}\\\",\\n\");", gccVersion);
                 tw.WriteLine("  printf(\"  \\\"sizeof_size_t\\\": %d,\\n\", (int)sizeof(size_t));");
                 tw.WriteLine("  printf(\"  \\\"sizeof_off_t\\\": %d,\\n\", (int)sizeof(off_t));");
                 tw.WriteLine();
@@ -406,7 +390,8 @@ namespace FlashCap
         private static void GenerateInteropCode(
             string structureDumperJsonFileName,
             string basePath,
-            bool isBase)
+            bool isBase,
+            string dateTime)
         {
             var root = LoadMembersJson(structureDumperJsonFileName);
             if (root == null)
@@ -423,7 +408,9 @@ namespace FlashCap
             {
                 tw.WriteLine($"// This is auto generated code by FlashCap.V4L2Generator [{ThisAssembly.AssemblyVersion}]. Do not edit.");
                 tw.WriteLine($"// {root.Label}");
-                tw.WriteLine($"// {DateTimeOffset.Now:R}");
+                tw.WriteLine($"// {root.ClangVersion}");
+                tw.WriteLine($"// {root.GccVersion}");
+                tw.WriteLine($"// {dateTime}");
                 tw.WriteLine();
 
                 tw.WriteLine("using System;");
@@ -447,6 +434,8 @@ namespace FlashCap
                 {
                     tw.WriteLine("        public abstract string Label { get; }");
                     tw.WriteLine("        public abstract string Architecture { get; }");
+                    tw.WriteLine("        public virtual string ClangVersion => throw new NotImplementedException();");
+                    tw.WriteLine("        public virtual string GccVersion => throw new NotImplementedException();");
                     tw.WriteLine("        public abstract int sizeof_size_t { get; }");
                     tw.WriteLine("        public abstract int sizeof_off_t { get; }");
                 }
@@ -454,6 +443,8 @@ namespace FlashCap
                 {
                     tw.WriteLine("        public override string Label => \"{0}\";", root.Label);
                     tw.WriteLine("        public override string Architecture => \"{0}\";", root.Architecture);
+                    tw.WriteLine("        public override string ClangVersion => \"{0}\";", root.ClangVersion);
+                    tw.WriteLine("        public override string GccVersion => \"{0}\";", root.GccVersion);
                     tw.WriteLine("        public override int sizeof_size_t => {0};", root.sizeof_size_t);
                     tw.WriteLine("        public override int sizeof_off_t => {0};", root.sizeof_off_t);
                 }
@@ -461,7 +452,10 @@ namespace FlashCap
 
                 tw.WriteLine("        // Definitions");
                 foreach (var definition in root.Definitions.
-                    Where(d => symbolExactIncludeList.Contains(d.Key)).
+                    Where(d => symbolExactIncludeList.Contains(d.Key) ||
+                       d.Key.StartsWith("V4L2_CAP_") ||
+                       d.Key.StartsWith("V4L2_PIX_FMT_") ||
+                       d.Key.StartsWith("VIDIOC_")).
                     OrderBy(d => d.Key))
                 {
                     if (isBase)
@@ -676,17 +670,17 @@ namespace FlashCap
             {
                 case 1:
                     Console.Write("  Generating dumper source code ...");
-                    GenerateStructureDumper(args[1], args[2], args[3], args[4]);
+                    GenerateStructureDumper(args[1], args[2], args[3], args[4], args[5], args[6], args[7]);
                     Console.WriteLine(" done.");
                     break;
                 case 2:
                     Console.Write("  Generating C# source code ...");
-                    GenerateInteropCode(args[1], args[2], false);
+                    GenerateInteropCode(args[1], args[2], false, args[3]);
                     Console.WriteLine(" done.");
                     break;
                 case 3:
                     Console.Write("  Generating C# base class source code ...");
-                    GenerateInteropCode(args[1], args[2], true);
+                    GenerateInteropCode(args[1], args[2], true, args[3]);
                     Console.WriteLine(" done.");
                     break;
             }

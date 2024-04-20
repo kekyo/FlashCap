@@ -1,0 +1,5 @@
+*.json
+videodev2.dumper*
+*_version.txt
+NativeMethods_V4L2_Interop.cs
+

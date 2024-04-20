@@ -46,6 +46,8 @@ namespace FlashCap
     {
         public readonly string Label;
         public readonly string Architecture;
+        public readonly string ClangVersion;
+        public readonly string GccVersion;
         public readonly int sizeof_size_t;
         public readonly int sizeof_off_t;
         public readonly IReadOnlyDictionary<string, uint> Definitions;
@@ -54,7 +56,7 @@ namespace FlashCap
 
         [JsonConstructor]
         public StructureDumpedJsonRoot(
-            string label, string architecture,
+            string label, string architecture, string clangVersion, string gccVersion,
             int sizeof_size_t, int sizeof_off_t,
             Dictionary<string, uint> definitions,
             Dictionary<string, JToken> enums,
@@ -62,6 +64,8 @@ namespace FlashCap
         {
             this.Label = label;
             this.Architecture = architecture;
+            this.ClangVersion = clangVersion;
+            this.GccVersion = gccVersion;
             this.sizeof_size_t = sizeof_size_t;
             this.sizeof_off_t = sizeof_off_t;
             this.Definitions = definitions;

@@ -40,22 +40,22 @@ internal static class NativeMethods_V4L2
         {
             case "x86_64":
             case "amd64":
-                Interop = new NativeMethods_V4L2_Interop_x86_64();
-                break;
             case "i686":
             case "i586":
             case "i486":
             case "i386":
-                Interop = new NativeMethods_V4L2_Interop_i686();
+                Interop = IntPtr.Size == 8 ?
+                    new NativeMethods_V4L2_Interop_x86_64() :
+                    new NativeMethods_V4L2_Interop_i686();
                 break;
             case "aarch64":
-                Interop = new NativeMethods_V4L2_Interop_aarch64();
-                break;
             case "armv9l":
             case "armv8l":
             case "armv7l":
             case "armv6l":
-                Interop = new NativeMethods_V4L2_Interop_armv7l();
+                Interop = IntPtr.Size == 8 ?
+                    new NativeMethods_V4L2_Interop_aarch64() :
+                    new NativeMethods_V4L2_Interop_armv7l();
                 break;
             case "mips":
             case "mipsel":
@@ -91,6 +91,7 @@ internal static class NativeMethods_V4L2
         pixelFormats.Add(Interop.V4L2_PIX_FMT_UYVY, PixelFormats.UYVY);
         pixelFormats.Add(Interop.V4L2_PIX_FMT_YUYV, PixelFormats.YUYV);
         pixelFormats.Add(Interop.V4L2_PIX_FMT_YUY2, PixelFormats.YUYV);
+        pixelFormats.Add(Interop.V4L2_PIX_FMT_NV12, PixelFormats.NV12);
     }
 
     public static bool IsKnownPixelFormat(uint pix_fmt) =>
@@ -324,6 +325,8 @@ internal static class NativeMethods_V4L2
                 return new[] { Interop.V4L2_PIX_FMT_UYVY };
             case PixelFormats.YUYV:
                 return new[] { Interop.V4L2_PIX_FMT_YUYV, Interop.V4L2_PIX_FMT_YUY2 };
+            case PixelFormats.NV12:
+                return new[] { Interop.V4L2_PIX_FMT_NV12 };
             case PixelFormats.JPEG:
                 return new[] { Interop.V4L2_PIX_FMT_MJPEG, Interop.V4L2_PIX_FMT_JPEG, (uint)NativeMethods.Compression.BI_JPEG };
             case PixelFormats.PNG:

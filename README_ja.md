@@ -487,6 +487,66 @@ deviceObservable.
     // ...
 ```
 
+## バッファプーリングのカスタマイズ (Advanced topic)
+
+FlashCapは、再利用されるバッファのための、バッファプーリングインターフェイスを持っています。
+これは、`BufferPool` 基底クラスで、このクラスを継承して実装します。
+
+既定の実装は `DefaultBufferPool` クラスで、自動的に使用されます。
+このクラスは単純な実装ですが、弱参照を使用して、使われなくなったバッファをGCが回収可能にしています。
+
+バッファプーリングを独自の実装で置き換えたい場合は、以下の2個の抽象メソッドを実装します:
+
+```csharp
+// バッファプーリングの基底クラス
+public abstract class BufferPool
+{
+  protected BufferPool()
+  { /* ... */ }
+
+  // バッファを取得する
+  public abstract byte[] Rent(int minimumSize);
+
+  // バッファを解放する
+  public abstract void Return(byte[] buffer);
+}
+```
+
+* `Rent()`メソッドは、引数で指定されたサイズ以上のバッファを返す必要があります。
+* `Return()`メソッドは、引数で指定されたバッファがもう使われないため、プーリングで引き取るようにします。
+
+.NETにはGCがあるため、最も単純な（かつ、プーリングを行わない）実装は、以下のようになります:
+
+```csharp
+public sealed class FakeBufferPool : BufferPool
+{
+    public override byte[] Rent(int minimumSize) =>
+        // 常に生成
+        new byte[minimumSize];
+
+    public override void Return(byte[] buffer)
+    {
+        // (`buffer` 参照を放置して、GCが回収するに任せる)
+    }
+}
+```
+
+例えば、.NET Core世代の `System.Buffers` には `ArrayPool` クラスがあることをご存じの方も居るでしょう。
+`BufferPool`を拡張することで、このような既存のバッファプーリング実装や、独自の実装を使用することが出来ます。
+
+このようにして独自のクラスを実装した場合は、`CaptureDevices`のコンストラクタに渡して、FlashCapに使用させます:
+
+```csharp
+// バッファプーリングインスタンスを生成して使用
+var bufferPool = new FakeBufferPool();
+
+var devices = new CaptureDevices(bufferPool);
+
+// ...
+```
+
+この`CaptureDevices`のインスタンスから列挙された全てのデバイスで、共通のバッファプーリングとして使用されます。
+
 ## フレームプロセッサをマスターする (Advanced topic)
 
 地下ダンジョンへようこそ。FlashCapのフレームプロセッサは、磨けば光る宝石です。しかし、余程のことが無い限り、フレームプロセッサを理解する必要はありません。この解説は、やむを得ずフレームプロセッサを扱う場合の参考にして下さい。また、FlashCapが[デフォルトで内蔵するフレームプロセッサの実装](https://github.com/kekyo/FlashCap/tree/main/FlashCap/FrameProcessors)も参考になるでしょう。
@@ -683,22 +743,22 @@ switch (buf.machine)
 {
     case "x86_64":
     case "amd64":
-        Interop = new NativeMethods_V4L2_Interop_x86_64();
-        break;
     case "i686":
     case "i586":
     case "i486":
     case "i386":
-        Interop = new NativeMethods_V4L2_Interop_i686();
+        Interop = IntPtr.Size == 8 ?
+            new NativeMethods_V4L2_Interop_x86_64() :
+            new NativeMethods_V4L2_Interop_i686();
         break;
     case "aarch64":
-        Interop = new NativeMethods_V4L2_Interop_aarch64();
-        break;
     case "armv9l":
     case "armv8l":
     case "armv7l":
     case "armv6l":
-        Interop = new NativeMethods_V4L2_Interop_armv7l();
+        Interop = IntPtr.Size == 8 ?
+            new NativeMethods_V4L2_Interop_aarch64() :
+            new NativeMethods_V4L2_Interop_armv7l();
         break;
     case "mips":
     case "mipsel":
@@ -748,6 +808,14 @@ Apache-v2.
 
 ## 履歴
 
+* 1.10.0:
+  * NV12フォーマットのトランスコードに対応しました。 [#132](https://github.com/kekyo/FlashCap/issues/132)
+  * バッファプーリングに対応しました。 [#135](https://github.com/kekyo/FlashCap/issues/135) [#138](https://github.com/kekyo/FlashCap/issues/138)
+  * 非同期ロックが待機する場合に、キャンセル要求がリークする事があるのを修正しました。 [#142](https://github.com/kekyo/FlashCap/issues/142)
+  * V4L2で、x86_64やaarch64のような64/32ユーザーランド混在環境で、使用すべき相互運用ライブラリを誤って選択する事がある問題を修正しました。 [#43](https://github.com/kekyo/FlashCap/issues/43)
+  * V4L2で、`StartAsync()`と`StopAsync()`を繰り返すと、フレームが発生しないくなる事がある問題を修正しました。 [#124](https://github.com/kekyo/FlashCap/issues/124)
+  * V4L2で、デバイスや特性が列挙されない場合がある問題を修正しました。 [#126](https://github.com/kekyo/FlashCap/issues/126) [#127](https://github.com/kekyo/FlashCap/issues/127)
+  * (もしかしたら、loongarch64はデグレードしているかもしれません。PRを歓迎します。参考: [#144](https://github.com/kekyo/FlashCap/pull/144))
 * 1.9.0:
   * loongarch64 Linuxに対応しました [#100](https://github.com/kekyo/FlashCap/issues/100)
 * 1.8.0:

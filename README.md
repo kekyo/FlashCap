@@ -531,6 +531,68 @@ deviceObservable.
     // ...
 ```
 
+## Customize buffer pooling (Advanced topic)
+
+FlashCap has a buffer pooling interface for reused buffers.
+It is implemented by the `BufferPool` base class, which extends this class.
+
+The default implementation is the `DefaultBufferPool` class, which is used automatically.
+This class is a simple implementation,
+but uses weak references to allow the GC to reclaim buffers that are no longer in use.
+
+If you want to replace buffer pooling with your own implementation,
+implement the following two abstract methods:
+
+```csharp
+// Base class for buffer pooling.
+public abstract class BufferPool
+{
+  protected BufferPool()
+  { /* ... */ }
+
+  // Get the buffer.
+  public abstract byte[] Rent(int minimumSize);
+
+  // Release the buffer.
+  public abstract void Return(byte[] buffer);
+}
+```
+
+* The `Rent()` method should return a buffer of the size specified or larger in the argument.
+* The `Return()` method should pool to take back the buffer specified in the argument, since it is no longer used.
+
+.NET has GC, the simplest (and non-pooling) implementation would be:
+
+```csharp
+public sealed class FakeBufferPool : BufferPool
+{
+    public override byte[] Rent(int minimumSize) =>
+        // Always generate a buffer.
+        new byte[minimumSize];
+
+    public override void Return(byte[] buffer)
+    {
+        // (Unfollow the `buffer` reference and let the GC collect it.)
+    }
+}
+```
+
+For example, some of you may know that the .NET Core version `System.Buffers` has an `ArrayPool` class.
+By extending `BufferPool`, you can use such an existing buffer pooling implementation or your own implementation.
+
+If you implement your own class in this way, pass it to the constructor of `CaptureDevices` for FlashCap to use:
+
+```csharp
+// Create and use a buffer pooling instance.
+var bufferPool = new FakeBufferPool();
+
+var devices = new CaptureDevices(bufferPool);
+
+// ...
+```
+
+It is used as a common buffer pooling for all devices enumerated from this instance.
+
 ## Master for frame processor (Advanced topic)
 
 Welcome to the underground dungeon, where FlashCap's frame processor is a polished gem.
@@ -748,22 +810,22 @@ switch (buf.machine)
 {
     case "x86_64":
     case "amd64":
-        Interop = new NativeMethods_V4L2_Interop_x86_64();
-        break;
     case "i686":
     case "i586":
     case "i486":
     case "i386":
-        Interop = new NativeMethods_V4L2_Interop_i686();
+        Interop = IntPtr.Size == 8 ?
+            new NativeMethods_V4L2_Interop_x86_64() :
+            new NativeMethods_V4L2_Interop_i686();
         break;
     case "aarch64":
-        Interop = new NativeMethods_V4L2_Interop_aarch64();
-        break;
     case "armv9l":
     case "armv8l":
     case "armv7l":
     case "armv6l":
-        Interop = new NativeMethods_V4L2_Interop_armv7l();
+        Interop = IntPtr.Size == 8 ?
+            new NativeMethods_V4L2_Interop_aarch64() :
+            new NativeMethods_V4L2_Interop_armv7l();
         break;
     case "mips":
     case "mipsel":
@@ -814,6 +876,14 @@ Apache-v2.
 
 ## History
 
+* 1.10.0:
+  * Supported for NV12 format transcoding. [#132](https://github.com/kekyo/FlashCap/issues/132)
+  * Supported buffer pooling. [#135](https://github.com/kekyo/FlashCap/issues/135) [#138](https://github.com/kekyo/FlashCap/issues/138)
+  * Fixed leakage of cancel requests when asynchronous locks are waiting. [#142](https://github.com/kekyo/FlashCap/issues/142)
+  * Fixed V4L2 sometimes incorrectly selecting the interoperable library to use in mixed 64/32 userland environments such as x86_64 and aarch64. [#43](https://github.com/kekyo/FlashCap/issues/43)
+  * Fixed V4L2 where repeating `StartAsync()` and `StopAsync()` could cause no frames to be generated. [#124](https://github.com/kekyo/FlashCap/issues/124)
+  * Fixed V4L2 where devices and characteristics are not enumerated. [#126](https://github.com/kekyo/FlashCap/issues/126) [#127](https://github.com/kekyo/FlashCap/issues/127)
+  * (Maybe loongarch64 is degrade, PRs are welcome. See also: [#144](https://github.com/kekyo/FlashCap/pull/144))
 * 1.9.0:
   * loongarch64 Linux is now supported [#100](https://github.com/kekyo/FlashCap/issues/100)
 * 1.8.0:
