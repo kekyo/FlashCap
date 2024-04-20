@@ -2,7 +2,7 @@
 
 ![FlashCap](Images/FlashCap.100.png)
 
-FlashCap - Independent camera capture library.
+FlashCap - Independent video frame capture library.
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 
@@ -20,10 +20,10 @@ FlashCap - Independent camera capture library.
 
 ## What is this?
 
-Do you need to get camera capturing ability on .NET?
-Is you tired for camera capturing library solutions on .NET?
+Do you need to get video frame capturing ability on .NET?
+Is you tired for video frame capturing library solutions on .NET?
 
-This is a camera image capture library by specializing only capturing image data (a.k.a frame grabber).
+This is a video frame image capture library by specializing only capturing image data (a.k.a frame grabber).
 It has simple API, easy to use, simple architecture and without native libraries.
 It also does not depend on any non-official libraries.
 [See NuGet dependencies page.](https://www.nuget.org/packages/FlashCap)
@@ -131,12 +131,12 @@ Published introduction article: ["Easy to implement video image capture with Fla
 
 .NET platforms supported are as follows (almost all!):
 
-* .NET 7, 6, 5 (`net7.0` and etc)
+* .NET 8 to 5 (`net8.0` and etc)
 * .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (`netcoreapp3.1` and etc)
 * .NET Standard 2.1, 2.0, 1.3 (`netstandard2.1` and etc)
 * .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5 (`net48` and etc)
 
-Platforms on which camera devices can be used:
+Platforms on which capture devices can be used:
 
 * Windows (DirectShow devices, tested on x64/x86)
 * Windows (Video for Windows devices, tested on x64/x86)
@@ -785,13 +785,22 @@ So, if you intend to port FlashCap to an unsupported Linux platform,
 please refer to the following for a porting overview:
 
 * `FlashCap.V4L2Generator` is a generator to automatically generate the interoperable source code needed to port to V4L2.
-  This project is using the AST JSON files output by [Clang](https://clang.llvm.org/),
+  This project is using the JSON AST files output by [Clang](https://clang.llvm.org/),
   generate C# interoperability definition source code from V4L2 header files with the correct ABI structure strictly applied.
 * Therefore, you will first need Clang for the target Linux ABI.
   For this reason, it cannot be ported into an environment where a stable ABI has not been established.
+  * Clang versions 13, 11, and 10 are verified. Other versions may be able to build.
+    We have verified that there may be differences in the way JSON ASTs are output.
 * Similarly, to run `FlashCap.V4L2Generator`, you need mono or .NET runtime running on the target Linux.
-* If the target Linux is a Debian-type port, these may be available from the `apt` package, for example:
-  `sudo apt install build-essential clang mono-devel`, etc., it is more likely.
+  * If the target Linux is a Debian-type port, these may be available from the `apt` package, for example:
+    `sudo apt install build-essential clang-13 mono-devel`, etc., it is more likely.
+  * To prepare a stable build environment for Linux, we strongly recommend building a virtual machine using qemu.
+    For this purpose, we have placed automated scripts for building the environment in the `qemu-vm-builder/` directory.
+    Please refer to the scripts and add your own so that we can build your target build environment.
+    Once the script is added, we too will be able to build interoperable source code when we update FlashCap.
+  * The official build environment for FlashCap uses the official Debian installer.
+    We download the `netinst` ISO image from the Debian site to generate the required virtual machines.
+  * If you do not use Debian, or if your Debian version does not match, you may need to manually modify the generated interoperable source code.
 * The efforts of [issue #100](https://github.com/kekyo/FlashCap/issues/100) would also be helpful.
 
 First, you need to build `FlashCap.V4L2Generator`.

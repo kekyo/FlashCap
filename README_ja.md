@@ -2,7 +2,7 @@
 
 ![FlashCap](Images/FlashCap.100.png)
 
-FlashCap - シンプルで依存性のない、カメラキャプチャライブラリ
+FlashCap - シンプルで依存性のない、ビデオフレームキャプチャライブラリ
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 
@@ -20,10 +20,10 @@ FlashCap - シンプルで依存性のない、カメラキャプチャライブ
 
 ## これは何?
 
-.NETでカメラキャプチャ機能を実装する必要がありますか？
-.NETでのカメラキャプチャライブラリに困っていますか？
+.NETでビデオフレームキャプチャ機能を実装する必要がありますか？
+.NETでのビデオフレームキャプチャライブラリに困っていますか？
 
-このライブラリは、カメラのキャプチャ機能のみに特化したカメラ画像取り込みライブラリです（フレームグラバーと呼ばれることもあります）。
+このライブラリは、ビデオフレームのキャプチャ機能のみに特化した画像取り込みライブラリです（フレームグラバーと呼ばれることもあります）。
 シンプルなAPIで使いやすく、簡素なアーキテクチャで、ネイティブライブラリを含んでいません。
 また、公式以外の他のライブラリに依存することもありません。
 [NuGetの依存ページを参照して下さい](https://www.nuget.org/packages/FlashCap)
@@ -132,12 +132,12 @@ await deviceObservable.StartAsync();
 
 対応する.NETプラットフォームは以下の通りです（ほぼ全てです！）:
 
-* .NET 7, 6, 5 (`net7.0` and etc)
+* .NET 8 to 5 (`net8.0` and etc)
 * .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (`netcoreapp3.1` and etc)
 * .NET Standard 2.1, 2.0, 1.3 (`netstandard2.1` and etc)
 * .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5 (`net48` and etc)
 
-カメラデバイスが使用できるプラットフォーム:
+キャプチャデバイスが使用できるプラットフォーム:
 
 * Windows (DirectShowデバイス, x64/x86)
 * Windows (Video for Windowsデバイス, x64/x86)
@@ -719,13 +719,22 @@ FlashCapを使って実際にカメラのキャプチャに成功したもので
 概要を示すので参考にしてください。
 
 * `FlashCap.V4L2Generator` は、V4L2への移植に必要な相互運用ソースコードを自動生成するためのジェネレータです。
-  このプロジェクトは、[Clang](https://clang.llvm.org/) が出力するAST JSONファイルを使用して、
+  このプロジェクトは、[Clang](https://clang.llvm.org/) が出力するJSON ASTファイルを使用して、
   V4L2のヘッダファイルから、正しいABI構造を厳密に適用したC#の相互運用定義ソースコードを生成します。
 * 従って、まずターゲットとするLinuxのABIに対応したClangが必要になります。
   この理由により、安定的なABIが定まっていない環境に移植することはできません。
+  * Clangのバージョンは、13,11,10を検証しています。これ以外のバージョンでもビルドできる場合があります。
+    検証したところ、JSON ASTの出力方法に違いがある場合があるようです。
 * 同様に、`FlashCap.V4L2Generator` を動作させるために、ターゲットとするLinuxで動作するmono又は.NETランタイムが必要です。
-* ターゲットLinuxがDebian系の移植であれば、これらは `apt` パッケージなどから入手可能かもしれません。
-  `sudo apt install build-essential clang mono-devel` などでインストール出来れば、可能性が高まります。
+  * ターゲットLinuxがDebian系の移植であれば、これらは `apt` パッケージなどから入手可能かもしれません。
+    `sudo apt install build-essential clang-13 mono-devel` などでインストール出来れば、可能性が高まります。
+  * Linuxの安定的なビルド環境を準備するために、qemuを使用した仮想マシンの構築を強く推奨します。
+    この目的のために、 `qemu-vm-builder/` ディレクトリに、環境構築用の自動化スクリプトを配置しています。
+    スクリプトを参照して、あなたのターゲットとなるビルド環境を構築できるように、スクリプトを追加してください。
+    スクリプトが追加されれば、我々もFlashCapの更新時に相互運用ソースコードのビルドが可能になります。
+  * FlashCapの公式のビルド環境は、Debianの公式インストーラーを用いています。
+    Debianのサイトから、 `netinst` ISOイメージをダウンロードして、必要な仮想マシンを生成しています。
+  * Debianを使わない場合や、Debianのバージョンが一致しない場合は、生成される相互運用ソースコードに手動で修正を行う必要があるかもしれません。
 * [#100](https://github.com/kekyo/FlashCap/issues/100) の取り組みも参考になると思います。
 
 最初に、 `FlashCap.V4L2Generator` をビルドする必要があります。
