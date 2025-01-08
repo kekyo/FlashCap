@@ -18,6 +18,17 @@ namespace FlashCap.Devices;
 
 public sealed class AVFoundationDevices : CaptureDevices
 {
+    
+    public AVFoundationDevices() :
+        this(new DefaultBufferPool())
+    {
+    }
+    
+    public AVFoundationDevices(BufferPool defaultBufferPool) :
+        base(defaultBufferPool)
+    {
+    }
+    
     protected override IEnumerable<CaptureDeviceDescriptor> OnEnumerateDescriptors()
     {
         if (AVCaptureDevice.GetAuthorizationStatus(AVMediaType.Video) != AVAuthorizationStatus.Authorized)
@@ -87,7 +98,8 @@ public sealed class AVFoundationDevices : CaptureDevices
                 device.UniqueID,
                 device.ModelID,
                 device.LocalizedName,
-                characteristics.ToArray());
+                characteristics.ToArray(), 
+                this.DefaultBufferPool);
         }
     }
 }
