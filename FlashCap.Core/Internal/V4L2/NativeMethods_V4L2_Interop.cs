@@ -1,6 +1,8 @@
 // This is auto generated code by FlashCap.V4L2Generator [0.14.6]. Do not edit.
-// Linux version 5.13.0-39-generic (buildd@lcy02-amd64-080) (gcc (Ubuntu 9.4.0-1ubuntu1~20.04.1) 9.4.0, GNU ld (GNU Binutils for Ubuntu) 2.34) #44~20.04.1-Ubuntu SMP Thu Mar 24 16:43:35 UTC 2022
-// Fri, 15 Apr 2022 03:57:16 GMT
+// Linux version 6.1.0-20-686-pae (debian-kernel@lists.debian.org) (gcc-12 (Debian 12.2.0-14) 12.2.0, GNU ld (GNU Binutils for Debian) 2.40) #1 SMP PREEMPT_DYNAMIC Debian 6.1.85-1 (2024-04-11)
+// Debian clang version 13.0.1-11+b2
+// gcc version 12.2.0 (Debian 12.2.0-14) 
+// Sat, 13 Apr 2024 11:00:26 GMT
 
 using System;
 using System.Runtime.InteropServices;
@@ -12,33 +14,335 @@ namespace FlashCap.Internal.V4L2
         // Common
         public abstract string Label { get; }
         public abstract string Architecture { get; }
+        public virtual string ClangVersion => throw new NotImplementedException();
+        public virtual string GccVersion => throw new NotImplementedException();
         public abstract int sizeof_size_t { get; }
         public abstract int sizeof_off_t { get; }
 
         // Definitions
+        public virtual uint V4L2_CAP_ASYNCIO => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_AUDIO => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_DEVICE_CAPS => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_EXT_PIX_FORMAT => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_HW_FREQ_SEEK => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_IO_MC => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_META_CAPTURE => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_META_OUTPUT => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_MODULATOR => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_RADIO => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_RDS_CAPTURE => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_RDS_OUTPUT => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_READWRITE => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_SDR_CAPTURE => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_SDR_OUTPUT => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_SLICED_VBI_CAPTURE => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_SLICED_VBI_OUTPUT => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_STREAMING => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_TIMEPERFRAME => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_TOUCH => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_TUNER => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_VBI_CAPTURE => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_VBI_OUTPUT => throw new NotImplementedException();
         public virtual uint V4L2_CAP_VIDEO_CAPTURE => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_VIDEO_CAPTURE_MPLANE => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_VIDEO_M2M => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_VIDEO_M2M_MPLANE => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_VIDEO_OUTPUT => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_VIDEO_OUTPUT_MPLANE => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_VIDEO_OUTPUT_OVERLAY => throw new NotImplementedException();
+        public virtual uint V4L2_CAP_VIDEO_OVERLAY => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_ABGR32 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_ABGR444 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_ABGR555 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_ARGB32 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_ARGB444 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_ARGB555 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_ARGB555X => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_AYUV32 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_BGR24 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_BGR32 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_BGR666 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_BGRA32 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_BGRA444 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_BGRA555 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_BGRX32 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_BGRX444 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_BGRX555 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_CIT_YYVYUY => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_CNF4 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_CPIA1 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_DV => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_ET61X251 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_FLAG_PREMUL_ALPHA => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_FLAG_SET_CSC => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_FWHT => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_FWHT_STATELESS => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_GREY => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_H263 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_H264 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_H264_MVC => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_H264_NO_SC => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_H264_SLICE => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_HEVC => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_HEVC_SLICE => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_HI240 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_HM12 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_HSV24 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_HSV32 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_INZI => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_IPU3_SBGGR10 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_IPU3_SGBRG10 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_IPU3_SGRBG10 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_IPU3_SRGGB10 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_IPU3_Y10 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_JL2005BCD => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_JPEG => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_JPGL => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_KONICA420 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_M420 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_MJPEG => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_MM21 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_MPEG => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_MPEG1 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_MPEG2 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_MPEG2_SLICE => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_MPEG4 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_MR97310A => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_MT21C => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_NV12 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_NV12_16L16 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_NV12_32L32 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_NV12_4L4 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_NV12M => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_NV12M_10BE_8L128 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_NV12M_8L128 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_NV12MT => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_NV12MT_16X16 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_NV16 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_NV16M => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_NV21 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_NV21M => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_NV24 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_NV42 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_NV61 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_NV61M => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_OV511 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_OV518 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_P010 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_P010_4L4 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_PAC207 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_PAL8 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_PJPG => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_PRIV_MAGIC => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_PWC1 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_PWC2 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_QC08C => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_QC10C => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_RGB24 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_RGB32 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_RGB332 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_RGB444 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_RGB555 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_RGB555X => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_RGB565 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_RGB565X => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_RGBA32 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_RGBA444 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_RGBA555 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_RGBX32 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_RGBX444 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_RGBX555 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_S5C_UYVY_JPG => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SBGGR10 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SBGGR10ALAW8 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SBGGR10DPCM8 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SBGGR10P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SBGGR12 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SBGGR12P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SBGGR14 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SBGGR14P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SBGGR16 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SBGGR8 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SE401 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGBRG10 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGBRG10ALAW8 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGBRG10DPCM8 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGBRG10P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGBRG12 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGBRG12P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGBRG14 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGBRG14P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGBRG16 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGBRG8 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGRBG10 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGRBG10ALAW8 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGRBG10DPCM8 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGRBG10P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGRBG12 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGRBG12P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGRBG14 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGRBG14P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGRBG16 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SGRBG8 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SN9C10X => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SN9C2028 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SN9C20X_I420 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SPCA501 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SPCA505 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SPCA508 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SPCA561 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SQ905C => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SRGGB10 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SRGGB10ALAW8 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SRGGB10DPCM8 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SRGGB10P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SRGGB12 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SRGGB12P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SRGGB14 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SRGGB14P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SRGGB16 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SRGGB8 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_STV0680 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_SUNXI_TILED_NV12 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_TM6000 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_UV8 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_UYVY => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_VC1_ANNEX_G => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_VC1_ANNEX_L => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_VP8 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_VP8_FRAME => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_VP9 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_VP9_FRAME => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_VUYA32 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_VUYX32 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_VYUY => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_WNVA => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_XBGR32 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_XBGR444 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_XBGR555 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_XRGB32 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_XRGB444 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_XRGB555 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_XRGB555X => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_XVID => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_XYUV32 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_Y10 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_Y10BPACK => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_Y10P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_Y12 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_Y12I => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_Y14 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_Y16 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_Y16_BE => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_Y4 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_Y41P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_Y6 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_Y8I => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YUV24 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YUV32 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YUV410 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YUV411P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YUV420 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YUV420M => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YUV422M => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YUV422P => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YUV444 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YUV444M => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YUV555 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YUV565 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YUVA32 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YUVX32 => throw new NotImplementedException();
         public virtual uint V4L2_PIX_FMT_YUYV => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YVU410 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YVU420 => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YVU420M => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YVU422M => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YVU444M => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YVYU => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_YYUV => throw new NotImplementedException();
+        public virtual uint V4L2_PIX_FMT_Z16 => throw new NotImplementedException();
+        public virtual uint VIDIOC_CREATE_BUFS => throw new NotImplementedException();
+        public virtual uint VIDIOC_CROPCAP => throw new NotImplementedException();
+        public virtual uint VIDIOC_DBG_G_CHIP_INFO => throw new NotImplementedException();
+        public virtual uint VIDIOC_DBG_G_REGISTER => throw new NotImplementedException();
+        public virtual uint VIDIOC_DBG_S_REGISTER => throw new NotImplementedException();
+        public virtual uint VIDIOC_DECODER_CMD => throw new NotImplementedException();
         public virtual uint VIDIOC_DQBUF => throw new NotImplementedException();
+        public virtual uint VIDIOC_DQEVENT => throw new NotImplementedException();
+        public virtual uint VIDIOC_DV_TIMINGS_CAP => throw new NotImplementedException();
+        public virtual uint VIDIOC_ENCODER_CMD => throw new NotImplementedException();
+        public virtual uint VIDIOC_ENUM_DV_TIMINGS => throw new NotImplementedException();
         public virtual uint VIDIOC_ENUM_FMT => throw new NotImplementedException();
         public virtual uint VIDIOC_ENUM_FRAMEINTERVALS => throw new NotImplementedException();
         public virtual uint VIDIOC_ENUM_FRAMESIZES => throw new NotImplementedException();
+        public virtual uint VIDIOC_ENUM_FREQ_BANDS => throw new NotImplementedException();
+        public virtual uint VIDIOC_ENUMAUDIO => throw new NotImplementedException();
+        public virtual uint VIDIOC_ENUMAUDOUT => throw new NotImplementedException();
+        public virtual uint VIDIOC_ENUMINPUT => throw new NotImplementedException();
+        public virtual uint VIDIOC_ENUMOUTPUT => throw new NotImplementedException();
+        public virtual uint VIDIOC_ENUMSTD => throw new NotImplementedException();
+        public virtual uint VIDIOC_EXPBUF => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_AUDIO => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_AUDOUT => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_CROP => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_CTRL => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_DV_TIMINGS => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_EDID => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_ENC_INDEX => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_EXT_CTRLS => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_FBUF => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_FMT => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_FREQUENCY => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_INPUT => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_JPEGCOMP => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_MODULATOR => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_OUTPUT => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_PARM => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_PRIORITY => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_SELECTION => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_SLICED_VBI_CAP => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_STD => throw new NotImplementedException();
+        public virtual uint VIDIOC_G_TUNER => throw new NotImplementedException();
+        public virtual uint VIDIOC_LOG_STATUS => throw new NotImplementedException();
+        public virtual uint VIDIOC_OVERLAY => throw new NotImplementedException();
+        public virtual uint VIDIOC_PREPARE_BUF => throw new NotImplementedException();
         public virtual uint VIDIOC_QBUF => throw new NotImplementedException();
+        public virtual uint VIDIOC_QUERY_DV_TIMINGS => throw new NotImplementedException();
+        public virtual uint VIDIOC_QUERY_EXT_CTRL => throw new NotImplementedException();
         public virtual uint VIDIOC_QUERYBUF => throw new NotImplementedException();
         public virtual uint VIDIOC_QUERYCAP => throw new NotImplementedException();
+        public virtual uint VIDIOC_QUERYCTRL => throw new NotImplementedException();
+        public virtual uint VIDIOC_QUERYMENU => throw new NotImplementedException();
+        public virtual uint VIDIOC_QUERYSTD => throw new NotImplementedException();
         public virtual uint VIDIOC_REQBUFS => throw new NotImplementedException();
+        public virtual uint VIDIOC_S_AUDIO => throw new NotImplementedException();
+        public virtual uint VIDIOC_S_AUDOUT => throw new NotImplementedException();
+        public virtual uint VIDIOC_S_CROP => throw new NotImplementedException();
+        public virtual uint VIDIOC_S_CTRL => throw new NotImplementedException();
+        public virtual uint VIDIOC_S_DV_TIMINGS => throw new NotImplementedException();
+        public virtual uint VIDIOC_S_EDID => throw new NotImplementedException();
+        public virtual uint VIDIOC_S_EXT_CTRLS => throw new NotImplementedException();
+        public virtual uint VIDIOC_S_FBUF => throw new NotImplementedException();
         public virtual uint VIDIOC_S_FMT => throw new NotImplementedException();
+        public virtual uint VIDIOC_S_FREQUENCY => throw new NotImplementedException();
+        public virtual uint VIDIOC_S_HW_FREQ_SEEK => throw new NotImplementedException();
+        public virtual uint VIDIOC_S_INPUT => throw new NotImplementedException();
+        public virtual uint VIDIOC_S_JPEGCOMP => throw new NotImplementedException();
+        public virtual uint VIDIOC_S_MODULATOR => throw new NotImplementedException();
+        public virtual uint VIDIOC_S_OUTPUT => throw new NotImplementedException();
+        public virtual uint VIDIOC_S_PARM => throw new NotImplementedException();
+        public virtual uint VIDIOC_S_PRIORITY => throw new NotImplementedException();
+        public virtual uint VIDIOC_S_SELECTION => throw new NotImplementedException();
+        public virtual uint VIDIOC_S_STD => throw new NotImplementedException();
+        public virtual uint VIDIOC_S_TUNER => throw new NotImplementedException();
         public virtual uint VIDIOC_STREAMOFF => throw new NotImplementedException();
         public virtual uint VIDIOC_STREAMON => throw new NotImplementedException();
+        public virtual uint VIDIOC_SUBSCRIBE_EVENT => throw new NotImplementedException();
+        public virtual uint VIDIOC_TRY_DECODER_CMD => throw new NotImplementedException();
+        public virtual uint VIDIOC_TRY_ENCODER_CMD => throw new NotImplementedException();
+        public virtual uint VIDIOC_TRY_EXT_CTRLS => throw new NotImplementedException();
+        public virtual uint VIDIOC_TRY_FMT => throw new NotImplementedException();
+        public virtual uint VIDIOC_UNSUBSCRIBE_EVENT => throw new NotImplementedException();
 
         // Enums
         public enum v4l2_buf_type
@@ -330,6 +634,12 @@ namespace FlashCap.Internal.V4L2
             }
 
             uint pixelformat
+            {
+                get;
+                set;
+            }
+
+            uint mbus_code
             {
                 get;
                 set;
@@ -903,7 +1213,13 @@ namespace FlashCap.Internal.V4L2
                 set;
             }
 
-            uint[] reserved
+            byte flags
+            {
+                get;
+                set;
+            }
+
+            byte[] reserved
             {
                 get;
                 set;

@@ -22,6 +22,16 @@ namespace FlashCap.Devices;
 
 public sealed class V4L2Devices : CaptureDevices
 {
+    public V4L2Devices() :
+        this(new DefaultBufferPool())
+    {
+    }
+
+    public V4L2Devices(BufferPool defaultBufferPool) :
+        base(defaultBufferPool)
+    {
+    }
+
     private static IEnumerable<v4l2_fmtdesc> EnumerateFormatDesc(
         int fd) =>
         Enumerable.Range(0, 1000).
@@ -63,11 +73,11 @@ public sealed class V4L2Devices : CaptureDevices
                 NativeMethods.DefactoStandardResolutions.
                     Where(r =>
                         r.Width >= stepwise.min_width &&
-                        r.Width <= stepwise.max_height &&
-                        (r.Width - stepwise.min_width % stepwise.step_width) == 0 &&
+                        r.Width <= stepwise.max_width &&
+                        ((r.Width - stepwise.min_width) % stepwise.step_width) == 0 &&
                         r.Height >= stepwise.min_height &&
                         r.Height <= stepwise.max_height &&
-                        (r.Height - stepwise.min_height % stepwise.step_height) == 0).
+                        ((r.Height - stepwise.min_height) % stepwise.step_height) == 0).
                     OrderByDescending(r => r).
                     Select(r => new FrameSize
                         { Width = r.Width, Height = r.Height, IsDiscrete = false, });
@@ -77,7 +87,7 @@ public sealed class V4L2Devices : CaptureDevices
                 NativeMethods.DefactoStandardResolutions.
                     Where(r =>
                         r.Width >= stepwise.min_width &&
-                        r.Width <= stepwise.max_height &&
+                        r.Width <= stepwise.max_width &&
                         r.Height >= stepwise.min_height &&
                         r.Height <= stepwise.max_height).
                     OrderByDescending(r => r).
@@ -119,14 +129,19 @@ public sealed class V4L2Devices : CaptureDevices
         }).
         SelectMany(frmivalenum =>
         {
-            // v4l2_fract is "interval", so makes fps to do reciprocal.
-            // (numerator <--> denominator)
+            
             static IEnumerable<FramesPerSecond> EnumerateStepWise(
                 v4l2_frmival_stepwise stepwise)
             {
-                var min = new Fraction((int)stepwise.min.denominator, (int)stepwise.min.numerator);
-                var max = new Fraction((int)stepwise.max.denominator, (int)stepwise.max.numerator);
+                // v4l2_fract is "interval", so do reciprocal to make fps.
+                // (numerator <--> denominator)
+
+                // Since we're inverting the interval to get the FPS, we also need to swap the meaning of min/max
+                var min = new Fraction((int)stepwise.max.denominator, (int)stepwise.max.numerator);
+                var max = new Fraction((int)stepwise.min.denominator, (int)stepwise.min.numerator);
+
                 var step = new Fraction((int)stepwise.step.denominator, (int)stepwise.step.numerator);
+                
                 return NativeMethods.DefactoStandardFramesPerSecond.
                     Where(fps =>
                         fps >= min && fps <= max &&
@@ -138,8 +153,13 @@ public sealed class V4L2Devices : CaptureDevices
             static IEnumerable<FramesPerSecond> EnumerateContinuous(
                 v4l2_frmival_stepwise stepwise)
             {
-                var min = new Fraction((int)stepwise.min.denominator, (int)stepwise.min.numerator);
-                var max = new Fraction((int)stepwise.max.denominator, (int)stepwise.max.numerator);
+                // v4l2_fract is "interval", so do reciprocal to make fps.
+                // (numerator <--> denominator)
+
+                // Since we're inverting the interval to get the FPS, we also need to swap the meaning of min/max
+                var min = new Fraction((int)stepwise.max.denominator, (int)stepwise.max.numerator);
+                var max = new Fraction((int)stepwise.min.denominator, (int)stepwise.min.numerator);
+
                 return NativeMethods.DefactoStandardFramesPerSecond.
                     Where(fps => fps >= min && fps <= max).
                     OrderByDescending(fps => fps).
@@ -193,7 +213,8 @@ public sealed class V4L2Devices : CaptureDevices
                                             frmsize.IsDiscrete && framesPerSecond.IsDiscrete)))).
                             Distinct().
                             OrderByDescending(vc => vc).
-                            ToArray());
+                            ToArray(),
+                            this.DefaultBufferPool);
                     }
                     else
                     {

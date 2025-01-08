@@ -2,7 +2,7 @@
 
 ![FlashCap](Images/FlashCap.100.png)
 
-FlashCap - シンプルで依存性のない、カメラキャプチャライブラリ
+FlashCap - シンプルで依存性のない、ビデオフレームキャプチャライブラリ
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 
@@ -20,10 +20,10 @@ FlashCap - シンプルで依存性のない、カメラキャプチャライブ
 
 ## これは何?
 
-.NETでカメラキャプチャ機能を実装する必要がありますか？
-.NETでのカメラキャプチャライブラリに困っていますか？
+.NETでビデオフレームキャプチャ機能を実装する必要がありますか？
+.NETでのビデオフレームキャプチャライブラリに困っていますか？
 
-このライブラリは、カメラのキャプチャ機能のみに特化したカメラ画像取り込みライブラリです（フレームグラバーと呼ばれることもあります）。
+このライブラリは、ビデオフレームのキャプチャ機能のみに特化した画像取り込みライブラリです（フレームグラバーと呼ばれることもあります）。
 シンプルなAPIで使いやすく、簡素なアーキテクチャで、ネイティブライブラリを含んでいません。
 また、公式以外の他のライブラリに依存することもありません。
 [NuGetの依存ページを参照して下さい](https://www.nuget.org/packages/FlashCap)
@@ -132,12 +132,12 @@ await deviceObservable.StartAsync();
 
 対応する.NETプラットフォームは以下の通りです（ほぼ全てです！）:
 
-* .NET 7, 6, 5 (`net7.0` and etc)
+* .NET 8 to 5 (`net8.0` and etc)
 * .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (`netcoreapp3.1` and etc)
 * .NET Standard 2.1, 2.0, 1.3 (`netstandard2.1` and etc)
 * .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5 (`net48` and etc)
 
-カメラデバイスが使用できるプラットフォーム:
+キャプチャデバイスが使用できるプラットフォーム:
 
 * Windows (DirectShowデバイス, x64/x86)
 * Windows (Video for Windowsデバイス, x64/x86)
@@ -155,6 +155,7 @@ await deviceObservable.StartAsync();
 * eMeet HD Webcam C970L (Windows/Linux)
 * Microsoft LifeCam Cinema HD720 (Windows/Linux)
 * Unnamed cheap USB capture module (Windows/Linux)
+* Spirer RP28WD305 (Linux)
 
 確認したコンピューター:
 
@@ -170,6 +171,7 @@ await deviceObservable.StartAsync();
 * Acer Aspire One ZA3 inside camera (i686, Linux)
 * Imagination Creator Ci20 (mipsel, Linux)
 * Radxa ROCK5B (aarch64, Linux)
+* Loongson-LS3A5000-7A2000-1w-EVB-V1.21 (loongarch64, Linux)
 
 確認した、動作しない環境:
 
@@ -485,6 +487,66 @@ deviceObservable.
     // ...
 ```
 
+## バッファプーリングのカスタマイズ (Advanced topic)
+
+FlashCapは、再利用されるバッファのための、バッファプーリングインターフェイスを持っています。
+これは、`BufferPool` 基底クラスで、このクラスを継承して実装します。
+
+既定の実装は `DefaultBufferPool` クラスで、自動的に使用されます。
+このクラスは単純な実装ですが、弱参照を使用して、使われなくなったバッファをGCが回収可能にしています。
+
+バッファプーリングを独自の実装で置き換えたい場合は、以下の2個の抽象メソッドを実装します:
+
+```csharp
+// バッファプーリングの基底クラス
+public abstract class BufferPool
+{
+  protected BufferPool()
+  { /* ... */ }
+
+  // バッファを取得する
+  public abstract byte[] Rent(int minimumSize);
+
+  // バッファを解放する
+  public abstract void Return(byte[] buffer);
+}
+```
+
+* `Rent()`メソッドは、引数で指定されたサイズ以上のバッファを返す必要があります。
+* `Return()`メソッドは、引数で指定されたバッファがもう使われないため、プーリングで引き取るようにします。
+
+.NETにはGCがあるため、最も単純な（かつ、プーリングを行わない）実装は、以下のようになります:
+
+```csharp
+public sealed class FakeBufferPool : BufferPool
+{
+    public override byte[] Rent(int minimumSize) =>
+        // 常に生成
+        new byte[minimumSize];
+
+    public override void Return(byte[] buffer)
+    {
+        // (`buffer` 参照を放置して、GCが回収するに任せる)
+    }
+}
+```
+
+例えば、.NET Core世代の `System.Buffers` には `ArrayPool` クラスがあることをご存じの方も居るでしょう。
+`BufferPool`を拡張することで、このような既存のバッファプーリング実装や、独自の実装を使用することが出来ます。
+
+このようにして独自のクラスを実装した場合は、`CaptureDevices`のコンストラクタに渡して、FlashCapに使用させます:
+
+```csharp
+// バッファプーリングインスタンスを生成して使用
+var bufferPool = new FakeBufferPool();
+
+var devices = new CaptureDevices(bufferPool);
+
+// ...
+```
+
+この`CaptureDevices`のインスタンスから列挙された全てのデバイスで、共通のバッファプーリングとして使用されます。
+
 ## フレームプロセッサをマスターする (Advanced topic)
 
 地下ダンジョンへようこそ。FlashCapのフレームプロセッサは、磨けば光る宝石です。しかし、余程のことが無い限り、フレームプロセッサを理解する必要はありません。この解説は、やむを得ずフレームプロセッサを扱う場合の参考にして下さい。また、FlashCapが[デフォルトで内蔵するフレームプロセッサの実装](https://github.com/kekyo/FlashCap/tree/main/FlashCap/FrameProcessors)も参考になるでしょう。
@@ -641,11 +703,12 @@ FlashCapはV4L2に対応していて、これによりLinuxの様々なプラッ
 * i686, x86_64
 * aarch64, armv7l
 * mipsel
+* loongarch64
 
-ここに挙げた対応プラットフォームは、単に私が動作確認出来た、つまり現実のハードウェアを持ち合わせていて、
+ここに挙げた対応プラットフォームは、単に私やコントリビューターが動作確認出来た、つまり現実のハードウェアを持ち合わせていて、
 FlashCapを使って実際にカメラのキャプチャに成功したものです。
 
-それでは、他のプラットフォーム、例えばmips64,riscv64,loongarch64で動作するか言えば、動作しません。
+それでは、他のプラットフォーム、例えばmips64,riscv32/64,sparc64で動作するか言えば、動作しません。
 理由は、以下の通りです:
 
 * 私が動作確認できない: 実際のハードウェアやSBC (Single Board Computer) コンポーネントを持ち合わせていないので、物理的な確認が出来ない。
@@ -656,13 +719,23 @@ FlashCapを使って実際にカメラのキャプチャに成功したもので
 概要を示すので参考にしてください。
 
 * `FlashCap.V4L2Generator` は、V4L2への移植に必要な相互運用ソースコードを自動生成するためのジェネレータです。
-  このプロジェクトは、[Clang](https://clang.llvm.org/) が出力するAST JSONファイルを使用して、
+  このプロジェクトは、[Clang](https://clang.llvm.org/) が出力するJSON ASTファイルを使用して、
   V4L2のヘッダファイルから、正しいABI構造を厳密に適用したC#の相互運用定義ソースコードを生成します。
 * 従って、まずターゲットとするLinuxのABIに対応したClangが必要になります。
   この理由により、安定的なABIが定まっていない環境に移植することはできません。
+  * Clangのバージョンは、13,11,10を検証しています。これ以外のバージョンでもビルドできる場合があります。
+    検証したところ、JSON ASTの出力方法に違いがある場合があるようです。
 * 同様に、`FlashCap.V4L2Generator` を動作させるために、ターゲットとするLinuxで動作するmono又は.NETランタイムが必要です。
-* ターゲットLinuxがDebian系の移植であれば、これらは `apt` パッケージなどから入手可能かもしれません。
-  `sudo apt install build-essential clang mono-devel` などでインストール出来れば、可能性が高まります。
+  * ターゲットLinuxがDebian系の移植であれば、これらは `apt` パッケージなどから入手可能かもしれません。
+    `sudo apt install build-essential clang-13 mono-devel` などでインストール出来れば、可能性が高まります。
+  * Linuxの安定的なビルド環境を準備するために、qemuを使用した仮想マシンの構築を強く推奨します。
+    この目的のために、 `qemu-vm-builder/` ディレクトリに、環境構築用の自動化スクリプトを配置しています。
+    スクリプトを参照して、あなたのターゲットとなるビルド環境を構築できるように、スクリプトを追加してください。
+    スクリプトが追加されれば、我々もFlashCapの更新時に相互運用ソースコードのビルドが可能になります。
+  * FlashCapの公式のビルド環境は、Debianの公式インストーラーを用いています。
+    Debianのサイトから、 `netinst` ISOイメージをダウンロードして、必要な仮想マシンを生成しています。
+  * Debianを使わない場合や、Debianのバージョンが一致しない場合は、生成される相互運用ソースコードに手動で修正を行う必要があるかもしれません。
+* [#100](https://github.com/kekyo/FlashCap/issues/100) の取り組みも参考になると思います。
 
 最初に、 `FlashCap.V4L2Generator` をビルドする必要があります。
 ターゲットのLinux環境で.NET SDKが使用できない場合は、monoの `mcs` を使ってコードをコンパイルする `build-mono.sh` を使用して下さい。
@@ -679,26 +752,29 @@ switch (buf.machine)
 {
     case "x86_64":
     case "amd64":
-        Interop = new NativeMethods_V4L2_Interop_x86_64();
-        break;
     case "i686":
     case "i586":
     case "i486":
     case "i386":
-        Interop = new NativeMethods_V4L2_Interop_i686();
+        Interop = IntPtr.Size == 8 ?
+            new NativeMethods_V4L2_Interop_x86_64() :
+            new NativeMethods_V4L2_Interop_i686();
         break;
     case "aarch64":
-        Interop = new NativeMethods_V4L2_Interop_aarch64();
-        break;
     case "armv9l":
     case "armv8l":
     case "armv7l":
     case "armv6l":
-        Interop = new NativeMethods_V4L2_Interop_armv7l();
+        Interop = IntPtr.Size == 8 ?
+            new NativeMethods_V4L2_Interop_aarch64() :
+            new NativeMethods_V4L2_Interop_armv7l();
         break;
     case "mips":
     case "mipsel":
         Interop = new NativeMethods_V4L2_Interop_mips();
+        break;
+    case "loongarch64":
+        Interop = new NativeMethods_V4L2_Interop_loongarch64();
         break;
 
     // (ここに新しい移植を加えます...)
@@ -741,6 +817,16 @@ Apache-v2.
 
 ## 履歴
 
+* 1.10.0:
+  * NV12フォーマットのトランスコードに対応しました。 [#132](https://github.com/kekyo/FlashCap/issues/132)
+  * バッファプーリングに対応しました。 [#135](https://github.com/kekyo/FlashCap/issues/135) [#138](https://github.com/kekyo/FlashCap/issues/138)
+  * 非同期ロックが待機する場合に、キャンセル要求がリークする事があるのを修正しました。 [#142](https://github.com/kekyo/FlashCap/issues/142)
+  * V4L2で、x86_64やaarch64のような64/32ユーザーランド混在環境で、使用すべき相互運用ライブラリを誤って選択する事がある問題を修正しました。 [#43](https://github.com/kekyo/FlashCap/issues/43)
+  * V4L2で、`StartAsync()`と`StopAsync()`を繰り返すと、フレームが発生しないくなる事がある問題を修正しました。 [#124](https://github.com/kekyo/FlashCap/issues/124)
+  * V4L2で、デバイスや特性が列挙されない場合がある問題を修正しました。 [#126](https://github.com/kekyo/FlashCap/issues/126) [#127](https://github.com/kekyo/FlashCap/issues/127)
+  * (もしかしたら、loongarch64はデグレードしているかもしれません。PRを歓迎します。参考: [#144](https://github.com/kekyo/FlashCap/pull/144))
+* 1.9.0:
+  * loongarch64 Linuxに対応しました [#100](https://github.com/kekyo/FlashCap/issues/100)
 * 1.8.0:
   * .NET 8.0 SDKに対応しました。
   * トランスコードの変換マトリックス係数が一部誤っていたのを修正 [#107](https://github.com/kekyo/FlashCap/issues/107)

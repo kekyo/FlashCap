@@ -1,351 +1,47 @@
-// This is auto generated code by FlashCap.V4L2Generator [0.14.6]. Do not edit.
-// Linux version 6.1.0-20-4kc-malta (debian-kernel@lists.debian.org) (gcc-12 (Debian 12.2.0-14) 12.2.0, GNU ld (GNU Binutils for Debian) 2.40) #1 SMP Debian 6.1.85-1 (2024-04-11)
-// Debian clang version 13.0.1-11+b2
-// gcc version 12.2.0 (Debian 12.2.0-14) 
-// Sun Apr 14 05:22:14 PM JST 2024
+// This is auto generated code by FlashCap.V4L2Generator [1.8.0]. Do not edit.
+// Linux version 4.19.0-19-loongson-3 (abuild@10.40.52.160) (gcc version 8.3.0 (Loongnix 8.3.0-6.lnd.vec.36)) #1 SMP 4.19.190.8.14 Thu Aug 24 08:54:20 UTC 2023
+// Thu, 14 Dec 2023 01:30:18 GMT
 
 using System;
 using System.Runtime.InteropServices;
 
 namespace FlashCap.Internal.V4L2
 {
-    internal sealed class NativeMethods_V4L2_Interop_mips : NativeMethods_V4L2_Interop
+    internal sealed class NativeMethods_V4L2_Interop_loongarch64 : NativeMethods_V4L2_Interop
     {
         // Common
-        public override string Label => "Linux version 6.1.0-20-4kc-malta (debian-kernel@lists.debian.org) (gcc-12 (Debian 12.2.0-14) 12.2.0, GNU ld (GNU Binutils for Debian) 2.40) #1 SMP Debian 6.1.85-1 (2024-04-11)";
-        public override string Architecture => "mips";
-        public override string ClangVersion => "Debian clang version 13.0.1-11+b2";
-        public override string GccVersion => "gcc version 12.2.0 (Debian 12.2.0-14) ";
-        public override int sizeof_size_t => 4;
-        public override int sizeof_off_t => 4;
+        public override string Label => "Linux version 4.19.0-19-loongson-3 (abuild@10.40.52.160) (gcc version 8.3.0 (Loongnix 8.3.0-6.lnd.vec.36)) #1 SMP 4.19.190.8.14 Thu Aug 24 08:54:20 UTC 2023";
+        public override string Architecture => "loongarch64";
+        public override int sizeof_size_t => 8;
+        public override int sizeof_off_t => 8;
 
         // Definitions
-        public override uint V4L2_CAP_ASYNCIO => 33554432U;
-        public override uint V4L2_CAP_AUDIO => 131072U;
-        public override uint V4L2_CAP_DEVICE_CAPS => 2147483648U;
-        public override uint V4L2_CAP_EXT_PIX_FORMAT => 2097152U;
-        public override uint V4L2_CAP_HW_FREQ_SEEK => 1024U;
-        public override uint V4L2_CAP_IO_MC => 536870912U;
-        public override uint V4L2_CAP_META_CAPTURE => 8388608U;
-        public override uint V4L2_CAP_META_OUTPUT => 134217728U;
-        public override uint V4L2_CAP_MODULATOR => 524288U;
-        public override uint V4L2_CAP_RADIO => 262144U;
-        public override uint V4L2_CAP_RDS_CAPTURE => 256U;
-        public override uint V4L2_CAP_RDS_OUTPUT => 2048U;
-        public override uint V4L2_CAP_READWRITE => 16777216U;
-        public override uint V4L2_CAP_SDR_CAPTURE => 1048576U;
-        public override uint V4L2_CAP_SDR_OUTPUT => 4194304U;
-        public override uint V4L2_CAP_SLICED_VBI_CAPTURE => 64U;
-        public override uint V4L2_CAP_SLICED_VBI_OUTPUT => 128U;
-        public override uint V4L2_CAP_STREAMING => 67108864U;
-        public override uint V4L2_CAP_TIMEPERFRAME => 4096U;
-        public override uint V4L2_CAP_TOUCH => 268435456U;
-        public override uint V4L2_CAP_TUNER => 65536U;
-        public override uint V4L2_CAP_VBI_CAPTURE => 16U;
-        public override uint V4L2_CAP_VBI_OUTPUT => 32U;
         public override uint V4L2_CAP_VIDEO_CAPTURE => 1U;
-        public override uint V4L2_CAP_VIDEO_CAPTURE_MPLANE => 4096U;
-        public override uint V4L2_CAP_VIDEO_M2M => 32768U;
-        public override uint V4L2_CAP_VIDEO_M2M_MPLANE => 16384U;
-        public override uint V4L2_CAP_VIDEO_OUTPUT => 2U;
-        public override uint V4L2_CAP_VIDEO_OUTPUT_MPLANE => 8192U;
-        public override uint V4L2_CAP_VIDEO_OUTPUT_OVERLAY => 512U;
-        public override uint V4L2_CAP_VIDEO_OVERLAY => 4U;
         public override uint V4L2_PIX_FMT_ABGR32 => 875713089U;
-        public override uint V4L2_PIX_FMT_ABGR444 => 842089025U;
-        public override uint V4L2_PIX_FMT_ABGR555 => 892420673U;
         public override uint V4L2_PIX_FMT_ARGB32 => 875708738U;
-        public override uint V4L2_PIX_FMT_ARGB444 => 842093121U;
-        public override uint V4L2_PIX_FMT_ARGB555 => 892424769U;
-        public override uint V4L2_PIX_FMT_ARGB555X => 3039908417U;
-        public override uint V4L2_PIX_FMT_AYUV32 => 1448433985U;
-        public override uint V4L2_PIX_FMT_BGR24 => 861030210U;
-        public override uint V4L2_PIX_FMT_BGR32 => 877807426U;
-        public override uint V4L2_PIX_FMT_BGR666 => 1213351746U;
-        public override uint V4L2_PIX_FMT_BGRA32 => 875708754U;
-        public override uint V4L2_PIX_FMT_BGRA444 => 842088775U;
-        public override uint V4L2_PIX_FMT_BGRA555 => 892420418U;
-        public override uint V4L2_PIX_FMT_BGRX32 => 875714642U;
-        public override uint V4L2_PIX_FMT_BGRX444 => 842094658U;
-        public override uint V4L2_PIX_FMT_BGRX555 => 892426306U;
-        public override uint V4L2_PIX_FMT_CIT_YYVYUY => 1448364355U;
-        public override uint V4L2_PIX_FMT_CNF4 => 877022787U;
-        public override uint V4L2_PIX_FMT_CPIA1 => 1095323715U;
-        public override uint V4L2_PIX_FMT_DV => 1685288548U;
-        public override uint V4L2_PIX_FMT_ET61X251 => 892483141U;
-        public override uint V4L2_PIX_FMT_FLAG_PREMUL_ALPHA => 1U;
-        public override uint V4L2_PIX_FMT_FLAG_SET_CSC => 2U;
-        public override uint V4L2_PIX_FMT_FWHT => 1414027078U;
-        public override uint V4L2_PIX_FMT_FWHT_STATELESS => 1213679187U;
-        public override uint V4L2_PIX_FMT_GREY => 1497715271U;
-        public override uint V4L2_PIX_FMT_H263 => 859189832U;
-        public override uint V4L2_PIX_FMT_H264 => 875967048U;
-        public override uint V4L2_PIX_FMT_H264_MVC => 875967053U;
-        public override uint V4L2_PIX_FMT_H264_NO_SC => 826496577U;
-        public override uint V4L2_PIX_FMT_H264_SLICE => 875967059U;
-        public override uint V4L2_PIX_FMT_HEVC => 1129727304U;
-        public override uint V4L2_PIX_FMT_HEVC_SLICE => 892744275U;
-        public override uint V4L2_PIX_FMT_HI240 => 875710792U;
-        public override uint V4L2_PIX_FMT_HM12 => 842091848U;
-        public override uint V4L2_PIX_FMT_HSV24 => 861295432U;
-        public override uint V4L2_PIX_FMT_HSV32 => 878072648U;
-        public override uint V4L2_PIX_FMT_INZI => 1230655049U;
-        public override uint V4L2_PIX_FMT_IPU3_SBGGR10 => 1647538281U;
-        public override uint V4L2_PIX_FMT_IPU3_SGBRG10 => 1731424361U;
-        public override uint V4L2_PIX_FMT_IPU3_SGRBG10 => 1194553449U;
-        public override uint V4L2_PIX_FMT_IPU3_SRGGB10 => 1915973737U;
-        public override uint V4L2_PIX_FMT_IPU3_Y10 => 2033414249U;
-        public override uint V4L2_PIX_FMT_JL2005BCD => 808602698U;
         public override uint V4L2_PIX_FMT_JPEG => 1195724874U;
-        public override uint V4L2_PIX_FMT_JPGL => 1279742026U;
-        public override uint V4L2_PIX_FMT_KONICA420 => 1229868875U;
-        public override uint V4L2_PIX_FMT_M420 => 808596557U;
         public override uint V4L2_PIX_FMT_MJPEG => 1196444237U;
-        public override uint V4L2_PIX_FMT_MM21 => 825380173U;
-        public override uint V4L2_PIX_FMT_MPEG => 1195724877U;
-        public override uint V4L2_PIX_FMT_MPEG1 => 826757197U;
-        public override uint V4L2_PIX_FMT_MPEG2 => 843534413U;
-        public override uint V4L2_PIX_FMT_MPEG2_SLICE => 1395803981U;
-        public override uint V4L2_PIX_FMT_MPEG4 => 877088845U;
-        public override uint V4L2_PIX_FMT_MR97310A => 808530765U;
-        public override uint V4L2_PIX_FMT_MT21C => 825381965U;
-        public override uint V4L2_PIX_FMT_NV12 => 842094158U;
-        public override uint V4L2_PIX_FMT_NV12_16L16 => 842091848U;
-        public override uint V4L2_PIX_FMT_NV12_32L32 => 842093651U;
-        public override uint V4L2_PIX_FMT_NV12_4L4 => 842093654U;
-        public override uint V4L2_PIX_FMT_NV12M => 842091854U;
-        public override uint V4L2_PIX_FMT_NV12M_10BE_8L128 => 2989577294U;
-        public override uint V4L2_PIX_FMT_NV12M_8L128 => 842088782U;
-        public override uint V4L2_PIX_FMT_NV12MT => 842091860U;
-        public override uint V4L2_PIX_FMT_NV12MT_16X16 => 842091862U;
-        public override uint V4L2_PIX_FMT_NV16 => 909203022U;
-        public override uint V4L2_PIX_FMT_NV16M => 909200718U;
-        public override uint V4L2_PIX_FMT_NV21 => 825382478U;
-        public override uint V4L2_PIX_FMT_NV21M => 825380174U;
-        public override uint V4L2_PIX_FMT_NV24 => 875714126U;
-        public override uint V4L2_PIX_FMT_NV42 => 842290766U;
-        public override uint V4L2_PIX_FMT_NV61 => 825644622U;
-        public override uint V4L2_PIX_FMT_NV61M => 825642318U;
-        public override uint V4L2_PIX_FMT_OV511 => 825308495U;
-        public override uint V4L2_PIX_FMT_OV518 => 942749007U;
-        public override uint V4L2_PIX_FMT_P010 => 808530000U;
-        public override uint V4L2_PIX_FMT_P010_4L4 => 808530004U;
-        public override uint V4L2_PIX_FMT_PAC207 => 925905488U;
-        public override uint V4L2_PIX_FMT_PAL8 => 944521552U;
-        public override uint V4L2_PIX_FMT_PJPG => 1196444240U;
-        public override uint V4L2_PIX_FMT_PRIV_MAGIC => 4276996862U;
-        public override uint V4L2_PIX_FMT_PWC1 => 826496848U;
-        public override uint V4L2_PIX_FMT_PWC2 => 843274064U;
-        public override uint V4L2_PIX_FMT_QC08C => 1127755857U;
-        public override uint V4L2_PIX_FMT_QC10C => 1127231825U;
         public override uint V4L2_PIX_FMT_RGB24 => 859981650U;
-        public override uint V4L2_PIX_FMT_RGB32 => 876758866U;
         public override uint V4L2_PIX_FMT_RGB332 => 826427218U;
-        public override uint V4L2_PIX_FMT_RGB444 => 875836498U;
-        public override uint V4L2_PIX_FMT_RGB555 => 1329743698U;
-        public override uint V4L2_PIX_FMT_RGB555X => 1363298130U;
         public override uint V4L2_PIX_FMT_RGB565 => 1346520914U;
         public override uint V4L2_PIX_FMT_RGB565X => 1380075346U;
-        public override uint V4L2_PIX_FMT_RGBA32 => 875708993U;
-        public override uint V4L2_PIX_FMT_RGBA444 => 842088786U;
-        public override uint V4L2_PIX_FMT_RGBA555 => 892420434U;
-        public override uint V4L2_PIX_FMT_RGBX32 => 875709016U;
-        public override uint V4L2_PIX_FMT_RGBX444 => 842094674U;
-        public override uint V4L2_PIX_FMT_RGBX555 => 892426322U;
-        public override uint V4L2_PIX_FMT_S5C_UYVY_JPG => 1229141331U;
-        public override uint V4L2_PIX_FMT_SBGGR10 => 808535874U;
-        public override uint V4L2_PIX_FMT_SBGGR10ALAW8 => 943800929U;
-        public override uint V4L2_PIX_FMT_SBGGR10DPCM8 => 943800930U;
-        public override uint V4L2_PIX_FMT_SBGGR10P => 1094795888U;
-        public override uint V4L2_PIX_FMT_SBGGR12 => 842090306U;
-        public override uint V4L2_PIX_FMT_SBGGR12P => 1128481392U;
-        public override uint V4L2_PIX_FMT_SBGGR14 => 875644738U;
-        public override uint V4L2_PIX_FMT_SBGGR14P => 1162166896U;
-        public override uint V4L2_PIX_FMT_SBGGR16 => 844257602U;
-        public override uint V4L2_PIX_FMT_SBGGR8 => 825770306U;
-        public override uint V4L2_PIX_FMT_SE401 => 825242707U;
-        public override uint V4L2_PIX_FMT_SGBRG10 => 808534599U;
-        public override uint V4L2_PIX_FMT_SGBRG10ALAW8 => 943802209U;
-        public override uint V4L2_PIX_FMT_SGBRG10DPCM8 => 943802210U;
-        public override uint V4L2_PIX_FMT_SGBRG10P => 1094797168U;
-        public override uint V4L2_PIX_FMT_SGBRG12 => 842089031U;
-        public override uint V4L2_PIX_FMT_SGBRG12P => 1128482672U;
-        public override uint V4L2_PIX_FMT_SGBRG14 => 875643463U;
-        public override uint V4L2_PIX_FMT_SGBRG14P => 1162168176U;
-        public override uint V4L2_PIX_FMT_SGBRG16 => 909197895U;
-        public override uint V4L2_PIX_FMT_SGBRG8 => 1196573255U;
-        public override uint V4L2_PIX_FMT_SGRBG10 => 808534338U;
-        public override uint V4L2_PIX_FMT_SGRBG10ALAW8 => 943810401U;
-        public override uint V4L2_PIX_FMT_SGRBG10DPCM8 => 808535106U;
-        public override uint V4L2_PIX_FMT_SGRBG10P => 1094805360U;
-        public override uint V4L2_PIX_FMT_SGRBG12 => 842088770U;
-        public override uint V4L2_PIX_FMT_SGRBG12P => 1128490864U;
-        public override uint V4L2_PIX_FMT_SGRBG14 => 875647559U;
-        public override uint V4L2_PIX_FMT_SGRBG14P => 1162176368U;
-        public override uint V4L2_PIX_FMT_SGRBG16 => 909201991U;
-        public override uint V4L2_PIX_FMT_SGRBG8 => 1195528775U;
-        public override uint V4L2_PIX_FMT_SN9C10X => 808532307U;
-        public override uint V4L2_PIX_FMT_SN9C2028 => 1481527123U;
-        public override uint V4L2_PIX_FMT_SN9C20X_I420 => 808597843U;
-        public override uint V4L2_PIX_FMT_SPCA501 => 825242963U;
-        public override uint V4L2_PIX_FMT_SPCA505 => 892351827U;
-        public override uint V4L2_PIX_FMT_SPCA508 => 942683475U;
-        public override uint V4L2_PIX_FMT_SPCA561 => 825636179U;
-        public override uint V4L2_PIX_FMT_SQ905C => 1127559225U;
-        public override uint V4L2_PIX_FMT_SRGGB10 => 808535890U;
-        public override uint V4L2_PIX_FMT_SRGGB10ALAW8 => 943805025U;
-        public override uint V4L2_PIX_FMT_SRGGB10DPCM8 => 943805026U;
-        public override uint V4L2_PIX_FMT_SRGGB10P => 1094799984U;
-        public override uint V4L2_PIX_FMT_SRGGB12 => 842090322U;
-        public override uint V4L2_PIX_FMT_SRGGB12P => 1128485488U;
-        public override uint V4L2_PIX_FMT_SRGGB14 => 875644754U;
-        public override uint V4L2_PIX_FMT_SRGGB14P => 1162170992U;
-        public override uint V4L2_PIX_FMT_SRGGB16 => 909199186U;
-        public override uint V4L2_PIX_FMT_SRGGB8 => 1111967570U;
-        public override uint V4L2_PIX_FMT_STV0680 => 808990291U;
-        public override uint V4L2_PIX_FMT_SUNXI_TILED_NV12 => 842093651U;
-        public override uint V4L2_PIX_FMT_TM6000 => 808865108U;
-        public override uint V4L2_PIX_FMT_UV8 => 540563029U;
         public override uint V4L2_PIX_FMT_UYVY => 1498831189U;
-        public override uint V4L2_PIX_FMT_VC1_ANNEX_G => 1194410838U;
-        public override uint V4L2_PIX_FMT_VC1_ANNEX_L => 1278296918U;
-        public override uint V4L2_PIX_FMT_VP8 => 808996950U;
-        public override uint V4L2_PIX_FMT_VP8_FRAME => 1178095702U;
-        public override uint V4L2_PIX_FMT_VP9 => 809062486U;
-        public override uint V4L2_PIX_FMT_VP9_FRAME => 1178161238U;
-        public override uint V4L2_PIX_FMT_VUYA32 => 1096373590U;
-        public override uint V4L2_PIX_FMT_VUYX32 => 1482249558U;
-        public override uint V4L2_PIX_FMT_VYUY => 1498765654U;
-        public override uint V4L2_PIX_FMT_WNVA => 1096175191U;
-        public override uint V4L2_PIX_FMT_XBGR32 => 875713112U;
-        public override uint V4L2_PIX_FMT_XBGR444 => 842089048U;
-        public override uint V4L2_PIX_FMT_XBGR555 => 892420696U;
         public override uint V4L2_PIX_FMT_XRGB32 => 875714626U;
-        public override uint V4L2_PIX_FMT_XRGB444 => 842093144U;
-        public override uint V4L2_PIX_FMT_XRGB555 => 892424792U;
-        public override uint V4L2_PIX_FMT_XRGB555X => 3039908440U;
-        public override uint V4L2_PIX_FMT_XVID => 1145656920U;
-        public override uint V4L2_PIX_FMT_XYUV32 => 1448434008U;
-        public override uint V4L2_PIX_FMT_Y10 => 540029273U;
-        public override uint V4L2_PIX_FMT_Y10BPACK => 1110454617U;
-        public override uint V4L2_PIX_FMT_Y10P => 1345335641U;
-        public override uint V4L2_PIX_FMT_Y12 => 540160345U;
-        public override uint V4L2_PIX_FMT_Y12I => 1228026201U;
-        public override uint V4L2_PIX_FMT_Y14 => 540291417U;
-        public override uint V4L2_PIX_FMT_Y16 => 540422489U;
-        public override uint V4L2_PIX_FMT_Y16_BE => 2687906137U;
-        public override uint V4L2_PIX_FMT_Y4 => 540291161U;
-        public override uint V4L2_PIX_FMT_Y41P => 1345401945U;
-        public override uint V4L2_PIX_FMT_Y6 => 540422233U;
-        public override uint V4L2_PIX_FMT_Y8I => 541669465U;
-        public override uint V4L2_PIX_FMT_YUV24 => 861295961U;
-        public override uint V4L2_PIX_FMT_YUV32 => 878073177U;
-        public override uint V4L2_PIX_FMT_YUV410 => 961959257U;
-        public override uint V4L2_PIX_FMT_YUV411P => 1345401140U;
-        public override uint V4L2_PIX_FMT_YUV420 => 842093913U;
-        public override uint V4L2_PIX_FMT_YUV420M => 842091865U;
-        public override uint V4L2_PIX_FMT_YUV422M => 909200729U;
-        public override uint V4L2_PIX_FMT_YUV422P => 1345466932U;
-        public override uint V4L2_PIX_FMT_YUV444 => 875836505U;
-        public override uint V4L2_PIX_FMT_YUV444M => 875711833U;
-        public override uint V4L2_PIX_FMT_YUV555 => 1331058009U;
-        public override uint V4L2_PIX_FMT_YUV565 => 1347835225U;
-        public override uint V4L2_PIX_FMT_YUVA32 => 1096176985U;
-        public override uint V4L2_PIX_FMT_YUVX32 => 1482052953U;
         public override uint V4L2_PIX_FMT_YUYV => 1448695129U;
-        public override uint V4L2_PIX_FMT_YVU410 => 961893977U;
-        public override uint V4L2_PIX_FMT_YVU420 => 842094169U;
-        public override uint V4L2_PIX_FMT_YVU420M => 825380185U;
-        public override uint V4L2_PIX_FMT_YVU422M => 825642329U;
-        public override uint V4L2_PIX_FMT_YVU444M => 842288473U;
-        public override uint V4L2_PIX_FMT_YVYU => 1431918169U;
-        public override uint V4L2_PIX_FMT_YYUV => 1448434009U;
-        public override uint V4L2_PIX_FMT_Z16 => 540422490U;
-        public override uint VIDIOC_CREATE_BUFS => 3237500508U;
-        public override uint VIDIOC_CROPCAP => 3224131130U;
-        public override uint VIDIOC_DBG_G_CHIP_INFO => 3234354790U;
-        public override uint VIDIOC_DBG_G_REGISTER => 3224917584U;
-        public override uint VIDIOC_DBG_S_REGISTER => 2151175759U;
-        public override uint VIDIOC_DECODER_CMD => 3225966176U;
-        public override uint VIDIOC_DQBUF => 3225703953U;
-        public override uint VIDIOC_DQEVENT => 1082152537U;
-        public override uint VIDIOC_DV_TIMINGS_CAP => 3230684772U;
-        public override uint VIDIOC_ENCODER_CMD => 3223869005U;
-        public override uint VIDIOC_ENUM_DV_TIMINGS => 3230946914U;
+        public override uint VIDIOC_DQBUF => 3227014673U;
         public override uint VIDIOC_ENUM_FMT => 3225441794U;
         public override uint VIDIOC_ENUM_FRAMEINTERVALS => 3224655435U;
         public override uint VIDIOC_ENUM_FRAMESIZES => 3224131146U;
-        public override uint VIDIOC_ENUM_FREQ_BANDS => 3225441893U;
-        public override uint VIDIOC_ENUMAUDIO => 3224655425U;
-        public override uint VIDIOC_ENUMAUDOUT => 3224655426U;
-        public override uint VIDIOC_ENUMINPUT => 3226490394U;
-        public override uint VIDIOC_ENUMOUTPUT => 3225966128U;
-        public override uint VIDIOC_ENUMSTD => 3225966105U;
-        public override uint VIDIOC_EXPBUF => 3225441808U;
-        public override uint VIDIOC_G_AUDIO => 1077171745U;
-        public override uint VIDIOC_G_AUDOUT => 1077171761U;
-        public override uint VIDIOC_G_CROP => 3222558267U;
-        public override uint VIDIOC_G_CTRL => 3221771803U;
-        public override uint VIDIOC_G_DV_TIMINGS => 3229898328U;
-        public override uint VIDIOC_G_EDID => 3223606824U;
-        public override uint VIDIOC_G_ENC_INDEX => 1209554508U;
-        public override uint VIDIOC_G_EXT_CTRLS => 3222820423U;
-        public override uint VIDIOC_G_FBUF => 1076647434U;
-        public override uint VIDIOC_G_FMT => 3234616836U;
-        public override uint VIDIOC_G_FREQUENCY => 3224131128U;
-        public override uint VIDIOC_G_INPUT => 1074026022U;
-        public override uint VIDIOC_G_JPEGCOMP => 1082938941U;
-        public override uint VIDIOC_G_MODULATOR => 3225703990U;
-        public override uint VIDIOC_G_OUTPUT => 1074026030U;
-        public override uint VIDIOC_G_PARM => 3234616853U;
-        public override uint VIDIOC_G_PRIORITY => 1074026051U;
-        public override uint VIDIOC_G_SELECTION => 3225441886U;
-        public override uint VIDIOC_G_SLICED_VBI_CAP => 3228849733U;
-        public override uint VIDIOC_G_STD => 1074288151U;
-        public override uint VIDIOC_G_TUNER => 3226752541U;
-        public override uint VIDIOC_LOG_STATUS => 536892998U;
-        public override uint VIDIOC_OVERLAY => 2147767822U;
-        public override uint VIDIOC_PREPARE_BUF => 3225704029U;
-        public override uint VIDIOC_QBUF => 3225703951U;
-        public override uint VIDIOC_QUERY_DV_TIMINGS => 1082414691U;
-        public override uint VIDIOC_QUERY_EXT_CTRL => 3236451943U;
-        public override uint VIDIOC_QUERYBUF => 3225703945U;
-        public override uint VIDIOC_QUERYCAP => 1080579584U;
-        public override uint VIDIOC_QUERYCTRL => 3225703972U;
-        public override uint VIDIOC_QUERYMENU => 3224131109U;
-        public override uint VIDIOC_QUERYSTD => 1074288191U;
+        public override uint VIDIOC_QBUF => 3227014671U;
+        public override uint VIDIOC_QUERYBUF => 3227014665U;
+        public override uint VIDIOC_QUERYCAP => 2154321408U;
         public override uint VIDIOC_REQBUFS => 3222558216U;
-        public override uint VIDIOC_S_AUDIO => 2150913570U;
-        public override uint VIDIOC_S_AUDOUT => 2150913586U;
-        public override uint VIDIOC_S_CROP => 2148816444U;
-        public override uint VIDIOC_S_CTRL => 3221771804U;
-        public override uint VIDIOC_S_DV_TIMINGS => 3229898327U;
-        public override uint VIDIOC_S_EDID => 3223606825U;
-        public override uint VIDIOC_S_EXT_CTRLS => 3222820424U;
-        public override uint VIDIOC_S_FBUF => 2150389259U;
-        public override uint VIDIOC_S_FMT => 3234616837U;
-        public override uint VIDIOC_S_FREQUENCY => 2150389305U;
-        public override uint VIDIOC_S_HW_FREQ_SEEK => 2150651474U;
-        public override uint VIDIOC_S_INPUT => 3221509671U;
-        public override uint VIDIOC_S_JPEGCOMP => 2156680766U;
-        public override uint VIDIOC_S_MODULATOR => 2151962167U;
-        public override uint VIDIOC_S_OUTPUT => 3221509679U;
-        public override uint VIDIOC_S_PARM => 3234616854U;
-        public override uint VIDIOC_S_PRIORITY => 2147767876U;
-        public override uint VIDIOC_S_SELECTION => 3225441887U;
-        public override uint VIDIOC_S_STD => 2148029976U;
-        public override uint VIDIOC_S_TUNER => 2153010718U;
-        public override uint VIDIOC_STREAMOFF => 2147767827U;
-        public override uint VIDIOC_STREAMON => 2147767826U;
-        public override uint VIDIOC_SUBSCRIBE_EVENT => 2149602906U;
-        public override uint VIDIOC_TRY_DECODER_CMD => 3225966177U;
-        public override uint VIDIOC_TRY_ENCODER_CMD => 3223869006U;
-        public override uint VIDIOC_TRY_EXT_CTRLS => 3222820425U;
-        public override uint VIDIOC_TRY_FMT => 3234616896U;
-        public override uint VIDIOC_UNSUBSCRIBE_EVENT => 2149602907U;
+        public override uint VIDIOC_S_FMT => 3234878981U;
+        public override uint VIDIOC_STREAMOFF => 1074026003U;
+        public override uint VIDIOC_STREAMON => 1074026002U;
 
         // Structures
-        [StructLayout(LayoutKind.Explicit, Size=8)]
+        [StructLayout(LayoutKind.Explicit, Size=16)]
         private new unsafe struct timespec : NativeMethods_V4L2_Interop.timespec
         {
             [FieldOffset(0)] private IntPtr tv_sec_;   // long
@@ -355,7 +51,7 @@ namespace FlashCap.Internal.V4L2
                 set => this.tv_sec_ = (IntPtr)value;
             }
 
-            [FieldOffset(4)] private IntPtr tv_nsec_;   // long
+            [FieldOffset(8)] private IntPtr tv_nsec_;   // long
             public IntPtr tv_nsec
             {
                 get => this.tv_nsec_;
@@ -365,7 +61,7 @@ namespace FlashCap.Internal.V4L2
         }
         public override NativeMethods_V4L2_Interop.timespec Create_timespec() => new timespec();
 
-        [StructLayout(LayoutKind.Explicit, Size=8)]
+        [StructLayout(LayoutKind.Explicit, Size=16)]
         private new unsafe struct timeval : NativeMethods_V4L2_Interop.timeval
         {
             [FieldOffset(0)] private IntPtr tv_sec_;   // long
@@ -375,7 +71,7 @@ namespace FlashCap.Internal.V4L2
                 set => this.tv_sec_ = (IntPtr)value;
             }
 
-            [FieldOffset(4)] private IntPtr tv_usec_;   // long
+            [FieldOffset(8)] private IntPtr tv_usec_;   // long
             public IntPtr tv_usec
             {
                 get => this.tv_usec_;
@@ -385,7 +81,7 @@ namespace FlashCap.Internal.V4L2
         }
         public override NativeMethods_V4L2_Interop.timeval Create_timeval() => new timeval();
 
-        [StructLayout(LayoutKind.Explicit, Size=68)]
+        [StructLayout(LayoutKind.Explicit, Size=88)]
         private new unsafe struct v4l2_buffer : NativeMethods_V4L2_Interop.v4l2_buffer
         {
             [FieldOffset(0)] private uint index_;
@@ -423,84 +119,84 @@ namespace FlashCap.Internal.V4L2
                 set => this.field_ = (uint)value;
             }
 
-            [FieldOffset(20)] private timeval timestamp_;
+            [FieldOffset(24)] private timeval timestamp_;
             public NativeMethods_V4L2_Interop.timeval timestamp
             {
                 get => this.timestamp_;
                 set => this.timestamp_ = (timeval)value;
             }
 
-            [FieldOffset(28)] private v4l2_timecode timecode_;
+            [FieldOffset(40)] private v4l2_timecode timecode_;
             public NativeMethods_V4L2_Interop.v4l2_timecode timecode
             {
                 get => this.timecode_;
                 set => this.timecode_ = (v4l2_timecode)value;
             }
 
-            [FieldOffset(44)] private uint sequence_;
+            [FieldOffset(56)] private uint sequence_;
             public uint sequence
             {
                 get => this.sequence_;
                 set => this.sequence_ = (uint)value;
             }
 
-            [FieldOffset(48)] private uint memory_;
+            [FieldOffset(60)] private uint memory_;
             public uint memory
             {
                 get => this.memory_;
                 set => this.memory_ = (uint)value;
             }
 
-            [FieldOffset(52)] private uint m_offset_;
+            [FieldOffset(64)] private uint m_offset_;
             public uint m_offset
             {
                 get => this.m_offset_;
                 set => this.m_offset_ = (uint)value;
             }
 
-            [FieldOffset(52)] private UIntPtr m_userptr_;   // unsigned long
+            [FieldOffset(64)] private UIntPtr m_userptr_;   // unsigned long
             public UIntPtr m_userptr
             {
                 get => this.m_userptr_;
                 set => this.m_userptr_ = (UIntPtr)value;
             }
 
-            [FieldOffset(52)] private v4l2_plane* m_planes_;
+            [FieldOffset(64)] private v4l2_plane* m_planes_;
             public IntPtr m_planes
             {
                 get => (IntPtr)this.m_planes_;
                 set => this.m_planes_ = (v4l2_plane*)value.ToPointer();
             }
 
-            [FieldOffset(52)] private int m_fd_;
+            [FieldOffset(64)] private int m_fd_;
             public int m_fd
             {
                 get => this.m_fd_;
                 set => this.m_fd_ = (int)value;
             }
 
-            [FieldOffset(56)] private uint length_;
+            [FieldOffset(72)] private uint length_;
             public uint length
             {
                 get => this.length_;
                 set => this.length_ = (uint)value;
             }
 
-            [FieldOffset(60)] private uint reserved2_;
+            [FieldOffset(76)] private uint reserved2_;
             public uint reserved2
             {
                 get => this.reserved2_;
                 set => this.reserved2_ = (uint)value;
             }
 
-            [FieldOffset(64)] private int request_fd_;
+            [FieldOffset(80)] private int request_fd_;
             public int request_fd
             {
                 get => this.request_fd_;
                 set => this.request_fd_ = (int)value;
             }
 
-            [FieldOffset(64)] private uint reserved_;
+            [FieldOffset(80)] private uint reserved_;
             public uint reserved
             {
                 get => this.reserved_;
@@ -565,7 +261,7 @@ namespace FlashCap.Internal.V4L2
         }
         public override NativeMethods_V4L2_Interop.v4l2_capability Create_v4l2_capability() => new v4l2_capability();
 
-        [StructLayout(LayoutKind.Explicit, Size=20)]
+        [StructLayout(LayoutKind.Explicit, Size=24)]
         private new unsafe struct v4l2_clip : NativeMethods_V4L2_Interop.v4l2_clip
         {
             [FieldOffset(0)] private v4l2_rect c_;
@@ -640,7 +336,7 @@ namespace FlashCap.Internal.V4L2
         }
         public override NativeMethods_V4L2_Interop.v4l2_fmtdesc Create_v4l2_fmtdesc() => new v4l2_fmtdesc();
 
-        [StructLayout(LayoutKind.Explicit, Size=204)]
+        [StructLayout(LayoutKind.Explicit, Size=208)]
         private new unsafe struct v4l2_format : NativeMethods_V4L2_Interop.v4l2_format
         {
             [FieldOffset(0)] private uint type_;
@@ -650,56 +346,56 @@ namespace FlashCap.Internal.V4L2
                 set => this.type_ = (uint)value;
             }
 
-            [FieldOffset(4)] private v4l2_pix_format fmt_pix_;
+            [FieldOffset(8)] private v4l2_pix_format fmt_pix_;
             public NativeMethods_V4L2_Interop.v4l2_pix_format fmt_pix
             {
                 get => this.fmt_pix_;
                 set => this.fmt_pix_ = (v4l2_pix_format)value;
             }
 
-            [FieldOffset(4)] private v4l2_pix_format_mplane fmt_pix_mp_;
+            [FieldOffset(8)] private v4l2_pix_format_mplane fmt_pix_mp_;
             public NativeMethods_V4L2_Interop.v4l2_pix_format_mplane fmt_pix_mp
             {
                 get => this.fmt_pix_mp_;
                 set => this.fmt_pix_mp_ = (v4l2_pix_format_mplane)value;
             }
 
-            [FieldOffset(4)] private v4l2_window fmt_win_;
+            [FieldOffset(8)] private v4l2_window fmt_win_;
             public NativeMethods_V4L2_Interop.v4l2_window fmt_win
             {
                 get => this.fmt_win_;
                 set => this.fmt_win_ = (v4l2_window)value;
             }
 
-            [FieldOffset(4)] private v4l2_vbi_format fmt_vbi_;
+            [FieldOffset(8)] private v4l2_vbi_format fmt_vbi_;
             public NativeMethods_V4L2_Interop.v4l2_vbi_format fmt_vbi
             {
                 get => this.fmt_vbi_;
                 set => this.fmt_vbi_ = (v4l2_vbi_format)value;
             }
 
-            [FieldOffset(4)] private v4l2_sliced_vbi_format fmt_sliced_;
+            [FieldOffset(8)] private v4l2_sliced_vbi_format fmt_sliced_;
             public NativeMethods_V4L2_Interop.v4l2_sliced_vbi_format fmt_sliced
             {
                 get => this.fmt_sliced_;
                 set => this.fmt_sliced_ = (v4l2_sliced_vbi_format)value;
             }
 
-            [FieldOffset(4)] private v4l2_sdr_format fmt_sdr_;
+            [FieldOffset(8)] private v4l2_sdr_format fmt_sdr_;
             public NativeMethods_V4L2_Interop.v4l2_sdr_format fmt_sdr
             {
                 get => this.fmt_sdr_;
                 set => this.fmt_sdr_ = (v4l2_sdr_format)value;
             }
 
-            [FieldOffset(4)] private v4l2_meta_format fmt_meta_;
+            [FieldOffset(8)] private v4l2_meta_format fmt_meta_;
             public NativeMethods_V4L2_Interop.v4l2_meta_format fmt_meta
             {
                 get => this.fmt_meta_;
                 set => this.fmt_meta_ = (v4l2_meta_format)value;
             }
 
-            [FieldOffset(4)] private fixed byte fmt_raw_data_[200];
+            [FieldOffset(8)] private fixed byte fmt_raw_data_[200];
             public byte[] fmt_raw_data
             {
                 get { fixed (byte* p = this.fmt_raw_data_) { return get(p, 200); } }
@@ -1148,7 +844,7 @@ namespace FlashCap.Internal.V4L2
         }
         public override NativeMethods_V4L2_Interop.v4l2_pix_format_mplane Create_v4l2_pix_format_mplane() => new v4l2_pix_format_mplane();
 
-        [StructLayout(LayoutKind.Explicit, Size=60)]
+        [StructLayout(LayoutKind.Explicit, Size=64)]
         private new unsafe struct v4l2_plane : NativeMethods_V4L2_Interop.v4l2_plane
         {
             [FieldOffset(0)] private uint bytesused_;
@@ -1186,14 +882,14 @@ namespace FlashCap.Internal.V4L2
                 set => this.m_fd_ = (int)value;
             }
 
-            [FieldOffset(12)] private uint data_offset_;
+            [FieldOffset(16)] private uint data_offset_;
             public uint data_offset
             {
                 get => this.data_offset_;
                 set => this.data_offset_ = (uint)value;
             }
 
-            [FieldOffset(16)] private fixed uint reserved_[11];
+            [FieldOffset(20)] private fixed uint reserved_[11];
             public uint[] reserved
             {
                 get { fixed (uint* p = this.reserved_) { return get(p, 11); } }
@@ -1490,7 +1186,7 @@ namespace FlashCap.Internal.V4L2
         }
         public override NativeMethods_V4L2_Interop.v4l2_vbi_format Create_v4l2_vbi_format() => new v4l2_vbi_format();
 
-        [StructLayout(LayoutKind.Explicit, Size=40)]
+        [StructLayout(LayoutKind.Explicit, Size=56)]
         private new unsafe struct v4l2_window : NativeMethods_V4L2_Interop.v4l2_window
         {
             [FieldOffset(0)] private v4l2_rect w_;
@@ -1521,21 +1217,21 @@ namespace FlashCap.Internal.V4L2
                 set => this.clips_ = (v4l2_clip*)value.ToPointer();
             }
 
-            [FieldOffset(28)] private uint clipcount_;
+            [FieldOffset(32)] private uint clipcount_;
             public uint clipcount
             {
                 get => this.clipcount_;
                 set => this.clipcount_ = (uint)value;
             }
 
-            [FieldOffset(32)] private void* bitmap_;
+            [FieldOffset(40)] private void* bitmap_;
             public IntPtr bitmap
             {
                 get => (IntPtr)this.bitmap_;
                 set => this.bitmap_ = (void*)value.ToPointer();
             }
 
-            [FieldOffset(36)] private byte global_alpha_;
+            [FieldOffset(48)] private byte global_alpha_;
             public byte global_alpha
             {
                 get => this.global_alpha_;
