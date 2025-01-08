@@ -18,8 +18,9 @@ public sealed class AVFoundationDeviceDescriptor : CaptureDeviceDescriptor
 
     internal AVFoundationDeviceDescriptor(
         string uniqueId, string modelId, string localizedName,
-        VideoCharacteristics[] characteristics) :
-        base(modelId, localizedName, characteristics) =>
+        VideoCharacteristics[] characteristics,
+        BufferPool defaultBufferPool) :
+        base(modelId, localizedName, characteristics, defaultBufferPool) =>
         this.uniqueId = uniqueId;
 
     public override object Identity =>
