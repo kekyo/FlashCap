@@ -965,7 +965,9 @@ internal static class NativeMethods_AVFoundation
                     AVCaptureDeviceType.BuiltInTelephotoCamera,
                     AVCaptureDeviceType.BuiltInDualCamera,
                     AVCaptureDeviceType.BuiltInTripleCamera,
-                    AVCaptureDeviceType.BuiltInTrueDepthCamera
+                    AVCaptureDeviceType.BuiltInTrueDepthCamera,
+                    AVCaptureDeviceType.ExternalCamera,
+                    AVCaptureDeviceType.ExternalContinuityCamera
                 }
                     .Where(static handle => handle != IntPtr.Zero)
                     .ToArray();
@@ -1020,6 +1022,8 @@ internal static class NativeMethods_AVFoundation
             public static readonly IntPtr BuiltInDualCamera = Dlfcn.GetSymbolIndirect(LibAVFoundation.Handle, "AVCaptureDeviceTypeBuiltInDualCamera");
             public static readonly IntPtr BuiltInTripleCamera = Dlfcn.GetSymbolIndirect(LibAVFoundation.Handle, "AVCaptureDeviceTypeBuiltInTripleCamera");
             public static readonly IntPtr BuiltInTrueDepthCamera = Dlfcn.GetSymbolIndirect(LibAVFoundation.Handle, "AVCaptureDeviceTypeBuiltInTrueDepthCamera");
+            public static readonly IntPtr ExternalCamera = Dlfcn.GetSymbolIndirect(LibAVFoundation.Handle, "AVCaptureDeviceTypeExternal");
+            public static readonly IntPtr ExternalContinuityCamera = Dlfcn.GetSymbolIndirect(LibAVFoundation.Handle, "AVCaptureDeviceTypeContinuityCamera");
         }
 
         public abstract class AVCaptureInput : LibObjC.NSObject
