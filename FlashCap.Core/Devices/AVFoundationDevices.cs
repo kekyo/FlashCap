@@ -93,6 +93,8 @@ public sealed class AVFoundationDevices : CaptureDevices
                     }
                 }
             }
+            
+            session.Dispose();
 
             yield return new AVFoundationDeviceDescriptor(
                 device.UniqueID,

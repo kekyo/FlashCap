@@ -325,7 +325,7 @@ public sealed class MainWindowViewModel: ReactiveObject
                 Debug.WriteLine($"OnCharacteristicsChangedAsync: Opening: {descriptor.Name}");
                 this.captureDevice = await descriptor.OpenAsync(
                     characteristics,
-                    this.OnPixelBufferArrivedAsync);
+                    OnPixelBufferArrivedAsync);
 
                 this.UpdateCurrentState(States.Ready);
             }
@@ -338,7 +338,7 @@ public sealed class MainWindowViewModel: ReactiveObject
         }
     }
 
-    private async Task OnPixelBufferArrivedAsync(PixelBufferScope bufferScope)
+    private  async Task OnPixelBufferArrivedAsync(PixelBufferScope bufferScope)
     {
         ////////////////////////////////////////////////
         // Pixel buffer has arrived.

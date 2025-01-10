@@ -41,7 +41,7 @@ public sealed class AVFoundationDevice : CaptureDevice
 
         Marshal.FreeHGlobal(this.bitmapHeader);
 
-        if (frameProcessor is { })
+        if (frameProcessor is not null)
         {
             await frameProcessor.DisposeAsync().ConfigureAwait(false);
         }
@@ -102,20 +102,29 @@ public sealed class AVFoundationDevice : CaptureDevice
         var frameDuration = CMTimeMake(
             characteristics.FramesPerSecond.Denominator,
             characteristics.FramesPerSecond.Numerator);
+        
+        device.ActiveVideoMinFrameDuration = frameDuration;
+        device.ActiveVideoMaxFrameDuration = frameDuration;
+        
+        device.UnlockForConfiguration();
 
-        this.device.ActiveVideoMinFrameDuration = frameDuration;
-        this.device.ActiveVideoMaxFrameDuration = frameDuration;
-        this.device.UnlockForConfiguration();
-
-        this.deviceInput = new AVCaptureDeviceInput(this.device);
+        this.deviceInput = new AVCaptureDeviceInput(device);
         this.deviceOutput = new AVCaptureVideoDataOutput();
+        
         this.deviceOutput.SetPixelFormatType(pixelFormatType);
+        //this.deviceOutput.SetPixelFormatType(deviceOutput.AvailableVideoCVPixelFormatTypes[1]);
+        
         this.deviceOutput.SetSampleBufferDelegate(new VideoBufferHandler(this), this.queue);
         this.deviceOutput.AlwaysDiscardsLateVideoFrames = true;
 
         this.session = new AVCaptureSession();
         this.session.AddInput(this.deviceInput);
-        this.session.AddOutput(this.deviceOutput);
+        
+        if(session.CanAddOutput(deviceOutput)) session.AddOutput(this.deviceOutput);
+        else
+        {
+            throw new Exception("Can't add video output");
+        }
 
         return Task.CompletedTask;
     }
@@ -149,36 +158,78 @@ public sealed class AVFoundationDevice : CaptureDevice
 
         public override void DidDropSampleBuffer(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection)
         {
+            Console.WriteLine("Dropped");
+            var valid = CMSampleBufferIsValid(sampleBuffer);
         }
 
         public override void DidOutputSampleBuffer(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection)
         {
-            var pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
-            if (pixelBuffer == IntPtr.Zero)
-            {
-                return;
-            }
+            //Check if is valid 
+            
+            CFRetain(sampleBuffer);
+            
+            var valid = CMSampleBufferIsValid(sampleBuffer);
 
-            var timeStamp = CMSampleBufferGetDecodeTimeStamp(sampleBuffer);
-            var seconds = CMTimeGetSeconds(timeStamp);
-
-            CVPixelBufferLockBaseAddress(pixelBuffer, PixelBufferLockFlags.ReadOnly);
-
-            try
+            if (valid)
             {
-                this.device.frameProcessor?.OnFrameArrived(
-                    this.device,
-                    CVPixelBufferGetBaseAddress(pixelBuffer),
-                    (int)CVPixelBufferGetDataSize(pixelBuffer),
-                    (long)(seconds * 1000),
-                    this.frameIndex++);
+
+                var blockBuffer = CMSampleBufferGetDataBuffer(sampleBuffer);
+                
+                if (blockBuffer != IntPtr.Zero)
+                {
+                    //var len = CMBlockBufferGetDataLength(blockBuffer);
+                    IntPtr dataPtr = new ();
+                    IntPtr lengthPtr = new ();
+                    IntPtr offlengthPtr = new ();
+                    CMBlockBufferGetDataPointer(blockBuffer, 0, out lengthPtr, out offlengthPtr, out dataPtr);
+                    
+                    lock (this)
+                    {
+                        frameIndex++;
+                        CFRelease(sampleBuffer);
+                        
+                    }
+                }
+
+                var pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+                
+                if (pixelBuffer == IntPtr.Zero)
+                {
+                    lock (this)
+                    {
+                        frameIndex++;
+                        CFRelease(sampleBuffer);
+                        
+                    }
+                    return;
+                }
+                
+                var timeStamp = CMSampleBufferGetDecodeTimeStamp(sampleBuffer);
+                var seconds = CMTimeGetSeconds(timeStamp);
+
+                CVPixelBufferLockBaseAddress(pixelBuffer, PixelBufferLockFlags.ReadOnly);
+
+                try
+                {
+                    this.device.frameProcessor?.OnFrameArrived(
+                        this.device,
+                        CVPixelBufferGetBaseAddress(pixelBuffer),
+                        (int)CVPixelBufferGetDataSize(pixelBuffer),
+                        (long)(seconds * 1000),
+                        frameIndex++);
+                }
+                finally
+                {
+                    CVPixelBufferUnlockBaseAddress(pixelBuffer, PixelBufferLockFlags.ReadOnly);
+                    // Required to return the buffer to the queue of free buffers.
+                    CFRelease(sampleBuffer);
+                }
+                
+                
+                
             }
-            finally
-            {
-                CVPixelBufferUnlockBaseAddress(pixelBuffer, PixelBufferLockFlags.ReadOnly);
-                // Required to return the buffer to the queue of free buffers.
-                CFRelease(sampleBuffer);
-            }
+            
+            
         }
     }
 }
