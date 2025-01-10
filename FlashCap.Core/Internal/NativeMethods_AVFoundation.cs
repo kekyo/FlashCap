@@ -129,6 +129,9 @@ internal static class NativeMethods_AVFoundation
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
         public static extern bool SendAndGetBool(IntPtr receiver, IntPtr selector);
+        
+        [DllImport(Path, EntryPoint = "objc_msgSend")]
+        public static extern bool SendAndGetBool(IntPtr receiver, IntPtr selector, IntPtr arg1);
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
         public static extern IntPtr SendAndGetHandle(IntPtr receiver, IntPtr selector);
@@ -366,6 +369,8 @@ internal static class NativeMethods_AVFoundation
             public NSError(IntPtr handle, bool retain) :
                 base(handle, retain)
             { }
+
+            public string Error { get; set; } = string.Empty;
         }
     }
 
@@ -548,6 +553,19 @@ internal static class NativeMethods_AVFoundation
                 LibC.DispatchRelease(Handle);
         }
     }
+    
+    public enum CMBlockBufferError : int {
+        None						= 0,
+        StructureAllocationFailed	= -12700,
+        BlockAllocationFailed		= -12701,
+        BadCustomBlockSource		= -12702,
+        BadOffsetParameter			= -12703,
+        BadLengthParameter			= -12704,
+        BadPointerParameter			= -12705,
+        EmptyBlockBuffer			= -12706,
+        UnallocatedBlock			= -12707,
+        InsufficientSpace			= -12708,
+    }
 
     public static class LibCoreMedia
     {
@@ -561,10 +579,25 @@ internal static class NativeMethods_AVFoundation
 
         [DllImport(Path)]
         public static extern IntPtr CMSampleBufferGetImageBuffer(IntPtr sbuf);
+        
+        [DllImport(Path)]
+        public static extern IntPtr CMSampleBufferGetDataBuffer(IntPtr sbuf);
+        
+        [DllImport(Path)]
+        public static extern bool CMSampleBufferIsValid(IntPtr sbuf);
+        
+        [DllImport(Path)]
+        public static extern IntPtr CMSampleBufferGetFormatDescription(IntPtr sbuf);
 
         [DllImport(Path)]
         public static extern CMTime CMSampleBufferGetDecodeTimeStamp(IntPtr sbuf);
+        
+        [DllImport(Path)]
+        public static extern CMBlockBufferError CMBlockBufferGetDataPointer(IntPtr theBuffer, nuint offset, out IntPtr lengthAtOffset, out IntPtr totalLength, out IntPtr dataPointer);
 
+        [DllImport(Path)]
+        public static extern nuint CMBlockBufferGetDataLength(IntPtr theBuffer);
+        
         [DllImport(Path)]
         public static extern CMMediaType CMFormatDescriptionGetMediaType(IntPtr desc);
 
@@ -645,6 +678,7 @@ internal static class NativeMethods_AVFoundation
 
         public static readonly IntPtr Handle = Dlfcn.OpenLibrary(Path, Dlfcn.Mode.None);
         public static readonly IntPtr kCVPixelBufferPixelFormatTypeKey = Dlfcn.GetSymbolIndirect(Handle, "kCVPixelBufferPixelFormatTypeKey");
+        public static readonly IntPtr kCVPixelBufferMetalCompatibilityKey = Dlfcn.GetSymbolIndirect(Handle, "kCVPixelBufferMetalCompatibilityKey");
 
         [DllImport(Path)]
         public static extern nuint CVPixelBufferGetDataSize(IntPtr pixelBuffer);
@@ -889,6 +923,7 @@ internal static class NativeMethods_AVFoundation
                 if (errorHandle != IntPtr.Zero)
                 {
                     using var error = new LibObjC.NSError(errorHandle, retain: true);
+                    Console.WriteLine(error.Error);
                     throw new InvalidOperationException(/* error.FailureReason */);
                 }
             }
@@ -1057,7 +1092,8 @@ internal static class NativeMethods_AVFoundation
 
                 if (errorHandle != IntPtr.Zero)
                 {
-                    using var error = new LibObjC.NSError(errorHandle, retain: true);
+                    using var error = new LibObjC.NSError(errorHandle, retain: false);
+                    Console.WriteLine(error.Error);
                     throw new InvalidOperationException(/* error.FailureReason */);
                 }
 
@@ -1107,7 +1143,13 @@ internal static class NativeMethods_AVFoundation
             public unsafe void SetPixelFormatType(int format)
             {
                 var number = LibCoreFoundation.CFNumberCreate(IntPtr.Zero, LibCoreFoundation.CFNumberType.sInt32Type, &format);
-                var keys = new IntPtr[] { LibCoreVideo.kCVPixelBufferPixelFormatTypeKey };
+                
+                var strTrue = LibCoreFoundation.CFString.Create("true");
+                
+                //var keys = new IntPtr[] { LibCoreVideo.kCVPixelBufferPixelFormatTypeKey, LibCoreVideo.kCVPixelBufferMetalCompatibilityKey };
+                //var values = new IntPtr[] { number, strTrue.Handle };
+                
+                var keys = new IntPtr[] { LibCoreVideo.kCVPixelBufferPixelFormatTypeKey};
                 var values = new IntPtr[] { number };
 
                 var dictionary = LibCoreFoundation.CFDictionaryCreate(
@@ -1125,6 +1167,7 @@ internal static class NativeMethods_AVFoundation
 
                 LibCoreFoundation.CFRelease(dictionary);
                 LibCoreFoundation.CFRelease(number);
+                LibCoreFoundation.CFRelease(strTrue.Handle);
             }
 
             public void SetSampleBufferDelegate(AVCaptureVideoDataOutputSampleBuffer sampleBufferDelegate, LibCoreFoundation.DispatchQueue sampleBufferCallbackQueue) =>
@@ -1255,6 +1298,12 @@ internal static class NativeMethods_AVFoundation
                 LibObjC.SendNoResult(
                     Handle,
                     LibObjC.GetSelector("addOutput:"),
+                    output.Handle);
+            
+            public bool CanAddOutput(AVCaptureOutput output) =>
+                LibObjC.SendAndGetBool(
+                    Handle,
+                    LibObjC.GetSelector("canAddOutput:"),
                     output.Handle);
 
             public void StartRunning() =>
