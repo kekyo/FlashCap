@@ -12,8 +12,10 @@ internal static class NativeMethods_AVFoundation
     public static readonly Dictionary<PixelFormats, int> PixelFormatMap = new()
     {
         [PixelFormats.RGB24] = LibCoreVideo.PixelFormatType_24RGB,
-        [PixelFormats.RGB32] = LibCoreVideo.PixelFormatType_30RGB,
-        [PixelFormats.ARGB32] = LibCoreVideo.PixelFormatType_32ARGB,
+        [PixelFormats.RGB32] = 32,
+        [PixelFormats.UYVY] = LibCoreVideo.PixelFormatType_422YpCbCr8_yuvs,
+        [PixelFormats.ARGB32] = LibCoreVideo.PixelFormatType_32BGRA,
+        //[PixelFormats.ARGB32] = LibCoreVideo.PixelFormatType_32ARGB,
         [PixelFormats.YUYV] = LibCoreVideo.PixelFormatType_422YpCbCr8,
     };
 
@@ -385,6 +387,9 @@ internal static class NativeMethods_AVFoundation
 
         [DllImport(Path)]
         public static extern void CFRelease(IntPtr cf);
+        
+        [DllImport(Path)]
+        public static extern IntPtr CFGetTypeID(IntPtr cf);
 
         [DllImport(Path)]
         public static extern void CFRetain(IntPtr cf);
@@ -569,8 +574,39 @@ internal static class NativeMethods_AVFoundation
 
     public static class LibCoreMedia
     {
+        
+
+        
         public const string Path = "/System/Library/Frameworks/CoreMedia.framework/CoreMedia";
 
+        [DllImport(Path)]
+        public static extern IntPtr CMSampleBufferGetAttachments(IntPtr sampleBuffer, int makeWritable);
+
+        [DllImport(Path)]
+        public static extern IntPtr CMGetAttachment(IntPtr target, IntPtr key, out CMAttachmentMode attachmentMode);
+
+        [DllImport(Path, EntryPoint = "CMFormatDescriptionGetMediaType", CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint CmFormatDescriptionGetMediaTypeIntCode(IntPtr formatDescription);
+
+        //[DllImport(Path, EntryPoint = "CMFormatDescriptionGetMediaType", CallingConvention = CallingConvention.Cdecl)]
+        //public static extern FourCharCode CmFormatDescriptionGetMediaTypeFourCode(IntPtr formatDescription);
+        
+        //[DllImport(Path)]
+        //public static extern CMVideoDimensions CMVideoFormatDescriptionGetDimensions(IntPtr videoDesc);
+
+        // Add this enum
+        public enum CMAttachmentMode
+        {
+            ShouldNotPropagate = 0,
+            ShouldPropagate = 1
+        }
+        
+
+        // Add this constant
+        public static readonly FourCharCode kCMMediaType_Video = new FourCharCode('v', 'i', 'd', 'e');
+        
+        
+        
         [DllImport(Path)]
         public static extern CMTime CMTimeMake(long value, int timescale);
 
@@ -598,8 +634,13 @@ internal static class NativeMethods_AVFoundation
         [DllImport(Path)]
         public static extern nuint CMBlockBufferGetDataLength(IntPtr theBuffer);
         
-        [DllImport(Path)]
+        [DllImport(Path, CallingConvention = CallingConvention.Cdecl)]
         public static extern CMMediaType CMFormatDescriptionGetMediaType(IntPtr desc);
+        //public static extern FourCharCode CMFormatDescriptionGetMediaType(IntPtr desc);
+        
+        [DllImport(Path)]
+        public static extern IntPtr CMSampleBufferGetSampleAttachmentsArray(IntPtr sampleBuffer, bool createIfNecessary);
+        
 
         [DllImport(Path)]
         public static extern uint CMFormatDescriptionGetMediaSubType(IntPtr desc);
@@ -609,7 +650,7 @@ internal static class NativeMethods_AVFoundation
 
         public enum CMMediaType : uint
         {
-            Video = 1986618469, // 'vide'
+            Video = 1986618469, // 'video'
         }
 
         public enum CMPixelFormat : uint
@@ -701,16 +742,19 @@ internal static class NativeMethods_AVFoundation
             ReadOnly = 1,
         }
 
-        public static readonly int PixelFormatType_16BE555 = 0x00000010;
+        //public static readonly int PixelFormatType_16BE555 = 0x00000010;
         public static readonly int PixelFormatType_16LE555 = GetFourCC("L555");
         public static readonly int PixelFormatType_16LE5551 = GetFourCC("5551");
         public static readonly int PixelFormatType_16BE565 = GetFourCC("B565");
         public static readonly int PixelFormatType_16LE565 = GetFourCC("L565");
-        public static readonly int PixelFormatType_24RGB = 0x00000018;
+        //public static readonly int PixelFormatType_24RGB = 0x00000018;
+        public static readonly int PixelFormatType_24RGB = GetFourCC("24RG");
         public static readonly int PixelFormatType_24BGR = GetFourCC("24BG");
-        public static readonly int PixelFormatType_32ARGB = 0x00000020;
+        //public static readonly int PixelFormatType_32ARGB = 0x00000020;
+        public static readonly int PixelFormatType_32ARGB = GetFourCC("ARGB");
         public static readonly int PixelFormatType_32ABGR = GetFourCC("ABGR");
         public static readonly int PixelFormatType_32RGBA = GetFourCC("RGBA");
+        public static readonly int PixelFormatType_32BGRA = GetFourCC("BGRA");
         public static readonly int PixelFormatType_64ARGB = GetFourCC("b64a");
         public static readonly int PixelFormatType_48RGB = GetFourCC("b48r");
         public static readonly int PixelFormatType_32AlphaGray = GetFourCC("b32a");
@@ -740,11 +784,18 @@ internal static class NativeMethods_AVFoundation
             return new string(buffer);
         }
 
-        private static int GetFourCC(string s) =>
+
+        private static int GetFourCC(string s)
+        {
+            var fcc = new FourCharCode(s);
+            return fcc.GetIntVal();
+        }
+        
+        /*private static int GetFourCC(string s) =>
             s[0] << 24 |
             s[1] << 16 |
             s[2] << 8 |
-            s[3];
+            s[3];*/
     }
 
     public static class LibAVFoundation

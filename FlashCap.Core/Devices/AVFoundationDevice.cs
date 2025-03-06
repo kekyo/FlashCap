@@ -10,6 +10,7 @@ using static FlashCap.Internal.NativeMethods_AVFoundation.LibCoreFoundation;
 using static FlashCap.Internal.NativeMethods_AVFoundation.LibCoreMedia;
 using static FlashCap.Internal.NativeMethods_AVFoundation.LibCoreVideo;
 
+
 namespace FlashCap.Devices;
 
 public sealed class AVFoundationDevice : CaptureDevice
@@ -164,72 +165,89 @@ public sealed class AVFoundationDevice : CaptureDevice
 
         public override void DidOutputSampleBuffer(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection)
         {
-            //Check if is valid 
-            
-            CFRetain(sampleBuffer);
-            
-            var valid = CMSampleBufferIsValid(sampleBuffer);
-
-            if (valid)
+            lock (this) // Or use a proper thread synchronization mechanism
             {
+                //Check if is valid 
 
-                var blockBuffer = CMSampleBufferGetDataBuffer(sampleBuffer);
-                
-                if (blockBuffer != IntPtr.Zero)
-                {
-                    //var len = CMBlockBufferGetDataLength(blockBuffer);
-                    IntPtr dataPtr = new ();
-                    IntPtr lengthPtr = new ();
-                    IntPtr offlengthPtr = new ();
-                    CMBlockBufferGetDataPointer(blockBuffer, 0, out lengthPtr, out offlengthPtr, out dataPtr);
-                    
-                    lock (this)
-                    {
-                        frameIndex++;
-                        CFRelease(sampleBuffer);
-                        
-                    }
-                }
+                CFRetain(sampleBuffer);
 
-                var pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
-                
-                if (pixelBuffer == IntPtr.Zero)
+                var valid = CMSampleBufferIsValid(sampleBuffer);
+                // Add diagnostic logging
+                Console.WriteLine($"Sample buffer is valid: {valid}");
+
+                if (!valid)
                 {
-                    lock (this)
-                    {
-                        frameIndex++;
-                        CFRelease(sampleBuffer);
-                        
-                    }
+                    CFRelease(sampleBuffer);
                     return;
                 }
-                
-                var timeStamp = CMSampleBufferGetDecodeTimeStamp(sampleBuffer);
-                var seconds = CMTimeGetSeconds(timeStamp);
 
-                CVPixelBufferLockBaseAddress(pixelBuffer, PixelBufferLockFlags.ReadOnly);
+                // Check the format description to reveal possible issues
+                var formatDesc = CMSampleBufferGetFormatDescription(sampleBuffer);
 
-                try
+
+                if (formatDesc == IntPtr.Zero)
                 {
-                    this.device.frameProcessor?.OnFrameArrived(
-                        this.device,
-                        CVPixelBufferGetBaseAddress(pixelBuffer),
-                        (int)CVPixelBufferGetDataSize(pixelBuffer),
-                        (long)(seconds * 1000),
-                        frameIndex++);
+                    Console.WriteLine("Format description is null. Skipping CFRetain.");
                 }
-                finally
+                else
                 {
-                    CVPixelBufferUnlockBaseAddress(pixelBuffer, PixelBufferLockFlags.ReadOnly);
-                    // Required to return the buffer to the queue of free buffers.
-                    CFRelease(sampleBuffer);
+                    Console.WriteLine($"Retaining format description: {formatDesc}");
+                    CFRetain(formatDesc);
                 }
-                
-                
-                
+
+
+                if (formatDesc == IntPtr.Zero)
+                {
+                    Console.WriteLine("[Debug] Format description is null.");
+                }
+                else
+                {
+                    //var mediaType = (uint)CMFormatDescriptionGetMediaType(formatDesc);
+                    
+                    var intType = CmFormatDescriptionGetMediaTypeIntCode(formatDesc);
+                    var mediaType = new FourCharCode(intType);
+                    Console.WriteLine($"[Debug] Media type: {mediaType}");
+                }
+
+                CFRelease(formatDesc);
+
+                // Optionally, inspect attachments to determine if any configuration might be missing
+                var attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, false);
+                Console.WriteLine($"[Debug] Attachments present: {(attachments != IntPtr.Zero ? "Yes" : "No")}");
+
+                // Now try to get the image buffer
+                var pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+                Console.WriteLine($"[Debug] Pixel buffer address: {pixelBuffer}");
+
+                if (pixelBuffer == IntPtr.Zero)
+                {
+                    Console.WriteLine("[Error] CMSampleBufferGetImageBuffer returned 0x0.");
+                }
+                else
+                {
+                    // Lock the base address for reading, process the buffer, etc.
+                    CVPixelBufferLockBaseAddress(pixelBuffer, PixelBufferLockFlags.ReadOnly);
+
+                    try
+                    {
+                        // Process the pixel buffer as needed
+                        this.device.frameProcessor?.OnFrameArrived(
+                            this.device,
+                            CVPixelBufferGetBaseAddress(pixelBuffer),
+                            (int)CVPixelBufferGetDataSize(pixelBuffer),
+                            (long)(CMTimeGetSeconds(CMSampleBufferGetDecodeTimeStamp(sampleBuffer)) * 1000),
+                            frameIndex++);
+                    }
+                    finally
+                    {
+                        CVPixelBufferUnlockBaseAddress(pixelBuffer, PixelBufferLockFlags.ReadOnly);
+                    }
+                }
+
+                // Release the sample buffer once done
+                CFRelease(sampleBuffer);
             }
-            
-            
+
         }
     }
 }
