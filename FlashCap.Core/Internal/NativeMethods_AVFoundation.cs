@@ -1129,7 +1129,7 @@ internal static class NativeMethods_AVFoundation
         public sealed class AVCaptureDeviceInput : AVCaptureInput
         {
             public AVCaptureDeviceInput(AVCaptureDevice device) :
-                base(FromDevice(device), retain: false)
+                base(FromDevice(device), retain: true)
             { }
 
             private static unsafe IntPtr FromDevice(AVCaptureDevice device)
@@ -1158,7 +1158,7 @@ internal static class NativeMethods_AVFoundation
                 LibObjC.SendAndGetHandle(
                     LibObjC.GetClass(nameof(AVCaptureVideoDataOutput)),
                     LibObjC.GetSelector(LibObjC.AllocSelector)),
-                retain: false)
+                retain: true)
             {
                 LibObjC.SendNoResult(
                     Handle,
@@ -1194,11 +1194,7 @@ internal static class NativeMethods_AVFoundation
             public unsafe void SetPixelFormatType(int format)
             {
                 var number = LibCoreFoundation.CFNumberCreate(IntPtr.Zero, LibCoreFoundation.CFNumberType.sInt32Type, &format);
-                
-                var strTrue = LibCoreFoundation.CFString.Create("true");
-                
-                //var keys = new IntPtr[] { LibCoreVideo.kCVPixelBufferPixelFormatTypeKey, LibCoreVideo.kCVPixelBufferMetalCompatibilityKey };
-                //var values = new IntPtr[] { number, strTrue.Handle };
+                LibCoreFoundation.CFRetain(number);
                 
                 var keys = new IntPtr[] { LibCoreVideo.kCVPixelBufferPixelFormatTypeKey};
                 var values = new IntPtr[] { number };
@@ -1210,6 +1206,8 @@ internal static class NativeMethods_AVFoundation
                     numValues: 1,
                     LibCoreFoundation.kCFCopyStringDictionaryKeyCallBacks,
                     LibCoreFoundation.kCFTypeDictionaryValueCallBacks);
+                
+                LibCoreFoundation.CFRetain(dictionary);
 
                 LibObjC.SendNoResult(
                     Handle,
@@ -1218,7 +1216,7 @@ internal static class NativeMethods_AVFoundation
 
                 LibCoreFoundation.CFRelease(dictionary);
                 LibCoreFoundation.CFRelease(number);
-                LibCoreFoundation.CFRelease(strTrue.Handle);
+                //LibCoreFoundation.CFRelease(strTrue.Handle);
             }
 
             public void SetSampleBufferDelegate(AVCaptureVideoDataOutputSampleBuffer sampleBufferDelegate, LibCoreFoundation.DispatchQueue sampleBufferCallbackQueue) =>
@@ -1332,7 +1330,7 @@ internal static class NativeMethods_AVFoundation
                 LibObjC.SendAndGetHandle(
                     LibObjC.GetClass(nameof(AVCaptureSession)),
                     LibObjC.GetSelector(LibObjC.AllocSelector)),
-                retain: false)
+                retain: true)
             {
                 LibObjC.SendNoResult(
                     Handle,
