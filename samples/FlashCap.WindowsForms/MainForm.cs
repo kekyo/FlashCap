@@ -49,7 +49,7 @@ public partial class MainForm : Form
             // Request video characteristics strictly:
             // Will raise exception when parameters are not accepted.
             var characteristics = new VideoCharacteristics(
-                PixelFormats.JPEG, 1920, 1080, 60);
+                PixelFormats.RGB32, 320, 240, 20);
 #else
             // Or, you could choice from device descriptor:
             // Hint: Show up video characteristics into ComboBox and like.
