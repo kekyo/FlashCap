@@ -112,7 +112,18 @@ public sealed class AVFoundationDevice : CaptureDevice
         this.deviceInput = new AVCaptureDeviceInput(device);
         this.deviceOutput = new AVCaptureVideoDataOutput();
         
-        this.deviceOutput.SetPixelFormatType(pixelFormatType);
+        if (this.deviceOutput.AvailableVideoCVPixelFormatTypes?.Any() == true)
+        {
+            var validPixelFormat = this.deviceOutput.AvailableVideoCVPixelFormatTypes.First();
+            this.deviceOutput.SetPixelFormatType(validPixelFormat);
+        }
+        else
+        {
+            // Fallback to the mapped pixel format if no available list is provided
+            this.deviceOutput.SetPixelFormatType(pixelFormatType);
+        }
+        
+        //this.deviceOutput.SetPixelFormatType(pixelFormatType);
         //this.deviceOutput.SetPixelFormatType(deviceOutput.AvailableVideoCVPixelFormatTypes[1]);
         
         this.deviceOutput.SetSampleBufferDelegate(new VideoBufferHandler(this), this.queue);
@@ -180,36 +191,7 @@ public sealed class AVFoundationDevice : CaptureDevice
                     CFRelease(sampleBuffer);
                     return;
                 }
-
-                // Check the format description to reveal possible issues
-                var formatDesc = CMSampleBufferGetFormatDescription(sampleBuffer);
-
-
-                if (formatDesc == IntPtr.Zero)
-                {
-                    Console.WriteLine("Format description is null. Skipping CFRetain.");
-                }
-                else
-                {
-                    Console.WriteLine($"Retaining format description: {formatDesc}");
-                    CFRetain(formatDesc);
-                }
-
-
-                if (formatDesc == IntPtr.Zero)
-                {
-                    Console.WriteLine("[Debug] Format description is null.");
-                }
-                else
-                {
-                    //var mediaType = (uint)CMFormatDescriptionGetMediaType(formatDesc);
-                    
-                    var intType = CmFormatDescriptionGetMediaTypeIntCode(formatDesc);
-                    var mediaType = new FourCharCode(intType);
-                    Console.WriteLine($"[Debug] Media type: {mediaType}");
-                }
-
-                CFRelease(formatDesc);
+                
 
                 // Optionally, inspect attachments to determine if any configuration might be missing
                 var attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, false);
