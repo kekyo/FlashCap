@@ -3,8 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace FlashCap.Internal;
 
-
-internal static partial class NativeMethods_AVFoundation
+public static partial class NativeMethods_AVFoundation
 {
     public static partial class LibAVFoundation
     {
@@ -52,31 +51,8 @@ internal static partial class NativeMethods_AVFoundation
                 }
                 
                 var videoDataOutput = videoDataOutputObj.Handle;
-
-                /*
-                IntPtr pixelFormatTypeKeyPtr = Dlfcn.dlsym(LibCoreVideo.Handle, "kCVPixelBufferPixelFormatTypeKey");
-                if (pixelFormatTypeKeyPtr == IntPtr.Zero)
-                {
-                    Console.WriteLine("Não foi possível obter kCVPixelBufferPixelFormatTypeKey.");
-                    return;
-                }
-
-                // Obtém o valor real da NSString a partir da constante
-                IntPtr nsPixelFormatKey = Marshal.ReadIntPtr(pixelFormatTypeKeyPtr);
-
-                int pixelFormat = 1111970369; // Exemplo utilizando BGRA
-                IntPtr nsNumber = LibObjC.CreateNSNumber(pixelFormat);
-
-                // Utiliza a chave reconhecida pelo Core Video: kCVPixelBufferPixelFormatTypeKey
-                //IntPtr nsPixelFormatKey = CreateNSString("kCVPixelBufferPixelFormatTypeKey");
-
-                IntPtr nsDictionaryClass = LibObjC.GetClass("NSDictionary");
-                IntPtr dictSel = LibObjC.GetSelector("dictionaryWithObject:forKey:");
-                IntPtr videoSettings = LibObjC.SendAndGetHandle(nsDictionaryClass, dictSel, nsNumber, nsPixelFormatKey);
-                IntPtr setVideoSettingsSel = LibObjC.GetSelector("setVideoSettings:");
-                LibObjC.SendNoResult(videoDataOutput, setVideoSettingsSel, videoSettings);
-                */
-
+                
+/*
                 // Criação e registro da classe delegate dinâmica que implementa o protocolo AVCaptureVideoDataOutputSampleBufferDelegate.
                 IntPtr nsObjectClass = LibObjC.GetClass("NSObject");
                 IntPtr delegateClass = LibObjC.objc_allocateClassPair(nsObjectClass, "CaptureDelegate", IntPtr.Zero);
@@ -113,6 +89,7 @@ internal static partial class NativeMethods_AVFoundation
                 // [videoDataOutput setSampleBufferDelegate:delegateInstance queue:dispatchQueue]
                 IntPtr setDelegateSel = LibObjC.GetSelector("setSampleBufferDelegate:queue:");
                 LibObjC.SendNoResult(videoDataOutput, setDelegateSel, delegateInstance, dispatchQueue);
+                */
 
                 LibObjC.SendNoResult(
                     Handle,
