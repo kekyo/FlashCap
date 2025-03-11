@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace FlashCap.Internal;
 
-internal static partial class NativeMethods_AVFoundation
+public static partial class NativeMethods_AVFoundation
 {
     public static partial class LibAVFoundation
     {
@@ -388,11 +388,12 @@ internal static partial class NativeMethods_AVFoundation
                     Marshal.GetFunctionPointerForDelegate(DidDropSampleBufferTrampoline),
                     types: "v@:@@@");
 
-                LibObjC.AddMethod(
+                /*LibObjC.AddMethod(
                     handle,
                     LibObjC.GetSelector("captureOutput:didOutputSampleBuffer:fromConnection:"),
                     Marshal.GetFunctionPointerForDelegate(DidOutputSampleBufferTrampoline),
                     types: "v@:@@@");
+                    */
 
                 LibObjC.AddProtocol(
                     handle,
@@ -415,7 +416,7 @@ internal static partial class NativeMethods_AVFoundation
                 HandleVariableDescriptor = LibObjC.GetVariable(handle, HandleVariableName);
             }
 
-            protected AVCaptureVideoDataOutputSampleBuffer() : base(
+            public AVCaptureVideoDataOutputSampleBuffer() : base(
                 LibObjC.SendAndGetHandle(
                     LibObjC.GetClass(nameof(AVCaptureVideoDataOutputSampleBuffer)),
                     LibObjC.GetSelector(LibObjC.AllocSelector)),
@@ -429,10 +430,15 @@ internal static partial class NativeMethods_AVFoundation
 
             public abstract void DidDropSampleBuffer(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection);
 
-            public abstract void DidOutputSampleBuffer(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection);
+            //public abstract void DidOutputSampleBuffer(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection);
 
             private delegate void DidDropSampleBufferDelegate(IntPtr self, IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection);
-            public delegate void DidOutputSampleBufferDelegate(IntPtr self, IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection);
+            //public delegate void DidOutputSampleBufferDelegate(IntPtr self, IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection);
+            
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            public delegate void CaptureOutputDidOutputSampleBuffer(IntPtr self, IntPtr _cmd, IntPtr output,
+                IntPtr sampleBuffer, IntPtr connection);
+            
             private delegate void DeallocDelegate(IntPtr self);
 
             private static DidDropSampleBufferDelegate DidDropSampleBufferTrampoline = (self, captureOutput, sampleBuffer, connection) =>
@@ -443,6 +449,7 @@ internal static partial class NativeMethods_AVFoundation
                 obj?.DidDropSampleBuffer(captureOutput, sampleBuffer, connection);
             };
 
+            /*
             public static DidOutputSampleBufferDelegate DidOutputSampleBufferTrampoline = (self, captureOutput, sampleBuffer, connection) =>
             {
                 var handle = LibObjC.GetVariable(self, HandleVariableDescriptor);
@@ -450,6 +457,7 @@ internal static partial class NativeMethods_AVFoundation
 
                 obj?.DidOutputSampleBuffer(captureOutput, sampleBuffer, connection);
             };
+            */
 
             private static DeallocDelegate DeallocTrampoline = (self) =>
             {

@@ -102,8 +102,6 @@ public sealed class AVFoundationDevice : CaptureDevice
                 dimensions.Height == characteristics.Height)
             ?? throw new InvalidOperationException(
                 $"FlashCap: Couldn't set video format: UniqueID={this.uniqueID}");
-        
-        
 
         /*var frameDuration = CMTimeMake(
             characteristics.FramesPerSecond.Denominator,
@@ -169,7 +167,7 @@ public sealed class AVFoundationDevice : CaptureDevice
         buffer.CopyIn(this.bitmapHeader, pData, size, timestampMicroseconds, frameIndex, this.transcodeIfYUV);
     }
 
-    private sealed class VideoBufferHandler : AVCaptureVideoDataOutputSampleBuffer
+    public class VideoBufferHandler : AVCaptureVideoDataOutputSampleBuffer
     {
         private readonly AVFoundationDevice device;
         private int frameIndex;
@@ -185,17 +183,22 @@ public sealed class AVFoundationDevice : CaptureDevice
             var valid = CMSampleBufferIsValid(sampleBuffer);
         }
 
-        public override void DidOutputSampleBuffer(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection)
+        public void CaptureOutputCallback(IntPtr self, IntPtr _cmd, IntPtr output, IntPtr sampleBuffer,
+            IntPtr connection)
+        {
+            Console.WriteLine("Frame capturado.");
+            // Processamento adicional do sampleBuffer pode ser implementado aqui.
+
+            var pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+
+            Console.WriteLine("PixelBuffer: " + pixelBuffer);
+        }
+
+        public  void DidOutputSampleBuffer
+            //(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection)
+        (IntPtr _cmd, IntPtr output, IntPtr sampleBuffer, IntPtr connection)
         {
             
-            //var pb = CMSampleBufferGetImageBuffer(sampleBuffer);
-            //Console.WriteLine("PixelBuffer: " + pb);
-
-            //return;
-            
-            //Check if is valid 
-
-            // CFRetain(sampleBuffer);
 
             var valid = CMSampleBufferIsValid(sampleBuffer);
             // Add diagnostic logging
@@ -240,9 +243,7 @@ public sealed class AVFoundationDevice : CaptureDevice
                     CVPixelBufferUnlockBaseAddress(pixelBuffer, PixelBufferLockFlags.ReadOnly);
                 }
             }
-
-            // Release the sample buffer once done
-            //CFRelease(sampleBuffer);
+            
             
 
         }
