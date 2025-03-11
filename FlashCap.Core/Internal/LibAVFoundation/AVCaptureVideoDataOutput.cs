@@ -10,6 +10,7 @@ public static partial class NativeMethods_AVFoundation
     {
         public sealed class AVCaptureVideoDataOutput : AVCaptureOutput
         {
+            
             public AVCaptureVideoDataOutput() : base(IntPtr.Zero, retain: false)
             {
                 Init();
@@ -90,7 +91,7 @@ public static partial class NativeMethods_AVFoundation
             public void SetSampleBufferDelegate(AVFoundationDevice.VideoBufferHandler sampleBufferDelegate,
                 LibCoreFoundation.DispatchQueue sampleBufferCallbackQueue)
             {
-
+                
                 if (sampleBufferDelegate == null)
                 {
                     Console.WriteLine("AVCaptureVideoDataOutputSampleBufferDelegate is null");
@@ -102,16 +103,12 @@ public static partial class NativeMethods_AVFoundation
                 
                 // Criação e registro da classe delegate dinâmica que implementa o protocolo AVCaptureVideoDataOutputSampleBufferDelegate.
                 IntPtr nsObjectClass = LibObjC.GetClass("NSObject");
-                IntPtr delegateClass = LibObjC.objc_allocateClassPair(nsObjectClass, "CaptureDelegate", IntPtr.Zero);
+                IntPtr delegateClass = LibObjC.objc_allocateClassPair(nsObjectClass, "CaptureDelegate_" + Handle, IntPtr.Zero);
                 // Seleciona o método a ser implementado.
                 IntPtr selDidOutput = LibObjC.GetSelector("captureOutput:didOutputSampleBuffer:fromConnection:");
-
                 
-
-                AVCaptureVideoDataOutputSampleBuffer.CaptureOutputDidOutputSampleBuffer callbackDelegate =
-                    new AVCaptureVideoDataOutputSampleBuffer.CaptureOutputDidOutputSampleBuffer(sampleBufferDelegate.CaptureOutputCallback);
-
-
+                AVCaptureVideoDataOutputSampleBuffer.CaptureOutputDidOutputSampleBuffer callbackDelegate = sampleBufferDelegate.CaptureOutputCallback;
+                
                 IntPtr impCallback = Marshal.GetFunctionPointerForDelegate(callbackDelegate);
 
                 // A string de tipos "v@:@@@" indica um método que retorna void e recebe (self, _cmd, output, sampleBuffer, connection).
@@ -119,7 +116,7 @@ public static partial class NativeMethods_AVFoundation
                 bool added = LibObjC.class_addMethod(delegateClass, selDidOutput, impCallback, types);
                 if (!added)
                 {
-                    Console.WriteLine("Falha ao adicionar método ao delegate.");
+                    Console.WriteLine("Delegate already registred.");
                     return;
                 }
 
@@ -130,12 +127,12 @@ public static partial class NativeMethods_AVFoundation
                 IntPtr delegateInstance = LibObjC.SendAndGetHandle(delegateInstanceAlloc, initSel);
 
                 // Cria uma fila de despacho (dispatch queue) para os callbacks.
-                IntPtr dispatchQueue = LibObjC.dispatch_queue_create("VideoMovie", IntPtr.Zero);
+                //IntPtr dispatchQueue = LibObjC.dispatch_queue_create("VideoMovie", IntPtr.Zero);
 
                 // Define o delegate para a saída de vídeo:
                 // [videoDataOutput setSampleBufferDelegate:delegateInstance queue:dispatchQueue]
                 IntPtr setDelegateSel = LibObjC.GetSelector("setSampleBufferDelegate:queue:");
-                LibObjC.SendNoResult(Handle, setDelegateSel, delegateInstance, dispatchQueue);
+                LibObjC.SendNoResult(Handle, setDelegateSel, delegateInstance, sampleBufferCallbackQueue.Handle);
                 
                 
                 /*
