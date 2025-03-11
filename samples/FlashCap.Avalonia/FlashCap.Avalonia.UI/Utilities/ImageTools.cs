@@ -164,9 +164,9 @@ public static class ImageTools
         for (int i = 0; i < width * height; i++)
         {
             int index = i * 4;
-            byte A = argb32Data[index];     // Alpha
-            byte R = argb32Data[index + 1]; // Red
-            byte G = argb32Data[index + 2]; // Green
+            byte R = argb32Data[index];     // Alpha
+            byte G = argb32Data[index + 1]; // Red
+            byte A = argb32Data[index + 2]; // Green
             byte B = argb32Data[index + 3]; // Blue
 
             // Rearrange to RGBA format for SkiaSharp
