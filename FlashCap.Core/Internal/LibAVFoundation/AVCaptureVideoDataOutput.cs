@@ -60,7 +60,7 @@ public static partial class NativeMethods_AVFoundation
                         value);
             }
 
-            public unsafe void SetPixelFormatType(int format)
+            public void SetPixelFormatType(int format)
             {
 
                 var pixelFormat = format;
@@ -77,9 +77,6 @@ public static partial class NativeMethods_AVFoundation
 
                 //int pixelFormat = 1111970369; // Exemplo utilizando BGRA
                 IntPtr nsNumber = LibObjC.CreateNSNumber(pixelFormat);
-
-                // Utiliza a chave reconhecida pelo Core Video: kCVPixelBufferPixelFormatTypeKey
-                //IntPtr nsPixelFormatKey = CreateNSString("kCVPixelBufferPixelFormatTypeKey");
 
                 IntPtr nsDictionaryClass = LibObjC.GetClass("NSDictionary");
                 IntPtr dictSel = LibObjC.GetSelector("dictionaryWithObject:forKey:");
@@ -127,23 +124,11 @@ public static partial class NativeMethods_AVFoundation
                 // Cria uma instância do delegate.
                 IntPtr delegateInstanceAlloc = LibObjC.SendAndGetHandle(delegateClass, allocSel);
                 IntPtr delegateInstance = LibObjC.SendAndGetHandle(delegateInstanceAlloc, initSel);
-
-                // Cria uma fila de despacho (dispatch queue) para os callbacks.
-                //IntPtr dispatchQueue = LibObjC.dispatch_queue_create("VideoMovie", IntPtr.Zero);
-
-                // Define o delegate para a saída de vídeo:
-                // [videoDataOutput setSampleBufferDelegate:delegateInstance queue:dispatchQueue]
+                
                 IntPtr setDelegateSel = LibObjC.GetSelector("setSampleBufferDelegate:queue:");
                 LibObjC.SendNoResult(Handle, setDelegateSel, delegateInstance, sampleBufferCallbackQueue.Handle);
                 
-                /*
-                
-                LibObjC.SendNoResult(
-                    Handle,
-                    LibObjC.GetSelector("setSampleBufferDelegate:queue:"),
-                    sampleBufferDelegate.Handle,
-                    sampleBufferCallbackQueue.Handle);
-                */
+
             }
 
         }

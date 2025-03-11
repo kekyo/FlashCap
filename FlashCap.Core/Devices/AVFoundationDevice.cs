@@ -103,12 +103,12 @@ public sealed class AVFoundationDevice : CaptureDevice
             ?? throw new InvalidOperationException(
                 $"FlashCap: Couldn't set video format: UniqueID={this.uniqueID}");
 
-        /*var frameDuration = CMTimeMake(
+        var frameDuration = CMTimeMake(
             characteristics.FramesPerSecond.Denominator,
             characteristics.FramesPerSecond.Numerator);
         
         device.ActiveVideoMinFrameDuration = frameDuration;
-        device.ActiveVideoMaxFrameDuration = frameDuration;*/
+        device.ActiveVideoMaxFrameDuration = frameDuration;
         
         //device.UnlockForConfiguration();
 
@@ -126,14 +126,6 @@ public sealed class AVFoundationDevice : CaptureDevice
             // Fallback to the mapped pixel format if no available list is provided
             this.deviceOutput.SetPixelFormatType(pixelFormatType);
         }
-        
-        
-        //this.deviceOutput.SetPixelFormatType(pixelFormatType);
-        //this.deviceOutput.SetPixelFormatType(deviceOutput.AvailableVideoCVPixelFormatTypes[1]);
-        
-        //int pixelFormat = 1111970369; // Exemplo utilizando BGRA
-        //IntPtr nsNumber = CreateNSNumber(pixelFormat);
-        //this.deviceOutput.SetPixelFormatType(pixelFormatType);
         
         this.deviceOutput.SetSampleBufferDelegate(new VideoBufferHandler(this), this.queue);
         this.deviceOutput.AlwaysDiscardsLateVideoFrames = true;
@@ -186,12 +178,10 @@ public sealed class AVFoundationDevice : CaptureDevice
         public void CaptureOutputCallback(IntPtr self, IntPtr _cmd, IntPtr output, IntPtr sampleBuffer,
             IntPtr connection)
         {
-            Console.WriteLine("Frame capturado.");
-            // Processamento adicional do sampleBuffer pode ser implementado aqui.
 
             var pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
 
-            Console.WriteLine("PixelBuffer: " + pixelBuffer);
+            //Console.WriteLine("PixelBuffer: " + pixelBuffer);
             
             if (pixelBuffer == IntPtr.Zero)
             {
