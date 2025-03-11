@@ -21,6 +21,13 @@ internal static class NativeMethods_AVFoundation
 
     public static class Dlfcn
     {
+        // Carrega o framework AVFoundation via dlopen.
+        [DllImport("libdl.dylib", CharSet = CharSet.Ansi)]
+        public static extern IntPtr dlopen(string path, int mode);
+        
+        [DllImport("libdl.dylib")]
+        public static extern IntPtr dlsym(IntPtr handle, string symbol);
+        
         [DllImport(LibSystem.Path, EntryPoint = "dlopen")]
         public static extern IntPtr OpenLibrary(string path, Mode mode);
 
@@ -36,6 +43,7 @@ internal static class NativeMethods_AVFoundation
         public enum Mode : int
         {
             None = 0x0,
+            Now = 2,
         }
     }
 
@@ -44,6 +52,9 @@ internal static class NativeMethods_AVFoundation
         public const string Path = "/usr/lib/libSystem.dylib";
 
         public static readonly IntPtr Handle = Dlfcn.OpenLibrary(Path, Dlfcn.Mode.None);
+        
+        [DllImport(Path, EntryPoint = "dispatch_queue_create")]
+        public static extern IntPtr dispatch_queue_create(string label, IntPtr attr);
 
         public static readonly bool IsOnArm64;
 
@@ -108,7 +119,7 @@ internal static class NativeMethods_AVFoundation
 
     public static class LibObjC
     {
-        public const string Path = "/usr/lib/libobjc.dylib";
+        public const string Path = "/usr/lib/libobjc.A.dylib";
 
         public const string InitSelector = "init";
         public const string AllocSelector = "alloc";
@@ -140,6 +151,9 @@ internal static class NativeMethods_AVFoundation
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
         public static extern IntPtr SendAndGetHandle(IntPtr receiver, IntPtr selector, IntPtr arg1);
+        
+        [DllImport(Path, EntryPoint = "objc_msgSend")]
+        public static extern IntPtr SendAndGetHandle(IntPtr receiver, IntPtr selector, int arg1);
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
         public static extern IntPtr SendAndGetHandle(IntPtr receiver, IntPtr selector, IntPtr arg1, IntPtr arg2);
@@ -188,7 +202,19 @@ internal static class NativeMethods_AVFoundation
 
         [DllImport(Path, EntryPoint = "class_getInstanceVariable")]
         public static extern IntPtr GetVariable(IntPtr cls, string name);
+        
+        [DllImport("/usr/lib/libobjc.A.dylib", EntryPoint = "objc_allocateClassPair")]
+        public static extern IntPtr objc_allocateClassPair(IntPtr superClass, string name, IntPtr extraBytes);
 
+        [DllImport("/usr/lib/libobjc.A.dylib", EntryPoint = "class_addMethod")]
+        public static extern bool class_addMethod(IntPtr cls, IntPtr sel, IntPtr imp, string types);
+        
+        [DllImport("/usr/lib/libobjc.A.dylib", EntryPoint = "objc_registerClassPair")]
+        public static extern void objc_registerClassPair(IntPtr cls);
+        
+        [DllImport("/usr/lib/libSystem.dylib", EntryPoint = "dispatch_queue_create")]
+        public static extern IntPtr dispatch_queue_create(string label, IntPtr attr);
+        
         [Flags]
         public enum BlockFlags
         {
@@ -342,6 +368,13 @@ internal static class NativeMethods_AVFoundation
                 public static IntPtr Instance;
             }
         }
+        
+        public static IntPtr CreateNSNumber(int value)
+        {
+            IntPtr nsNumberClass = LibObjC.GetClass("NSNumber");
+            IntPtr sel = LibObjC.GetSelector("numberWithInt:");
+            return LibObjC.SendAndGetHandle(nsNumberClass, sel, value);
+        }
 
         public abstract class NSObject : NativeObject
         {
@@ -380,7 +413,7 @@ internal static class NativeMethods_AVFoundation
     {
         public const string Path = "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation";
 
-        public static readonly IntPtr Handle = Dlfcn.OpenLibrary(Path, Dlfcn.Mode.None);
+        public static readonly IntPtr Handle = Dlfcn.OpenLibrary(Path, Dlfcn.Mode.Now);
         public static readonly IntPtr kCFTypeArrayCallbacks = Dlfcn.GetSymbol(Handle, "kCFTypeArrayCallBacks");
         public static readonly IntPtr kCFCopyStringDictionaryKeyCallBacks = Dlfcn.GetSymbolIndirect(Handle, "kCFCopyStringDictionaryKeyCallBacks");
         public static readonly IntPtr kCFTypeDictionaryValueCallBacks = Dlfcn.GetSymbolIndirect(Handle, "kCFTypeDictionaryValueCallBacks");
@@ -451,6 +484,14 @@ internal static class NativeMethods_AVFoundation
 
                 Handle = IntPtr.Zero;
             }
+        }
+        
+        public static class BasicClassesHelper
+        {
+            public static IntPtr NSString => LibObjC.GetClass("NSString");
+            public static IntPtr NSNumber => LibObjC.GetClass("NSNumber");
+            public static IntPtr NSArray => LibObjC.GetClass("NSArray");
+            public static IntPtr NSDictionary => LibObjC.GetClass("NSDictionary");
         }
 
         // https://github.com/opensource-apple/CF/blob/master/CFArray.c
@@ -550,9 +591,15 @@ internal static class NativeMethods_AVFoundation
 
         public sealed class DispatchQueue : NativeObject
         {
-            public DispatchQueue(string label) =>
-                Handle = LibC.DispatchQueueCreate(label, IntPtr.Zero) is var handle && handle != IntPtr.Zero
-                    ? handle : throw new InvalidOperationException("Cannot create a dispatch queue.");
+            public DispatchQueue(string label)
+            {
+                //Handle = LibC.DispatchQueueCreate(label, IntPtr.Zero) is var handle && handle != IntPtr.Zero
+                //    ? handle : throw new InvalidOperationException("Cannot create a dispatch queue.");
+
+                Handle = LibSystem.dispatch_queue_create(label, IntPtr.Zero);
+                CFRetain(Handle);
+            }
+
 
             protected override void Dispose(bool disposing) =>
                 LibC.DispatchRelease(Handle);
@@ -604,7 +651,6 @@ internal static class NativeMethods_AVFoundation
 
         // Add this constant
         public static readonly FourCharCode kCMMediaType_Video = new FourCharCode('v', 'i', 'd', 'e');
-        
         
         
         [DllImport(Path)]
@@ -672,6 +718,8 @@ internal static class NativeMethods_AVFoundation
             YpCbCr444_10bits = 1983131952,
             IndexedGrayWhiteIsZero_8bits = 40,
         }
+        
+
 
         [StructLayout(LayoutKind.Sequential)]
         public partial struct CMTime
@@ -715,10 +763,17 @@ internal static class NativeMethods_AVFoundation
 
     public static class LibCoreVideo
     {
-        public const string Path = "/System/Library/Frameworks/CoreMedia.framework/CoreMedia";
-
-        public static readonly IntPtr Handle = Dlfcn.OpenLibrary(Path, Dlfcn.Mode.None);
+        //public const string Path = "/System/Library/Frameworks/CoreMedia.framework/CoreMedia";
+        
+        public const string Path = "/System/Library/Frameworks/CoreVideo.framework/CoreVideo";
+        
+        //IntPtr coreVideoHandle = dlopen("/System/Library/Frameworks/CoreVideo.framework/CoreVideo", RTLD_NOW);
+        private const int RTLD_NOW = 2;
+        public static readonly IntPtr Handle = Dlfcn.dlopen(Path, RTLD_NOW);
+        
         public static readonly IntPtr kCVPixelBufferPixelFormatTypeKey = Dlfcn.GetSymbolIndirect(Handle, "kCVPixelBufferPixelFormatTypeKey");
+        //public static readonly IntPtr kCVPixelBufferPixelFormatTypeKey = Dlfcn.GetSymbol(Handle, "kCVPixelBufferPixelFormatTypeKey");
+        
         public static readonly IntPtr kCVPixelBufferMetalCompatibilityKey = Dlfcn.GetSymbolIndirect(Handle, "kCVPixelBufferMetalCompatibilityKey");
 
         [DllImport(Path)]
@@ -802,7 +857,7 @@ internal static class NativeMethods_AVFoundation
     {
         public const string Path = "/System/Library/Frameworks/AVFoundation.framework/AVFoundation";
 
-        public static readonly IntPtr Handle = Dlfcn.OpenLibrary(Path, Dlfcn.Mode.None);
+        public static readonly IntPtr Handle = Dlfcn.OpenLibrary(Path, Dlfcn.Mode.Now);
 
         public delegate void AVRequestAccessStatus(bool accessGranted);
 
@@ -862,7 +917,9 @@ internal static class NativeMethods_AVFoundation
                             Handle,
                             LibObjC.GetSelector("uniqueID")));
 
-                    return result.ToString() ?? throw new InvalidOperationException();
+                    var str = result.ToString() ?? throw new InvalidOperationException();
+
+                    return str;
                 }
             }
 
@@ -1070,7 +1127,7 @@ internal static class NativeMethods_AVFoundation
                         deviceTypesArray.Handle,
                         mediaType,
                         position),
-                    retain: false);
+                    retain: true);
             }
         }
 
@@ -1136,7 +1193,7 @@ internal static class NativeMethods_AVFoundation
             {
                 var errorHandle = default(IntPtr);
                 var inputHandle = LibObjC.SendAndGetHandle(
-                    LibObjC.GetClass(nameof(AVCaptureDeviceInput)),
+                    LibObjC.GetClass("AVCaptureDeviceInput"),
                     LibObjC.GetSelector("deviceInputWithDevice:error:"),
                     device.Handle,
                     new IntPtr(&errorHandle));
@@ -1154,14 +1211,21 @@ internal static class NativeMethods_AVFoundation
 
         public sealed class AVCaptureVideoDataOutput : AVCaptureOutput
         {
-            public AVCaptureVideoDataOutput() : base(
-                LibObjC.SendAndGetHandle(
-                    LibObjC.GetClass(nameof(AVCaptureVideoDataOutput)),
-                    LibObjC.GetSelector(LibObjC.AllocSelector)),
-                retain: true)
+            public AVCaptureVideoDataOutput() : base(IntPtr.Zero, retain: false)
             {
-                LibObjC.SendNoResult(
-                    Handle,
+                Init();
+            }
+
+            private void Init()
+            {
+
+                var videoAlloc = LibObjC.SendAndGetHandle(
+                    LibObjC.GetClass("AVCaptureVideoDataOutput"),
+                    LibObjC.GetSelector(LibObjC.AllocSelector));
+                
+                
+                Handle = LibObjC.SendAndGetHandle(
+                    videoAlloc,
                     LibObjC.GetSelector("init"));
             }
 
@@ -1193,29 +1257,43 @@ internal static class NativeMethods_AVFoundation
 
             public unsafe void SetPixelFormatType(int format)
             {
-                var number = LibCoreFoundation.CFNumberCreate(IntPtr.Zero, LibCoreFoundation.CFNumberType.sInt32Type, &format);
-                LibCoreFoundation.CFRetain(number);
+                format = 1111970369;
                 
-                var keys = new IntPtr[] { LibCoreVideo.kCVPixelBufferPixelFormatTypeKey};
-                var values = new IntPtr[] { number };
+                //var number = LibCoreFoundation.CFNumberCreate(IntPtr.Zero, LibCoreFoundation.CFNumberType.sInt32Type, &format);
+                
+                var nsNumber = LibObjC.CreateNSNumber(format);
+                
+                LibCoreFoundation.CFRetain(nsNumber);
+                
+                //var keys = new IntPtr[] { LibCoreVideo.kCVPixelBufferPixelFormatTypeKey};
+                //var values = new IntPtr[] { nsNumber };
 
-                var dictionary = LibCoreFoundation.CFDictionaryCreate(
+                /*var dictionary = LibCoreFoundation.CFDictionaryCreate(
                     IntPtr.Zero,
                     keys,
                     values,
                     numValues: 1,
                     LibCoreFoundation.kCFCopyStringDictionaryKeyCallBacks,
-                    LibCoreFoundation.kCFTypeDictionaryValueCallBacks);
-                
-                LibCoreFoundation.CFRetain(dictionary);
+                    LibCoreFoundation.kCFTypeDictionaryValueCallBacks);*/
 
+                IntPtr nsDictionaryClass = LibCoreFoundation.BasicClassesHelper.NSDictionary;
+                IntPtr dictSel =  LibObjC.GetSelector("dictionaryWithObject:forKey:");
+                
+               //LibCoreFoundation.CFRetain(dictionary);
+
+                IntPtr nsPixelFormatKey = LibCoreVideo.kCVPixelBufferPixelFormatTypeKey;
+               
+                IntPtr videoSettings =  LibObjC.SendAndGetHandle(nsDictionaryClass, dictSel, nsNumber, nsPixelFormatKey);
+                LibCoreFoundation.CFRetain(videoSettings);
+                IntPtr setVideoSettingsSel = LibObjC.GetSelector("setVideoSettings:");
+                
                 LibObjC.SendNoResult(
                     Handle,
-                    LibObjC.GetSelector("setVideoSettings:"),
-                    dictionary);
+                    setVideoSettingsSel,
+                    videoSettings);
 
-                LibCoreFoundation.CFRelease(dictionary);
-                LibCoreFoundation.CFRelease(number);
+                LibCoreFoundation.CFRelease(videoSettings);
+                LibCoreFoundation.CFRelease(nsNumber);
                 //LibCoreFoundation.CFRelease(strTrue.Handle);
             }
 
@@ -1295,7 +1373,7 @@ internal static class NativeMethods_AVFoundation
             public abstract void DidOutputSampleBuffer(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection);
 
             private delegate void DidDropSampleBufferDelegate(IntPtr self, IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection);
-            private delegate void DidOutputSampleBufferDelegate(IntPtr self, IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection);
+            public delegate void DidOutputSampleBufferDelegate(IntPtr self, IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection);
             private delegate void DeallocDelegate(IntPtr self);
 
             private static DidDropSampleBufferDelegate DidDropSampleBufferTrampoline = (self, captureOutput, sampleBuffer, connection) =>
@@ -1306,7 +1384,7 @@ internal static class NativeMethods_AVFoundation
                 obj?.DidDropSampleBuffer(captureOutput, sampleBuffer, connection);
             };
 
-            private static DidOutputSampleBufferDelegate DidOutputSampleBufferTrampoline = (self, captureOutput, sampleBuffer, connection) =>
+            public static DidOutputSampleBufferDelegate DidOutputSampleBufferTrampoline = (self, captureOutput, sampleBuffer, connection) =>
             {
                 var handle = LibObjC.GetVariable(self, HandleVariableDescriptor);
                 var obj = GCHandle.FromIntPtr(handle).Target as AVCaptureVideoDataOutputSampleBuffer;
@@ -1326,15 +1404,25 @@ internal static class NativeMethods_AVFoundation
 
         public sealed class AVCaptureSession : LibObjC.NSObject
         {
-            public AVCaptureSession() : base(
-                LibObjC.SendAndGetHandle(
-                    LibObjC.GetClass(nameof(AVCaptureSession)),
-                    LibObjC.GetSelector(LibObjC.AllocSelector)),
-                retain: true)
+            public AVCaptureSession() : base(IntPtr.Zero, false)
             {
-                LibObjC.SendNoResult(
-                    Handle,
+                Init();
+            }
+
+            private void Init()
+            {
+                var sessionClass = LibObjC.SendAndGetHandle(
+                    LibObjC.GetClass("AVCaptureSession"),
+                    LibObjC.GetSelector(LibObjC.AllocSelector));
+                
+                var sessionObj = LibObjC.SendAndGetHandle(
+                    sessionClass,
                     LibObjC.GetSelector("init"));
+                
+                Handle = sessionObj;
+                
+                LibCoreFoundation.CFRetain(this.Handle);
+                
             }
 
             public void AddInput(AVCaptureInput input) =>
@@ -1343,11 +1431,96 @@ internal static class NativeMethods_AVFoundation
                     LibObjC.GetSelector("addInput:"),
                     input.Handle);
 
-            public void AddOutput(AVCaptureOutput output) =>
+            public void AddOutput(AVCaptureOutput output)
+            {
+                IntPtr allocSel = LibObjC.GetSelector("alloc");
+                IntPtr initSel = LibObjC.GetSelector("init");
+            
+                // Criação da saída de vídeo: AVCaptureVideoDataOutput.
+                IntPtr videoDataOutputClass = LibObjC.GetClass("AVCaptureVideoDataOutput");
+                IntPtr videoOutputAlloc = LibObjC.SendAndGetHandle(videoDataOutputClass, allocSel);
+                IntPtr videoDataOutput = LibObjC.SendAndGetHandle(videoOutputAlloc, initSel);    
+                
+                IntPtr pixelFormatTypeKeyPtr =  Dlfcn.dlsym(LibCoreVideo.Handle, "kCVPixelBufferPixelFormatTypeKey");
+                if (pixelFormatTypeKeyPtr == IntPtr.Zero)
+                {
+                    Console.WriteLine("Não foi possível obter kCVPixelBufferPixelFormatTypeKey.");
+                    return;
+                }
+                
+                // Obtém o valor real da NSString a partir da constante
+                IntPtr nsPixelFormatKey = Marshal.ReadIntPtr(pixelFormatTypeKeyPtr);
+                
+                int pixelFormat = 1111970369; // Exemplo utilizando BGRA
+                IntPtr nsNumber = LibObjC.CreateNSNumber(pixelFormat);
+                
+                // Utiliza a chave reconhecida pelo Core Video: kCVPixelBufferPixelFormatTypeKey
+                //IntPtr nsPixelFormatKey = CreateNSString("kCVPixelBufferPixelFormatTypeKey");
+                
+                IntPtr nsDictionaryClass = LibObjC.GetClass("NSDictionary");
+                IntPtr dictSel = LibObjC.GetSelector("dictionaryWithObject:forKey:");
+                IntPtr videoSettings = LibObjC.SendAndGetHandle(nsDictionaryClass, dictSel, nsNumber, nsPixelFormatKey);
+                IntPtr setVideoSettingsSel = LibObjC.GetSelector("setVideoSettings:");
+                LibObjC.SendNoResult(videoDataOutput, setVideoSettingsSel, videoSettings);
+
+                // Criação e registro da classe delegate dinâmica que implementa o protocolo AVCaptureVideoDataOutputSampleBufferDelegate.
+                IntPtr nsObjectClass = LibObjC.GetClass("NSObject");
+                IntPtr delegateClass = LibObjC.objc_allocateClassPair(nsObjectClass, "CaptureDelegate", IntPtr.Zero);
+                // Seleciona o método a ser implementado.
+                IntPtr selDidOutput = LibObjC.GetSelector("captureOutput:didOutputSampleBuffer:fromConnection:");
+                
+                
+                
+                CaptureOutputDidOutputSampleBuffer callbackDelegate = new CaptureOutputDidOutputSampleBuffer(CaptureOutputCallback);
+                
+                
+                IntPtr impCallback = Marshal.GetFunctionPointerForDelegate(callbackDelegate);
+            
+                // A string de tipos "v@:@@@" indica um método que retorna void e recebe (self, _cmd, output, sampleBuffer, connection).
+                string types = "v@:@@@";
+                bool added = LibObjC.class_addMethod(delegateClass, selDidOutput, impCallback, types);
+                if (!added)
+                {
+                    Console.WriteLine("Falha ao adicionar método ao delegate.");
+                    return;
+                }
+                LibObjC.objc_registerClassPair(delegateClass);
+
+                // Cria uma instância do delegate.
+                IntPtr delegateInstanceAlloc = LibObjC.SendAndGetHandle(delegateClass, allocSel);
+                IntPtr delegateInstance = LibObjC.SendAndGetHandle(delegateInstanceAlloc, initSel);
+
+                // Cria uma fila de despacho (dispatch queue) para os callbacks.
+                IntPtr dispatchQueue = LibObjC.dispatch_queue_create("VideoMovie", IntPtr.Zero);
+
+                // Define o delegate para a saída de vídeo:
+                // [videoDataOutput setSampleBufferDelegate:delegateInstance queue:dispatchQueue]
+                IntPtr setDelegateSel = LibObjC.GetSelector("setSampleBufferDelegate:queue:");
+                LibObjC.SendNoResult(videoDataOutput, setDelegateSel, delegateInstance, dispatchQueue);
+                
                 LibObjC.SendNoResult(
                     Handle,
                     LibObjC.GetSelector("addOutput:"),
-                    output.Handle);
+                    videoDataOutput);
+                
+                
+            }
+
+            // Delegate correspondente ao método:
+            // - (void)captureOutput:(id)output didOutputSampleBuffer:(id)sampleBuffer fromConnection:(id)connection;
+            [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+            public delegate void CaptureOutputDidOutputSampleBuffer(IntPtr self, IntPtr _cmd, IntPtr output, IntPtr sampleBuffer, IntPtr connection);
+
+            
+            public static void CaptureOutputCallback(IntPtr self, IntPtr _cmd, IntPtr output, IntPtr sampleBuffer, IntPtr connection)
+            {
+                Console.WriteLine("Frame capturado.");
+                // Processamento adicional do sampleBuffer pode ser implementado aqui.
+            
+                var pixelBuffer = LibCoreMedia.CMSampleBufferGetImageBuffer(sampleBuffer);
+            
+                Console.WriteLine("PixelBuffer: " + pixelBuffer);
+            }
             
             public bool CanAddOutput(AVCaptureOutput output) =>
                 LibObjC.SendAndGetBool(
@@ -1377,6 +1550,7 @@ internal static class NativeMethods_AVFoundation
         public static class AVMediaType
         {
             public static readonly IntPtr Video = Dlfcn.GetSymbolIndirect(LibAVFoundation.Handle, "AVMediaTypeVideo");
+            //public static readonly IntPtr Video = Dlfcn.GetSymbolIndirect(LibAVFoundation.Handle, "AVMediaTypeVideo");
         }
     }
 

@@ -52,6 +52,8 @@ public sealed class AVFoundationDevice : CaptureDevice
 
     protected override Task OnInitializeAsync(VideoCharacteristics characteristics, bool transcodeIfYUV, FrameProcessor frameProcessor, CancellationToken ct)
     {
+
+        
         this.frameProcessor = frameProcessor;
         this.transcodeIfYUV = transcodeIfYUV;
         this.Characteristics = characteristics;
@@ -95,26 +97,34 @@ public sealed class AVFoundationDevice : CaptureDevice
         this.device.ActiveFormat = this.device.Formats
             .FirstOrDefault(format =>
                 format.FormatDescription.Dimensions is var dimensions &&
+                format.FormatDescription.MediaType == CMMediaType.Video  &&
                 dimensions.Width == characteristics.Width &&
                 dimensions.Height == characteristics.Height)
             ?? throw new InvalidOperationException(
                 $"FlashCap: Couldn't set video format: UniqueID={this.uniqueID}");
+        
+        
 
-        var frameDuration = CMTimeMake(
+        /*var frameDuration = CMTimeMake(
             characteristics.FramesPerSecond.Denominator,
             characteristics.FramesPerSecond.Numerator);
         
         device.ActiveVideoMinFrameDuration = frameDuration;
-        device.ActiveVideoMaxFrameDuration = frameDuration;
+        device.ActiveVideoMaxFrameDuration = frameDuration;*/
         
         device.UnlockForConfiguration();
 
         this.deviceInput = new AVCaptureDeviceInput(device);
+        
+        
+        
+        
+        
         this.deviceOutput = new AVCaptureVideoDataOutput();
         
-        if (this.deviceOutput.AvailableVideoCVPixelFormatTypes?.Any() == true)
+         if (this.deviceOutput.AvailableVideoCVPixelFormatTypes?.Any() == true)
         {
-            var validPixelFormat = this.deviceOutput.AvailableVideoCVPixelFormatTypes.First();
+            var validPixelFormat = this.deviceOutput.AvailableVideoCVPixelFormatTypes.FirstOrDefault(p => p == pixelFormatType);
             this.deviceOutput.SetPixelFormatType(validPixelFormat);
         }
         else
@@ -123,8 +133,13 @@ public sealed class AVFoundationDevice : CaptureDevice
             this.deviceOutput.SetPixelFormatType(pixelFormatType);
         }
         
+        
         //this.deviceOutput.SetPixelFormatType(pixelFormatType);
         //this.deviceOutput.SetPixelFormatType(deviceOutput.AvailableVideoCVPixelFormatTypes[1]);
+        
+        //int pixelFormat = 1111970369; // Exemplo utilizando BGRA
+        //IntPtr nsNumber = CreateNSNumber(pixelFormat);
+        //this.deviceOutput.SetPixelFormatType(pixelFormatType);
         
         this.deviceOutput.SetSampleBufferDelegate(new VideoBufferHandler(this), this.queue);
         this.deviceOutput.AlwaysDiscardsLateVideoFrames = true;
@@ -176,59 +191,63 @@ public sealed class AVFoundationDevice : CaptureDevice
 
         public override void DidOutputSampleBuffer(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection)
         {
-            lock (this) // Or use a proper thread synchronization mechanism
+            
+            //var pb = CMSampleBufferGetImageBuffer(sampleBuffer);
+            //Console.WriteLine("PixelBuffer: " + pb);
+
+            //return;
+            
+            //Check if is valid 
+
+            // CFRetain(sampleBuffer);
+
+            var valid = CMSampleBufferIsValid(sampleBuffer);
+            // Add diagnostic logging
+            Console.WriteLine($"Sample buffer is valid: {valid}");
+
+            if (!valid)
             {
-                //Check if is valid 
-
-                CFRetain(sampleBuffer);
-
-                var valid = CMSampleBufferIsValid(sampleBuffer);
-                // Add diagnostic logging
-                Console.WriteLine($"Sample buffer is valid: {valid}");
-
-                if (!valid)
-                {
-                    CFRelease(sampleBuffer);
-                    return;
-                }
-                
-
-                // Optionally, inspect attachments to determine if any configuration might be missing
-                var attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, false);
-                Console.WriteLine($"[Debug] Attachments present: {(attachments != IntPtr.Zero ? "Yes" : "No")}");
-
-                // Now try to get the image buffer
-                var pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
-                Console.WriteLine($"[Debug] Pixel buffer address: {pixelBuffer}");
-
-                if (pixelBuffer == IntPtr.Zero)
-                {
-                    Console.WriteLine("[Error] CMSampleBufferGetImageBuffer returned 0x0.");
-                }
-                else
-                {
-                    // Lock the base address for reading, process the buffer, etc.
-                    CVPixelBufferLockBaseAddress(pixelBuffer, PixelBufferLockFlags.ReadOnly);
-
-                    try
-                    {
-                        // Process the pixel buffer as needed
-                        this.device.frameProcessor?.OnFrameArrived(
-                            this.device,
-                            CVPixelBufferGetBaseAddress(pixelBuffer),
-                            (int)CVPixelBufferGetDataSize(pixelBuffer),
-                            (long)(CMTimeGetSeconds(CMSampleBufferGetDecodeTimeStamp(sampleBuffer)) * 1000),
-                            frameIndex++);
-                    }
-                    finally
-                    {
-                        CVPixelBufferUnlockBaseAddress(pixelBuffer, PixelBufferLockFlags.ReadOnly);
-                    }
-                }
-
-                // Release the sample buffer once done
                 CFRelease(sampleBuffer);
+                return;
             }
+            
+
+            // Optionally, inspect attachments to determine if any configuration might be missing
+            var attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, false);
+            Console.WriteLine($"[Debug] Attachments present: {(attachments != IntPtr.Zero ? "Yes" : "No")}");
+
+            // Now try to get the image buffer
+            var pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+            Console.WriteLine($"[Debug] Pixel buffer address: {pixelBuffer}");
+
+            if (pixelBuffer == IntPtr.Zero)
+            {
+                Console.WriteLine("[Error] CMSampleBufferGetImageBuffer returned 0x0.");
+            }
+            else
+            {
+                // Lock the base address for reading, process the buffer, etc.
+                CVPixelBufferLockBaseAddress(pixelBuffer, PixelBufferLockFlags.ReadOnly);
+
+                try
+                {
+                    // Process the pixel buffer as needed
+                    this.device.frameProcessor?.OnFrameArrived(
+                        this.device,
+                        CVPixelBufferGetBaseAddress(pixelBuffer),
+                        (int)CVPixelBufferGetDataSize(pixelBuffer),
+                        (long)(CMTimeGetSeconds(CMSampleBufferGetDecodeTimeStamp(sampleBuffer)) * 1000),
+                        frameIndex++);
+                }
+                finally
+                {
+                    CVPixelBufferUnlockBaseAddress(pixelBuffer, PixelBufferLockFlags.ReadOnly);
+                }
+            }
+
+            // Release the sample buffer once done
+            //CFRelease(sampleBuffer);
+            
 
         }
     }
