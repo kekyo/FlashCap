@@ -192,33 +192,7 @@ public sealed class AVFoundationDevice : CaptureDevice
             var pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
 
             Console.WriteLine("PixelBuffer: " + pixelBuffer);
-        }
-
-        public  void DidOutputSampleBuffer
-            //(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection)
-        (IntPtr _cmd, IntPtr output, IntPtr sampleBuffer, IntPtr connection)
-        {
             
-
-            var valid = CMSampleBufferIsValid(sampleBuffer);
-            // Add diagnostic logging
-            Console.WriteLine($"Sample buffer is valid: {valid}");
-
-            if (!valid)
-            {
-                CFRelease(sampleBuffer);
-                return;
-            }
-            
-
-            // Optionally, inspect attachments to determine if any configuration might be missing
-            var attachments = CMSampleBufferGetSampleAttachmentsArray(sampleBuffer, false);
-            Console.WriteLine($"[Debug] Attachments present: {(attachments != IntPtr.Zero ? "Yes" : "No")}");
-
-            // Now try to get the image buffer
-            var pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
-            Console.WriteLine($"[Debug] Pixel buffer address: {pixelBuffer}");
-
             if (pixelBuffer == IntPtr.Zero)
             {
                 Console.WriteLine("[Error] CMSampleBufferGetImageBuffer returned 0x0.");
@@ -244,8 +218,7 @@ public sealed class AVFoundationDevice : CaptureDevice
                 }
             }
             
-            
-
         }
+        
     }
 }
