@@ -18,6 +18,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Reactive;
 using Avalonia.Threading;
+using FlashCap.Avalonia.Utilities;
 using ReactiveUI;
 
 // NOTE: This sample application may crash when exit on .NET Framework (net48) configruation.
@@ -343,15 +344,19 @@ public sealed class MainWindowViewModel: ReactiveObject
         ////////////////////////////////////////////////
         // Pixel buffer has arrived.
         // NOTE: Perhaps this thread context is NOT UI thread.
-#if false
+#if true
         // Get image data binary:
         byte[] image = bufferScope.Buffer.ExtractImage();
 #else
         // Or, refer image data binary directly.
         ArraySegment<byte> image = bufferScope.Buffer.ReferImage();
 #endif
+        
+        if(Characteristics is null) return;
+        
         // Decode image data to a bitmap:
-        var bitmap = SKBitmap.Decode(image);
+        //var bitmap = SKBitmap.Decode(image);
+        var bitmap = ImageTools.CreateSKBitmapARGB(image, Characteristics.Width, Characteristics.Height);
 
         // Capture statistics variables.
         var countFrames = Interlocked.Increment(ref this.countFrames);
