@@ -116,8 +116,6 @@ public sealed class AVFoundationDevice : CaptureDevice
 
         this.deviceInput = new AVCaptureDeviceInput(device);
         
-        
-        
         this.deviceOutput = new AVCaptureVideoDataOutput();
         
          if (this.deviceOutput.AvailableVideoCVPixelFormatTypes?.Any() == true)
