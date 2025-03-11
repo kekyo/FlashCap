@@ -42,13 +42,8 @@ public sealed class AVFoundationDevices : CaptureDevices
         using var discovery = AVCaptureDeviceDiscoverySession.DiscoverySessionWithVideoDevices();
         foreach (var device in discovery.Devices)
         {
-            //using var deviceInput = new AVCaptureDeviceInput(device);
+   
             using var deviceOutput = new AVCaptureVideoDataOutput();
-
-            //using var session = new AVCaptureSession();
-
-            //session.AddInput(deviceInput);
-            //session.AddOutput(deviceOutput);
 
             var characteristics = new List<VideoCharacteristics>();
 

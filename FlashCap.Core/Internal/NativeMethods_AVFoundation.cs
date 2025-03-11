@@ -11,12 +11,15 @@ public static partial class NativeMethods_AVFoundation
 {
     public static readonly Dictionary<PixelFormats, int> PixelFormatMap = new()
     {
-        [PixelFormats.RGB24] = LibCoreVideo.PixelFormatType_24RGB,
-        [PixelFormats.RGB32] = 32,
+        //[PixelFormats.UYVY] = LibCoreVideo.PixelFormatType_24RGB,
+        [PixelFormats.ARGB32] = 32,
+        [PixelFormats.RGB32] = LibCoreVideo.PixelFormatType_32BGRA,
+        //[PixelFormats.RGB32] = LibCoreVideo.PixelFormatType_32RGBA,
         [PixelFormats.UYVY] = LibCoreVideo.PixelFormatType_422YpCbCr8_yuvs,
-        [PixelFormats.ARGB32] = LibCoreVideo.PixelFormatType_32BGRA,
+        //[PixelFormats.ARGB32] = LibCoreVideo.PixelFormatType_32BGRA,
         //[PixelFormats.ARGB32] = LibCoreVideo.PixelFormatType_32ARGB,
         [PixelFormats.YUYV] = LibCoreVideo.PixelFormatType_422YpCbCr8,
+        
     };
 
     public static class Dlfcn
