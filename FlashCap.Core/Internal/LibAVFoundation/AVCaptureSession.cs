@@ -41,12 +41,19 @@ internal static partial class NativeMethods_AVFoundation
             {
                 IntPtr allocSel = LibObjC.GetSelector("alloc");
                 IntPtr initSel = LibObjC.GetSelector("init");
+                
+                
+                var videoDataOutputObj = output as AVCaptureVideoDataOutput ;
 
-                // Criação da saída de vídeo: AVCaptureVideoDataOutput.
-                IntPtr videoDataOutputClass = LibObjC.GetClass("AVCaptureVideoDataOutput");
-                IntPtr videoOutputAlloc = LibObjC.SendAndGetHandle(videoDataOutputClass, allocSel);
-                IntPtr videoDataOutput = LibObjC.SendAndGetHandle(videoOutputAlloc, initSel);
+                if (videoDataOutputObj == null)
+                {
+                    Console.WriteLine("AVCaptureVideoDataOutput is not AVCaptureVideoDataOutput");
+                    return;
+                }
+                
+                var videoDataOutput = videoDataOutputObj.Handle;
 
+                /*
                 IntPtr pixelFormatTypeKeyPtr = Dlfcn.dlsym(LibCoreVideo.Handle, "kCVPixelBufferPixelFormatTypeKey");
                 if (pixelFormatTypeKeyPtr == IntPtr.Zero)
                 {
@@ -68,6 +75,7 @@ internal static partial class NativeMethods_AVFoundation
                 IntPtr videoSettings = LibObjC.SendAndGetHandle(nsDictionaryClass, dictSel, nsNumber, nsPixelFormatKey);
                 IntPtr setVideoSettingsSel = LibObjC.GetSelector("setVideoSettings:");
                 LibObjC.SendNoResult(videoDataOutput, setVideoSettingsSel, videoSettings);
+                */
 
                 // Criação e registro da classe delegate dinâmica que implementa o protocolo AVCaptureVideoDataOutputSampleBufferDelegate.
                 IntPtr nsObjectClass = LibObjC.GetClass("NSObject");
