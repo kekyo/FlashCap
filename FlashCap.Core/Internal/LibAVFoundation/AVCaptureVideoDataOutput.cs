@@ -11,6 +11,8 @@ public static partial class NativeMethods_AVFoundation
         public sealed class AVCaptureVideoDataOutput : AVCaptureOutput
         {
             
+            AVCaptureVideoDataOutputSampleBuffer.CaptureOutputDidOutputSampleBuffer? callbackDelegate;
+            
             public AVCaptureVideoDataOutput() : base(IntPtr.Zero, retain: false)
             {
                 Init();
@@ -107,7 +109,7 @@ public static partial class NativeMethods_AVFoundation
                 // Seleciona o método a ser implementado.
                 IntPtr selDidOutput = LibObjC.GetSelector("captureOutput:didOutputSampleBuffer:fromConnection:");
                 
-                AVCaptureVideoDataOutputSampleBuffer.CaptureOutputDidOutputSampleBuffer callbackDelegate = sampleBufferDelegate.CaptureOutputCallback;
+                callbackDelegate = sampleBufferDelegate.CaptureOutputCallback;
                 
                 IntPtr impCallback = Marshal.GetFunctionPointerForDelegate(callbackDelegate);
 
@@ -133,7 +135,6 @@ public static partial class NativeMethods_AVFoundation
                 // [videoDataOutput setSampleBufferDelegate:delegateInstance queue:dispatchQueue]
                 IntPtr setDelegateSel = LibObjC.GetSelector("setSampleBufferDelegate:queue:");
                 LibObjC.SendNoResult(Handle, setDelegateSel, delegateInstance, sampleBufferCallbackQueue.Handle);
-                
                 
                 /*
                 
