@@ -290,7 +290,7 @@ public static class ImageTools
             for (int i = 0; i < width * height; i++)
             {
                 int index = i * 4;
-                //byte A = 255;
+                //byte A = 0;
                 //byte R = 0;
                 //byte G = 0;
                 //byte B = 255;
@@ -298,12 +298,12 @@ public static class ImageTools
                 //byte R = span[index + 1]; // Red
                 //byte G = span[index + 2]; // Green
                 //byte B = span[index + 3]; // Blue
+                var shift = 1;
+                byte A = span[index + shift];
+                byte R = span[index + shift + 1];
+                byte G = span[index + shift + 2];
                 
-                byte R = span[index];
-                byte G = span[index + 1];
-                byte B = span[index + 3];
-                
-                byte A = span[index + 2]; // Green
+                byte B = span[index + shift + 3]; // Green
 
                 // Rearrange to RGBA format for SkiaSharp
                 rgba32Data[index] = R;
