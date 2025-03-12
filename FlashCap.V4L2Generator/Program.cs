@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 
 namespace FlashCap
 {
@@ -221,7 +222,7 @@ namespace FlashCap
 
             using (var tw = File.CreateText(dumperFileName))
             {
-                tw.WriteLine($"// This is auto generated code by FlashCap.V4L2Generator [{ThisAssembly.AssemblyVersion}]. Do not edit.");
+                tw.WriteLine($"// This is auto generated code by FlashCap.V4L2Generator. Do not edit.");
                 tw.WriteLine($"// {versionLabel}");
                 tw.WriteLine($"// {clangVersion.Replace("\r", "").Replace("\n", "")}");
                 tw.WriteLine($"// {gccVersion.Replace("\r", "").Replace("\n", "")}");
@@ -406,7 +407,7 @@ namespace FlashCap
                     "NativeMethods_V4L2_Interop_" + root.Architecture + ".cs");
             using (var tw = File.CreateText(outputSourceFileName))
             {
-                tw.WriteLine($"// This is auto generated code by FlashCap.V4L2Generator [{ThisAssembly.AssemblyVersion}]. Do not edit.");
+                tw.WriteLine($"// This is auto generated code by FlashCap.V4L2Generator. Do not edit.");
                 tw.WriteLine($"// {root.Label}");
                 tw.WriteLine($"// {root.ClangVersion}");
                 tw.WriteLine($"// {root.GccVersion}");
