@@ -155,45 +155,58 @@ public static class ImageTools
     
     public static SKBitmap CreateSKBitmapARGB(byte[] argb32Data, int width, int height)
     {
-        //if (argb32Data.Length != width * height * 4) // 4 bytes per pixel (ARGB)
-        //    throw new ArgumentException("Invalid ARGB32 data size for given width and height.");
-
-        // Convert ARGB32 to RGBA32 (SkiaSharp expects RGBA format)
-        byte[] rgba32Data = new byte[argb32Data.Length];
-
-        for (int i = 0; i < width * height; i++)
-        {
-            int index = i * 4;
-            byte R = argb32Data[index];     // Alpha
-            byte G = argb32Data[index + 1]; // Red
-            byte A = argb32Data[index + 2]; // Green
-            byte B = argb32Data[index + 3]; // Blue
-
-            // Rearrange to RGBA format for SkiaSharp
-            rgba32Data[index] = R;
-            rgba32Data[index + 1] = G;
-            rgba32Data[index + 2] = B;
-            rgba32Data[index + 3] = A;
-        }
-
-        // Create a SkiaSharp bitmap
-        SKBitmap bitmap = new SKBitmap(width, height, SKColorType.Rgba8888, SKAlphaType.Premul);
-
-        // Pin the byte array in memory
-        GCHandle handle = GCHandle.Alloc(rgba32Data, GCHandleType.Pinned);
-        IntPtr ptr = handle.AddrOfPinnedObject();
 
         try
         {
-            // Copy pixel data into the bitmap
-            bitmap.InstallPixels(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul), ptr);
-        }
-        finally
-        {
-            handle.Free(); // Release memory after use
-        }
 
-        return bitmap;
+
+            //if (argb32Data.Length != width * height * 4) // 4 bytes per pixel (ARGB)
+            //    throw new ArgumentException("Invalid ARGB32 data size for given width and height.");
+
+            // Convert ARGB32 to RGBA32 (SkiaSharp expects RGBA format)
+            //byte[] rgba32Data = new byte[argb32Data.Length];
+            byte[] rgba32Data = new byte[width * height * 4];
+
+
+            for (int i = 0; i < width * height; i++)
+            {
+                int index = i * 4;
+                byte R = argb32Data[index]; // Alpha
+                byte G = argb32Data[index + 1]; // Red
+                byte A = argb32Data[index + 2]; // Green
+                byte B = argb32Data[index + 3]; // Blue
+
+                // Rearrange to RGBA format for SkiaSharp
+                rgba32Data[index] = R;
+                rgba32Data[index + 1] = G;
+                rgba32Data[index + 2] = B;
+                rgba32Data[index + 3] = A;
+            }
+
+            // Create a SkiaSharp bitmap
+            SKBitmap bitmap = new SKBitmap(width, height, SKColorType.Rgba8888, SKAlphaType.Premul);
+
+            // Pin the byte array in memory
+            GCHandle handle = GCHandle.Alloc(rgba32Data, GCHandleType.Pinned);
+            IntPtr ptr = handle.AddrOfPinnedObject();
+
+            try
+            {
+                // Copy pixel data into the bitmap
+                bitmap.InstallPixels(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul), ptr);
+            }
+            finally
+            {
+                handle.Free(); // Release memory after use
+            }
+
+            return bitmap;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error converting image: " + ex.Message);
+            throw ex;
+        }
     }
 
     private static Bitmap CreateAvaloniaBitmap(byte[] rgbData, int width, int height)

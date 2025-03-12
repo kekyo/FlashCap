@@ -364,7 +364,7 @@ public sealed class MainWindowViewModel: ReactiveObject
         var timestamp = bufferScope.Buffer.Timestamp;
 
         // `bitmap` is copied, so we can release pixel buffer now.
-        bufferScope.ReleaseNow();
+        //bufferScope.ReleaseNow();
 
         // Switch to UI thread:
         
