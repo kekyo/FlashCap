@@ -183,21 +183,35 @@ public static class ImageTools
                 rgba32Data[index + 3] = A;
             }
 
-            // Create a SkiaSharp bitmap
-            SKBitmap bitmap = new SKBitmap(width, height, SKColorType.Rgba8888, SKAlphaType.Premul);
+            // Allocate SkiaSharp bitmap
+            SKBitmap bitmap = new SKBitmap();
+            SKImageInfo info = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul);
 
             // Pin the byte array in memory
             GCHandle handle = GCHandle.Alloc(rgba32Data, GCHandleType.Pinned);
             IntPtr ptr = handle.AddrOfPinnedObject();
 
+
             try
             {
-                // Copy pixel data into the bitmap
-                bitmap.InstallPixels(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul), ptr);
+                // Install pixels with a release delegate
+                bitmap.InstallPixels(info, ptr, info.RowBytes, (addr, context) =>
+                {
+                    // FIX: Properly cast object to IntPtr before using FromIntPtr
+                    if (context is IntPtr ctxPtr)
+                    {
+                        GCHandle gch = GCHandle.FromIntPtr(ctxPtr);
+                        if (gch.IsAllocated)
+                        {
+                            gch.Free(); // Free the memory safely
+                        }
+                    }
+                }, GCHandle.ToIntPtr(handle)); 
             }
-            finally
+            catch
             {
-                handle.Free(); // Release memory after use
+                handle.Free(); // Ensure memory is freed in case of failure
+                throw;
             }
 
             return bitmap;
@@ -205,7 +219,7 @@ public static class ImageTools
         catch (Exception ex)
         {
             Console.WriteLine("Error converting image: " + ex.Message);
-            throw ex;
+            throw;
         }
     }
 
