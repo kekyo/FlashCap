@@ -359,10 +359,15 @@ public sealed class MainWindowViewModel: ReactiveObject
 
         SKBitmap? bitmap;
 
-        var pixelFormat = ImageTools.DetectPixelFormat(image, Characteristics.Width, Characteristics.Height);
+        // Debug only
+        //var pixelFormat = ImageTools.DetectPixelFormat(image, Characteristics.Width, Characteristics.Height);
+        //Console.WriteLine("Pixelformat: "+ pixelFormat.ToString());
         
         switch (Characteristics.PixelFormat)
         {
+           // case PixelFormats.ARGB32:
+           //     bitmap = ImageTools.CreateSKBitmap32(image, Characteristics.Width, Characteristics.Height);
+           //     break;
             default: 
                 bitmap = ImageTools.CreateSKBitmapARGB(image, Characteristics.Width, Characteristics.Height);
                 break;
