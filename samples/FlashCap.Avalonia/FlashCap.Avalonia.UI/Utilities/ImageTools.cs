@@ -10,8 +10,118 @@ using SkiaSharp;
 
 namespace FlashCap.Avalonia.Utilities;
 
+
+
 public static class ImageTools
 {
+    public enum GuessedPixelFormat
+    {
+        Unknown,
+        Grayscale8,  // 8 bits per pixel (1 byte per pixel)
+        RGB24,       // 24-bit (3 bytes per pixel, no alpha)
+        RGBA32,      // 32-bit (4 bytes per pixel, includes alpha)
+        ARGB32,      // 32-bit (ARGB order)
+        Grayscale16, // 16-bit grayscale (2 bytes per pixel)
+        CMYK32,      // 32-bit CMYK (common in print)
+    }
+    
+    public static GuessedPixelFormat DetectPixelFormat(ArraySegment<byte> imageData, int width, int height)
+    {
+        if (imageData.Array == null || imageData.Count == 0)
+            return GuessedPixelFormat.Unknown;
+
+        int byteCount = imageData.Count;
+        int expectedSize = width * height;
+
+        // Determine probable bytes per pixel
+        int bpp = byteCount / expectedSize;
+
+        switch (bpp)
+        {
+            case 1:
+                return GuessedPixelFormat.Grayscale8; // 1 byte per pixel (grayscale)
+            case 2:
+                return GuessedPixelFormat.Grayscale16; // 2 bytes per pixel (high-precision grayscale)
+            case 3:
+                return IsGrayscale(imageData, width, height, 3) ? GuessedPixelFormat.Grayscale8 : GuessedPixelFormat.RGB24;
+            case 4:
+                return DetectRGBAorARGB(imageData, width, height);
+                //return HasAlphaChannel(imageData, width, height, 4) ? GuessedPixelFormat.RGBA32 : GuessedPixelFormat.RGB24;
+            default:
+                return GuessedPixelFormat.Unknown;
+        }
+    }
+    
+    private static GuessedPixelFormat DetectRGBAorARGB(ArraySegment<byte> imageData, int width, int height)
+    {
+        int pixelCount = width * height;
+        int offset = imageData.Offset;
+        byte[] data = imageData.Array;
+
+        int rgbaMatch = 0;
+        int argbMatch = 0;
+
+        for (int i = 0; i < pixelCount; i++)
+        {
+            int index = offset + i * 4;
+            byte a = data[index];     // Alpha (ARGB first byte)
+            byte r = data[index + 1]; // Red
+            byte g = data[index + 2]; // Green
+            byte b = data[index + 3]; // Blue
+
+            byte r2 = data[index];     // Red (RGBA first byte)
+            byte g2 = data[index + 1]; // Green
+            byte b2 = data[index + 2]; // Blue
+            byte a2 = data[index + 3]; // Alpha (RGBA last byte)
+
+            // Checking ARGB Pattern: If the first byte (A) is either 0 (transparent) or 255 (fully opaque) often
+            if ((a == 0 || a == 255) && r != 0 && g != 0 && b != 0)
+            {
+                argbMatch++;
+            }
+
+            // Checking RGBA Pattern: If the last byte (A2) follows the alpha behavior
+            if ((a2 == 0 || a2 == 255) && r2 != 0 && g2 != 0 && b2 != 0)
+            {
+                rgbaMatch++;
+            }
+        }
+
+        return (argbMatch > rgbaMatch) ? GuessedPixelFormat.ARGB32 : GuessedPixelFormat.RGBA32;
+    }
+
+    private static bool IsGrayscale(ArraySegment<byte> imageData, int width, int height, int bpp)
+    {
+        int pixelCount = width * height;
+
+        for (int i = 0; i < pixelCount; i++)
+        {
+            int index = i * bpp;
+            byte r = imageData.Array[imageData.Offset + index];
+            byte g = imageData.Array[imageData.Offset + index + 1];
+            byte b = imageData.Array[imageData.Offset + index + 2];
+
+            if (r != g || g != b)
+                return false; // If R, G, B are not equal, it's not grayscale
+        }
+        return true;
+    }
+
+    private static bool HasAlphaChannel(ArraySegment<byte> imageData, int width, int height, int bpp)
+    {
+        int pixelCount = width * height;
+
+        for (int i = 0; i < pixelCount; i++)
+        {
+            int index = i * bpp;
+            byte alpha = imageData.Array[imageData.Offset + index + 3];
+
+            if (alpha != 255) // If alpha is not fully opaque anywhere, it has an alpha channel
+                return true;
+        }
+        return false;
+    }
+    
     public static Bitmap DecodeYUYV(byte[] yuyvData, int width, int height)
     {
         if (yuyvData.Length != width * height * 2)
@@ -153,13 +263,12 @@ public static class ImageTools
         return bitmap;
     }
     
-    public static SKBitmap CreateSKBitmapARGB(byte[] argb32Data, int width, int height)
+    public static SKBitmap CreateSKBitmapARGB(ArraySegment<byte> argb32Data, int width, int height)
     {
-
         try
         {
-
-
+            Span<byte> span = argb32Data.AsSpan();
+            
             //if (argb32Data.Length != width * height * 4) // 4 bytes per pixel (ARGB)
             //    throw new ArgumentException("Invalid ARGB32 data size for given width and height.");
 
@@ -167,14 +276,13 @@ public static class ImageTools
             //byte[] rgba32Data = new byte[argb32Data.Length];
             byte[] rgba32Data = new byte[width * height * 4];
 
-
             for (int i = 0; i < width * height; i++)
             {
                 int index = i * 4;
-                byte R = argb32Data[index]; // Alpha
-                byte G = argb32Data[index + 1]; // Red
-                byte A = argb32Data[index + 2]; // Green
-                byte B = argb32Data[index + 3]; // Blue
+                byte R = span[index]; // Alpha
+                byte G = span[index + 1]; // Red
+                byte A = span[index + 2]; // Green
+                byte B = span[index + 3]; // Blue
 
                 // Rearrange to RGBA format for SkiaSharp
                 rgba32Data[index] = R;

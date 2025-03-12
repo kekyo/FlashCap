@@ -344,7 +344,7 @@ public sealed class MainWindowViewModel: ReactiveObject
         ////////////////////////////////////////////////
         // Pixel buffer has arrived.
         // NOTE: Perhaps this thread context is NOT UI thread.
-#if true
+#if false
         // Get image data binary:
         byte[] image = bufferScope.Buffer.ExtractImage();
 #else
@@ -356,7 +356,18 @@ public sealed class MainWindowViewModel: ReactiveObject
         
         // Decode image data to a bitmap:
         //var bitmap = SKBitmap.Decode(image);
-        var bitmap = ImageTools.CreateSKBitmapARGB(image, Characteristics.Width, Characteristics.Height);
+
+        SKBitmap? bitmap;
+
+        var pixelFormat = ImageTools.DetectPixelFormat(image, Characteristics.Width, Characteristics.Height);
+        
+        switch (Characteristics.PixelFormat)
+        {
+            default: 
+                bitmap = ImageTools.CreateSKBitmapARGB(image, Characteristics.Width, Characteristics.Height);
+                break;
+        }
+        
 
         // Capture statistics variables.
         var countFrames = Interlocked.Increment(ref this.countFrames);
