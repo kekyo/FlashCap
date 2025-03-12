@@ -238,22 +238,38 @@ public static class ImageTools
         return bitmap;
     }
     
-    public static SKBitmap CreateSKBitmap32(byte[] rgb32Data, int width, int height)
+    public static SKBitmap CreateSKBitmap32(ArraySegment<byte>  rgb32Data, int width, int height)
     {
-        if (rgb32Data.Length < (width * height * 4)) // 4 bytes per pixel (RGBA)
+        //Span<byte> span = rgb32Data.AsSpan();
+        if (rgb32Data.Array.Length < (width * height * 4)) // 4 bytes per pixel (RGBA)
             throw new ArgumentException("Invalid RGB32 data size for given width and height.");
 
         // Create an SkiaSharp bitmap
-        SKBitmap bitmap = new SKBitmap(width, height, SKColorType.Rgba8888, SKAlphaType.Premul);
+        SKBitmap bitmap = new SKBitmap(width, height, SKColorType.Rgba8888, SKAlphaType.Opaque);
 
         // Pin the byte array in memory
-        GCHandle handle = GCHandle.Alloc(rgb32Data, GCHandleType.Pinned);
+        GCHandle handle = GCHandle.Alloc(rgb32Data.Array, GCHandleType.Pinned);
         IntPtr ptr = handle.AddrOfPinnedObject();
 
         try
         {
+            var info = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Opaque);
+            
             // Copy pixel data into the bitmap
-            bitmap.InstallPixels(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul), ptr);
+           // bitmap.InstallPixels(new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul), ptr);
+            
+            bitmap.InstallPixels(info, ptr, info.RowBytes, (addr, context) =>
+            {
+                // FIX: Properly cast object to IntPtr before using FromIntPtr
+                if (context is IntPtr ctxPtr)
+                {
+                    GCHandle gch = GCHandle.FromIntPtr(ctxPtr);
+                    if (gch.IsAllocated)
+                    {
+                        gch.Free(); // Free the memory safely
+                    }
+                }
+            }, GCHandle.ToIntPtr(handle)); 
         }
         finally
         {
@@ -269,20 +285,25 @@ public static class ImageTools
         {
             Span<byte> span = argb32Data.AsSpan();
             
-            //if (argb32Data.Length != width * height * 4) // 4 bytes per pixel (ARGB)
-            //    throw new ArgumentException("Invalid ARGB32 data size for given width and height.");
-
-            // Convert ARGB32 to RGBA32 (SkiaSharp expects RGBA format)
-            //byte[] rgba32Data = new byte[argb32Data.Length];
             byte[] rgba32Data = new byte[width * height * 4];
 
             for (int i = 0; i < width * height; i++)
             {
                 int index = i * 4;
-                byte R = span[index]; // Alpha
-                byte G = span[index + 1]; // Red
+                //byte A = 255;
+                //byte R = 0;
+                //byte G = 0;
+                //byte B = 255;
+                //byte A = span[index]; // Alpha
+                //byte R = span[index + 1]; // Red
+                //byte G = span[index + 2]; // Green
+                //byte B = span[index + 3]; // Blue
+                
+                byte R = span[index];
+                byte G = span[index + 1];
+                byte B = span[index + 3];
+                
                 byte A = span[index + 2]; // Green
-                byte B = span[index + 3]; // Blue
 
                 // Rearrange to RGBA format for SkiaSharp
                 rgba32Data[index] = R;
@@ -293,7 +314,7 @@ public static class ImageTools
 
             // Allocate SkiaSharp bitmap
             SKBitmap bitmap = new SKBitmap();
-            SKImageInfo info = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Premul);
+            SKImageInfo info = new SKImageInfo(width, height, SKColorType.Rgba8888, SKAlphaType.Opaque);
 
             // Pin the byte array in memory
             GCHandle handle = GCHandle.Alloc(rgba32Data, GCHandleType.Pinned);
