@@ -23,9 +23,7 @@ public static partial class NativeMethods_AVFoundation
                 
                 IntPtr allocSel = LibObjC.GetSelector("alloc");
                 IntPtr initSel = LibObjC.GetSelector("init");
-                
                 IntPtr videoDataOutputClass = LibObjC.GetClass("AVCaptureVideoDataOutput");
-                
                 IntPtr videoOutputAlloc = LibObjC.SendAndGetHandle(videoDataOutputClass, allocSel);
                 IntPtr videoDataOutput = LibObjC.SendAndGetHandle(videoOutputAlloc, initSel);
                 
@@ -119,7 +117,6 @@ public static partial class NativeMethods_AVFoundation
                 
                 IntPtr setDelegateSel = LibObjC.GetSelector("setSampleBufferDelegate:queue:");
                 LibObjC.SendNoResult(Handle, setDelegateSel, delegateInstance, sampleBufferCallbackQueue.Handle);
-                
 
             }
 
