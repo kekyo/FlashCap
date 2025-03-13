@@ -16,6 +16,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Interactivity;
 
 // NOTE: This sample application may crash when exit on .NET Framework (net48) configruation.
 //   Maybe related Avalonia's this issue (in 0.10.13).
