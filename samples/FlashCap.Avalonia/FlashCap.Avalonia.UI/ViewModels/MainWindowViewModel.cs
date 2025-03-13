@@ -66,6 +66,7 @@ public sealed class MainWindowViewModel
 
     public MainWindowViewModel()
     {
+        
         this.UpdateCurrentState(States.NotShown);
 
         // Window shown:
@@ -174,7 +175,7 @@ public sealed class MainWindowViewModel
             // Request video characteristics strictly:
             // Will raise exception when parameters are not accepted.
             var characteristics = new VideoCharacteristics(
-                PixelFormats.JPEG, 1920, 1080, 60);
+                PixelFormats.JPEG, 1920, 1080, 30);
 #else
             // Or, you could choice from device descriptor:
             this.CharacteristicsList.Clear();
