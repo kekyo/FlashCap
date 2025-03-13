@@ -41,18 +41,15 @@ public static partial class NativeMethods_AVFoundation
                 IntPtr allocSel = LibObjC.GetSelector("alloc");
                 IntPtr initSel = LibObjC.GetSelector("init");
                 
-                
                 var videoDataOutputObj = output as AVCaptureVideoDataOutput ;
 
                 if (videoDataOutputObj == null)
                 {
-                    Console.WriteLine("AVCaptureVideoDataOutput is not AVCaptureVideoDataOutput");
-                    return;
+                    throw new Exception("Failed to get video data output");
                 }
                 
                 var videoDataOutput = videoDataOutputObj.Handle;
                 
-
                 LibObjC.SendNoResult(
                     Handle,
                     LibObjC.GetSelector("addOutput:"),

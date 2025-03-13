@@ -68,14 +68,11 @@ public static partial class NativeMethods_AVFoundation
                 IntPtr pixelFormatTypeKeyPtr = Dlfcn.dlsym(LibCoreVideo.Handle, "kCVPixelBufferPixelFormatTypeKey");
                 if (pixelFormatTypeKeyPtr == IntPtr.Zero)
                 {
-                    Console.WriteLine("Não foi possível obter kCVPixelBufferPixelFormatTypeKey.");
-                    return;
+                    throw new Exception("Error comunicating with the AVCaptureVideoDataOutput");
                 }
 
-                // Obtém o valor real da NSString a partir da constante
+                // Get NSString value
                 IntPtr nsPixelFormatKey = Marshal.ReadIntPtr(pixelFormatTypeKeyPtr);
-
-                //int pixelFormat = 1111970369; // Exemplo utilizando BGRA
                 IntPtr nsNumber = LibObjC.CreateNSNumber(pixelFormat);
 
                 IntPtr nsDictionaryClass = LibObjC.GetClass("NSDictionary");
@@ -83,7 +80,6 @@ public static partial class NativeMethods_AVFoundation
                 IntPtr videoSettings = LibObjC.SendAndGetHandle(nsDictionaryClass, dictSel, nsNumber, nsPixelFormatKey);
                 IntPtr setVideoSettingsSel = LibObjC.GetSelector("setVideoSettings:");
                 LibObjC.SendNoResult(this.Handle, setVideoSettingsSel, videoSettings);
-                
                 
             }
 
@@ -99,29 +95,25 @@ public static partial class NativeMethods_AVFoundation
                 
                 IntPtr allocSel = LibObjC.GetSelector("alloc");
                 IntPtr initSel = LibObjC.GetSelector("init");
-                
-                // Criação e registro da classe delegate dinâmica que implementa o protocolo AVCaptureVideoDataOutputSampleBufferDelegate.
                 IntPtr nsObjectClass = LibObjC.GetClass("NSObject");
                 IntPtr delegateClass = LibObjC.objc_allocateClassPair(nsObjectClass, "CaptureDelegate_" + Handle, IntPtr.Zero);
-                // Seleciona o método a ser implementado.
                 IntPtr selDidOutput = LibObjC.GetSelector("captureOutput:didOutputSampleBuffer:fromConnection:");
                 
                 callbackDelegate = sampleBufferDelegate.CaptureOutputCallback;
                 
                 IntPtr impCallback = Marshal.GetFunctionPointerForDelegate(callbackDelegate);
 
-                // A string de tipos "v@:@@@" indica um método que retorna void e recebe (self, _cmd, output, sampleBuffer, connection).
+                // "v@:@@@" this means the methood returns void and receives (self, _cmd, output, sampleBuffer, connection).
                 string types = "v@:@@@";
                 bool added = LibObjC.class_addMethod(delegateClass, selDidOutput, impCallback, types);
                 if (!added)
                 {
-                    Console.WriteLine("Delegate already registred.");
                     return;
                 }
 
                 LibObjC.objc_registerClassPair(delegateClass);
 
-                // Cria uma instância do delegate.
+                // Delegate creation
                 IntPtr delegateInstanceAlloc = LibObjC.SendAndGetHandle(delegateClass, allocSel);
                 IntPtr delegateInstance = LibObjC.SendAndGetHandle(delegateInstanceAlloc, initSel);
                 

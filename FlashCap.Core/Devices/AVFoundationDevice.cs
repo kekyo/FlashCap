@@ -107,8 +107,6 @@ public sealed class AVFoundationDevice : CaptureDevice
         
         device.ActiveVideoMinFrameDuration = frameDuration;
         device.ActiveVideoMaxFrameDuration = frameDuration;
-        
-        //device.UnlockForConfiguration();
 
         this.deviceInput = new AVCaptureDeviceInput(device);
         
@@ -178,12 +176,10 @@ public sealed class AVFoundationDevice : CaptureDevice
         {
 
             var pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
-
-            //Console.WriteLine("PixelBuffer: " + pixelBuffer);
             
             if (pixelBuffer == IntPtr.Zero)
             {
-                Console.WriteLine("[Error] CMSampleBufferGetImageBuffer returned 0x0.");
+                throw new Exception("Failed to get image buffer");
             }
             else
             {

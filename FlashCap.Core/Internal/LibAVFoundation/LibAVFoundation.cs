@@ -41,18 +41,14 @@ public static partial class NativeMethods_AVFoundation
                 {
                     if (LibSystem.IsOnArm64)
                     {
-
                         return LibObjC.SendAndGetCMTime(Handle, LibObjC.GetSelector("minFrameDuration"));
-
                     }
-
-
+                    
                     LibObjC.SendAndGetCMTimeStret(out var result, Handle, LibObjC.GetSelector("minFrameDuration"));
 
                     return result;
                 }
             }
-
         }
 
         public sealed class AVCaptureDevice : LibObjC.NSObject
