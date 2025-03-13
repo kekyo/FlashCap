@@ -14,6 +14,10 @@ namespace FlashCap.Avalonia.Utilities;
 
 public static class ImageTools
 {
+    static ImageTools()
+    {
+    }
+
     public enum GuessedPixelFormat
     {
         Unknown,
