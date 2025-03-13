@@ -7,30 +7,17 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
-using FlashCap.Avalonia.ViewModels;
 
 namespace FlashCap.Avalonia.Views;
 
 public sealed partial class MainWindow : Window
 {
-    public MainWindow()
-    {
-        var vm  = new MainWindowViewModel();
-        vm.ParentWindow = this;
-        this.DataContext = vm;
+    public MainWindow() =>
         this.InitializeComponent();
-    }
-        
 
     private void InitializeComponent() =>
         AvaloniaXamlLoader.Load(this);
-
-    private void TopLevel_OnOpened(object sender, EventArgs e)
-    {
-        (DataContext as MainWindowViewModel)!.OpenedHandler(sender, e);
-    }
 }

@@ -8,7 +8,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using Avalonia.Controls;
-//using Epoxy;
+using Epoxy;
 using SkiaSharp;
 using System;
 using System.Collections.ObjectModel;
@@ -16,10 +16,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Reactive;
-using Avalonia.Threading;
-using FlashCap.Avalonia.Utilities;
-using ReactiveUI;
 
 // NOTE: This sample application may crash when exit on .NET Framework (net48) configruation.
 //   Maybe related Avalonia's this issue (in 0.10.13).
@@ -28,8 +24,8 @@ using ReactiveUI;
 
 namespace FlashCap.Avalonia.ViewModels;
 
-//[ViewModel]
-public sealed class MainWindowViewModel: ReactiveObject
+[ViewModel]
+public sealed class MainWindowViewModel
 {
     private enum States
     {
@@ -45,104 +41,23 @@ public sealed class MainWindowViewModel: ReactiveObject
     private CaptureDevice? captureDevice;
 
     // Binding members.
-    
-    private SKBitmap? _image;
+    public Command Opened { get; }
+    public SKBitmap? Image { get; private set; }
+    public bool IsEnabled { get; private set; }
+    public Command StartCapture { get; }
+    public Command StopCapture { get; }
+    public Command ShowPropertyPage { get; }
+    public bool IsEnabledStartCapture { get; private set; }
+    public bool IsEnabledStopCapture { get; private set; }
+    public bool IsEnabledShowPropertyPage { get; private set; }
 
-    public SKBitmap? Image
-    {
-        get => _image;
-        private set => this.RaiseAndSetIfChanged(ref _image, value);
-    }
-    
-    private bool _isEnabled;
+    public Pile<Window> WindowPile { get; } = Pile.Factory.Create<Window>();
 
-    public bool IsEnabled
-    {
-        get => _isEnabled; 
-        private set => this.RaiseAndSetIfChanged(ref _isEnabled, value);
-    }
+    public ObservableCollection<CaptureDeviceDescriptor?> DeviceList { get; } = new();
+    public CaptureDeviceDescriptor? Device { get; set; }
 
-    public ReactiveCommand<Unit, Unit> ShowPropertyPage { get; }
-    
-    private bool _isEnabledStartCapture;
-    public bool IsEnabledStartCapture 
-    { 
-        get => _isEnabledStartCapture; 
-        private set => this.RaiseAndSetIfChanged(ref _isEnabledStartCapture, value); 
-    }
-    
-    private bool _isEnabledStopCapture;
-
-    public bool IsEnabledStopCapture
-    {
-        get => _isEnabledStopCapture;
-        private set => this.RaiseAndSetIfChanged(ref _isEnabledStopCapture, value);
-    }
-
-    private bool _isEnabledShowPropertyPage;
-    public bool IsEnabledShowPropertyPage
-    {
-        get => _isEnabledShowPropertyPage;
-        private set => this.RaiseAndSetIfChanged(ref _isEnabledShowPropertyPage, value);
-    }
-
-    //public Pile<Window> WindowPile { get; } = Pile.Factory.Create<Window>();
-    
-    public Window? ParentWindow { get; set; }
-    
-    private ObservableCollection<CaptureDeviceDescriptor?> _deviceList = new();
-    
-    public ObservableCollection<CaptureDeviceDescriptor?> DeviceList
-    {
-        get => _deviceList;
-        set => this.RaiseAndSetIfChanged(ref _deviceList, value);
-    }
-    
-    //public ObservableCollection<CaptureDeviceDescriptor?> DeviceList { get; } = new();
-    
-    private CaptureDeviceDescriptor? _device;
-    
-    public CaptureDeviceDescriptor? Device 
-    { 
-        get => _device;
-        set
-        {
-            
-            if (value != null && !value.Equals(_device))
-            {
-                this.RaiseAndSetIfChanged(ref _device, value);
-                this.OnDeviceChangedAsync(value);
-            }
-            else
-            {
-                this.RaiseAndSetIfChanged(ref _device, value);
-            }
-            
-            
-        }
-    }
-
-    private ObservableCollection<VideoCharacteristics> _characteristicsList = new();
-    public ObservableCollection<VideoCharacteristics> CharacteristicsList 
-    { 
-        get => _characteristicsList;
-        set => this.RaiseAndSetIfChanged(ref _characteristicsList, value);
-    }
-    
-    private VideoCharacteristics? _characteristics;
-
-    public VideoCharacteristics? Characteristics
-    {
-        get => _characteristics;
-        set
-        {
-            if (value != null && !value.Equals(_characteristics))
-            {
-                _= this.OnCharacteristicsChangedAsync(value);
-            }
-            this.RaiseAndSetIfChanged(ref _characteristics, value);
-        }
-    }
+    public ObservableCollection<VideoCharacteristics> CharacteristicsList { get; } = new();
+    public VideoCharacteristics? Characteristics { get; set; }
 
     public string? Statistics1 { get; private set; }
     public string? Statistics2 { get; private set; }
@@ -151,76 +66,76 @@ public sealed class MainWindowViewModel: ReactiveObject
     public MainWindowViewModel()
     {
         this.UpdateCurrentState(States.NotShown);
-        
+
+        // Window shown:
+        this.Opened = Command.Factory.Create(() =>
+        {
+            ////////////////////////////////////////////////
+            // Initialize and start capture device
+
+            // Enumerate capture devices:
+            var devices = new CaptureDevices();
+
+            // Store device list into the combo box.
+            this.DeviceList.Clear();
+
+            foreach (var descriptor in devices.EnumerateDescriptors().
+                // You could filter by device type and characteristics.
+                //Where(d => d.DeviceType == DeviceTypes.DirectShow).  // Only DirectShow device.
+                Where(d => d.Characteristics.Length >= 1))             // One or more valid video characteristics.
+            {
+                this.DeviceList.Add(descriptor);
+            }
+
+            this.Device = this.DeviceList.FirstOrDefault();
+
+            this.IsEnabled = true;
+
+            return default;
+        });
+
+        // Clicked start capture button.
+        this.StartCapture = Command.Factory.Create(async () =>
+        {
+            // Erase preview.
+            this.Image = null;
+            this.Statistics1 = null;
+            this.Statistics2 = null;
+            this.Statistics3 = null;
+            this.countFrames = 0;
+
+            await this.captureDevice!.StartAsync();
+
+            this.UpdateCurrentState(States.Show);
+        });
+
+        // Clicked stop capture button.
+        this.StopCapture = Command.Factory.Create(async () =>
+        {
+            await this.captureDevice!.StopAsync();
+
+            this.UpdateCurrentState(States.Ready);
+        });
+
         // Clicked show property page button.
-        this.ShowPropertyPage = ReactiveCommand.CreateFromTask(async () =>
+        this.ShowPropertyPage = Command.Factory.Create(async () =>
         {
             if (this.captureDevice is { } captureDevice &&
                 captureDevice.HasPropertyPage == true)
             {
-
-                // Take Win32 parent window handle and show with relation.
-                if (ParentWindow!.TryGetPlatformHandle()?.Handle is { } handle)
+                // Partially rent Window object from the anchor.
+                await this.WindowPile.RentAsync(async window =>
                 {
-                    await captureDevice.ShowPropertyPageAsync(handle);
-                }
-                
+                    // Take Win32 parent window handle and show with relation.
+                    if (window.TryGetPlatformHandle()?.Handle is { } handle)
+                    {
+                        await captureDevice.ShowPropertyPageAsync(handle);
+                    }
+                });
             }
         });
     }
 
-    public void OpenedHandler(object sender, EventArgs e)
-    {
-        ////////////////////////////////////////////////
-        // Initialize and start capture device
-
-        // Enumerate capture devices:
-        var devices = new CaptureDevices();
-
-        // Store device list into the combo box.
-        this.DeviceList.Clear();
-            
-        var deviceDescriptors = devices.EnumerateDescriptors().ToArray();
-
-        foreach (var descriptor in deviceDescriptors.
-                     // You could filter by device type and characteristics.
-                     //Where(d => d.DeviceType == DeviceTypes.DirectShow).  // Only DirectShow device.
-                     Where(d => d.Characteristics.Length >= 1))             // One or more valid video characteristics.
-        {
-            this.DeviceList.Add(descriptor);
-        }
-
-        this.Device = this.DeviceList.FirstOrDefault();
-
-        this.IsEnabled = true;
-    }
-    
-    public async Task StartCapture()
-    {
-        // Erase preview.
-        this.Image = null;
-        this.Statistics1 = null;
-        this.Statistics2 = null;
-        this.Statistics3 = null;
-        this.countFrames = 0;
-
-        /*await Dispatcher.UIThread.InvokeAsync(async () =>
-        {
-            await this.captureDevice!.StartAsync();
-            UpdateCurrentState(States.Show);
-        });*/
-        
-        await this.captureDevice!.StartAsync();
-        UpdateCurrentState(States.Show);
-    }
-
-    public async Task StopCapture()
-    {
-        await this.captureDevice!.StopAsync();
-
-        this.UpdateCurrentState(States.Ready);
-    }
-    
     // Buttons enabling control.
     private void UpdateCurrentState(States state)
     {
@@ -246,12 +161,13 @@ public sealed class MainWindowViewModel: ReactiveObject
     }
 
     // Devices combo box was changed.
+    [PropertyChanged(nameof(Device))]
     private ValueTask OnDeviceChangedAsync(CaptureDeviceDescriptor? descriptor)
     {
         Debug.WriteLine($"OnDeviceChangedAsync: Enter: {descriptor?.ToString() ?? "(null)"}");
 
         // Use selected device.
-        if (descriptor is not null)
+        if (descriptor is { })
         {
 #if false
             // Request video characteristics strictly:
@@ -290,6 +206,7 @@ public sealed class MainWindowViewModel: ReactiveObject
     }
 
     // Characteristics combo box was changed.
+    [PropertyChanged(nameof(Characteristics))]
     private async ValueTask OnCharacteristicsChangedAsync(VideoCharacteristics? characteristics)
     {
         Debug.WriteLine($"OnCharacteristicsChangedAsync: Enter: {characteristics?.ToString() ?? "(null)"}");
@@ -319,14 +236,14 @@ public sealed class MainWindowViewModel: ReactiveObject
             this.countFrames = 0;
 
             // Descriptor is assigned and set valid characteristics:
-            if (this.Device is not null && characteristics is not null)
+            if (this.Device is { } descriptor &&
+                characteristics is { })
             {
-                var descriptor = this.Device;
                 // Open capture device:
                 Debug.WriteLine($"OnCharacteristicsChangedAsync: Opening: {descriptor.Name}");
                 this.captureDevice = await descriptor.OpenAsync(
                     characteristics,
-                    OnPixelBufferArrivedAsync);
+                    this.OnPixelBufferArrivedAsync);
 
                 this.UpdateCurrentState(States.Ready);
             }
@@ -339,7 +256,7 @@ public sealed class MainWindowViewModel: ReactiveObject
         }
     }
 
-    private  async Task OnPixelBufferArrivedAsync(PixelBufferScope bufferScope)
+    private async Task OnPixelBufferArrivedAsync(PixelBufferScope bufferScope)
     {
         ////////////////////////////////////////////////
         // Pixel buffer has arrived.
@@ -351,28 +268,8 @@ public sealed class MainWindowViewModel: ReactiveObject
         // Or, refer image data binary directly.
         ArraySegment<byte> image = bufferScope.Buffer.ReferImage();
 #endif
-        
-        if(Characteristics is null) return;
-        
         // Decode image data to a bitmap:
-        //var bitmap = SKBitmap.Decode(image);
-
-        SKBitmap? bitmap;
-
-        // Debug only
-        //var pixelFormat = ImageTools.DetectPixelFormat(image, Characteristics.Width, Characteristics.Height);
-        //Console.WriteLine("Pixelformat: "+ pixelFormat.ToString());
-        
-        switch (Characteristics.PixelFormat)
-        {
-           // case PixelFormats.ARGB32:
-           //     bitmap = ImageTools.CreateSKBitmap32(image, Characteristics.Width, Characteristics.Height);
-           //     break;
-            default: 
-                bitmap = ImageTools.CreateSKBitmapARGB(image, Characteristics.Width, Characteristics.Height);
-                break;
-        }
-        
+        var bitmap = SKBitmap.Decode(image);
 
         // Capture statistics variables.
         var countFrames = Interlocked.Increment(ref this.countFrames);
@@ -380,11 +277,10 @@ public sealed class MainWindowViewModel: ReactiveObject
         var timestamp = bufferScope.Buffer.Timestamp;
 
         // `bitmap` is copied, so we can release pixel buffer now.
-        //bufferScope.ReleaseNow();
+        bufferScope.ReleaseNow();
 
         // Switch to UI thread:
-        
-        await Dispatcher.UIThread.InvokeAsync( () =>
+        if (await UIThread.TryBind())
         {
             // Update a bitmap.
             this.Image = bitmap;
@@ -395,8 +291,6 @@ public sealed class MainWindowViewModel: ReactiveObject
             this.Statistics1 = $"Frame={countFrames}/{frameIndex}";
             this.Statistics2 = $"FPS={realFps:F3}/{fpsByIndex:F3}";
             this.Statistics3 = $"SKBitmap={bitmap.Width}x{bitmap.Height} [{bitmap.ColorType}]";
-        });
-        
-        //return Task.CompletedTask;
+        }
     }
 }
