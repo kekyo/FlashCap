@@ -50,10 +50,6 @@
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="RelaxVersioner" Version="3.3.0" PrivateAssets="All" />
-  </ItemGroup>
-
   <ItemGroup Condition="'$(Configuration)' == 'Release'">
     <SourceRoot Include="$(MSBuildThisFileDirectory)/"/>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
