@@ -9,7 +9,7 @@
 
 using System;
 
-namespace FlashCap.Internal;
+namespace FlashCap.Internal.AVFoundation;
 
 internal readonly struct FourCharCode : IEquatable<FourCharCode>
 {

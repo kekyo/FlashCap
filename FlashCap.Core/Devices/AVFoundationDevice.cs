@@ -13,8 +13,8 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using FlashCap.Internal;
+using static FlashCap.Internal.AVFoundation.LibAVFoundation;
 using static FlashCap.Internal.NativeMethods;
-using static FlashCap.Internal.NativeMethods_AVFoundation.LibAVFoundation;
 using static FlashCap.Internal.NativeMethods_AVFoundation.LibCoreFoundation;
 using static FlashCap.Internal.NativeMethods_AVFoundation.LibCoreMedia;
 using static FlashCap.Internal.NativeMethods_AVFoundation.LibCoreVideo;
@@ -163,7 +163,7 @@ public sealed class AVFoundationDevice : CaptureDevice
         buffer.CopyIn(this.bitmapHeader, pData, size, timestampMicroseconds, frameIndex, TranscodeFormats.Auto);
     }
 
-    public class VideoBufferHandler : AVCaptureVideoDataOutputSampleBuffer
+    internal sealed class VideoBufferHandler : AVCaptureVideoDataOutputSampleBuffer
     {
         private readonly AVFoundationDevice device;
         private int frameIndex;

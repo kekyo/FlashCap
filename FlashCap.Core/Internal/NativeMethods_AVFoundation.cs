@@ -13,10 +13,11 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+using FlashCap.Internal.AVFoundation;
 
 namespace FlashCap.Internal;
 
-internal static partial class NativeMethods_AVFoundation
+internal static class NativeMethods_AVFoundation
 {
     public static readonly Dictionary<PixelFormats, int> PixelFormatMap = new()
     {
@@ -631,9 +632,6 @@ internal static partial class NativeMethods_AVFoundation
 
     public static class LibCoreMedia
     {
-        
-
-        
         public const string Path = "/System/Library/Frameworks/CoreMedia.framework/CoreMedia";
 
         [DllImport(Path)]

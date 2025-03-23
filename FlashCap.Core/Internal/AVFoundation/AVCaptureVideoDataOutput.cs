@@ -10,125 +10,123 @@
 using System;
 using System.Runtime.InteropServices;
 using FlashCap.Devices;
+using static FlashCap.Internal.NativeMethods_AVFoundation;
 
-namespace FlashCap.Internal;
+namespace FlashCap.Internal.AVFoundation;
 
-partial class NativeMethods_AVFoundation
+partial class LibAVFoundation
 {
-    public static partial class LibAVFoundation
+    public sealed class AVCaptureVideoDataOutput : AVCaptureOutput
     {
-        public sealed class AVCaptureVideoDataOutput : AVCaptureOutput
+        
+        AVCaptureVideoDataOutputSampleBuffer.CaptureOutputDidOutputSampleBuffer? callbackDelegate;
+        
+        public AVCaptureVideoDataOutput() : base(IntPtr.Zero, retain: false)
+        {
+            Init();
+        }
+
+        private void Init()
         {
             
-            AVCaptureVideoDataOutputSampleBuffer.CaptureOutputDidOutputSampleBuffer? callbackDelegate;
+            IntPtr allocSel = LibObjC.GetSelector("alloc");
+            IntPtr initSel = LibObjC.GetSelector("init");
+            IntPtr videoDataOutputClass = LibObjC.GetClass("AVCaptureVideoDataOutput");
+            IntPtr videoOutputAlloc = LibObjC.SendAndGetHandle(videoDataOutputClass, allocSel);
+            IntPtr videoDataOutput = LibObjC.SendAndGetHandle(videoOutputAlloc, initSel);
             
-            public AVCaptureVideoDataOutput() : base(IntPtr.Zero, retain: false)
-            {
-                Init();
-            }
+            Handle = videoDataOutput;
+            
+            LibCoreFoundation.CFRetain(Handle);
+        }
 
-            private void Init()
-            {
-                
-                IntPtr allocSel = LibObjC.GetSelector("alloc");
-                IntPtr initSel = LibObjC.GetSelector("init");
-                IntPtr videoDataOutputClass = LibObjC.GetClass("AVCaptureVideoDataOutput");
-                IntPtr videoOutputAlloc = LibObjC.SendAndGetHandle(videoDataOutputClass, allocSel);
-                IntPtr videoDataOutput = LibObjC.SendAndGetHandle(videoOutputAlloc, initSel);
-                
-                Handle = videoDataOutput;
-                
-                LibCoreFoundation.CFRetain(Handle);
-            }
-
-            public unsafe int[] AvailableVideoCVPixelFormatTypes =>
-                LibCoreFoundation.CFArray.ToArray(
-                    LibObjC.SendAndGetHandle(
-                        Handle,
-                        LibObjC.GetSelector("availableVideoCVPixelFormatTypes")),
-                    static handle =>
-                    {
-                        int value;
-                        if (LibCoreFoundation.CFNumberGetValue(handle, LibCoreFoundation.CFNumberType.sInt32Type, &value))
-                            return value;
-                        throw new InvalidOperationException("The value contained by CFNumber cannot be read as 32-bit signed integer.");
-                    });
-
-            public bool AlwaysDiscardsLateVideoFrames
-            {
-                get =>
-                    LibObjC.SendAndGetBool(
-                        Handle,
-                        LibObjC.GetSelector("alwaysDiscardsLateVideoFrames"));
-                set =>
-                    LibObjC.SendNoResult(
-                        Handle,
-                        LibObjC.GetSelector("setAlwaysDiscardsLateVideoFrames:"),
-                        value);
-            }
-
-            public void SetPixelFormatType(int format)
-            {
-
-                var pixelFormat = format;
-                
-                IntPtr pixelFormatTypeKeyPtr = Dlfcn.dlsym(LibCoreVideo.Handle, "kCVPixelBufferPixelFormatTypeKey");
-                if (pixelFormatTypeKeyPtr == IntPtr.Zero)
+        public unsafe int[] AvailableVideoCVPixelFormatTypes =>
+            LibCoreFoundation.CFArray.ToArray(
+                LibObjC.SendAndGetHandle(
+                    Handle,
+                    LibObjC.GetSelector("availableVideoCVPixelFormatTypes")),
+                static handle =>
                 {
-                    throw new Exception("Error comunicating with the AVCaptureVideoDataOutput");
-                }
+                    int value;
+                    if (LibCoreFoundation.CFNumberGetValue(handle, LibCoreFoundation.CFNumberType.sInt32Type, &value))
+                        return value;
+                    throw new InvalidOperationException("The value contained by CFNumber cannot be read as 32-bit signed integer.");
+                });
 
-                // Get NSString value
-                IntPtr nsPixelFormatKey = Marshal.ReadIntPtr(pixelFormatTypeKeyPtr);
-                IntPtr nsNumber = LibObjC.CreateNSNumber(pixelFormat);
+        public bool AlwaysDiscardsLateVideoFrames
+        {
+            get =>
+                LibObjC.SendAndGetBool(
+                    Handle,
+                    LibObjC.GetSelector("alwaysDiscardsLateVideoFrames"));
+            set =>
+                LibObjC.SendNoResult(
+                    Handle,
+                    LibObjC.GetSelector("setAlwaysDiscardsLateVideoFrames:"),
+                    value);
+        }
 
-                IntPtr nsDictionaryClass = LibObjC.GetClass("NSDictionary");
-                IntPtr dictSel = LibObjC.GetSelector("dictionaryWithObject:forKey:");
-                IntPtr videoSettings = LibObjC.SendAndGetHandle(nsDictionaryClass, dictSel, nsNumber, nsPixelFormatKey);
-                IntPtr setVideoSettingsSel = LibObjC.GetSelector("setVideoSettings:");
-                LibObjC.SendNoResult(this.Handle, setVideoSettingsSel, videoSettings);
-                
-            }
+        public void SetPixelFormatType(int format)
+        {
 
-            public void SetSampleBufferDelegate(AVFoundationDevice.VideoBufferHandler sampleBufferDelegate,
-                LibCoreFoundation.DispatchQueue sampleBufferCallbackQueue)
+            var pixelFormat = format;
+            
+            IntPtr pixelFormatTypeKeyPtr = Dlfcn.dlsym(LibCoreVideo.Handle, "kCVPixelBufferPixelFormatTypeKey");
+            if (pixelFormatTypeKeyPtr == IntPtr.Zero)
             {
-                
-                if (sampleBufferDelegate == null)
-                {
-                    Console.WriteLine("AVCaptureVideoDataOutputSampleBufferDelegate is null");
-                    return;
-                }
-                
-                IntPtr allocSel = LibObjC.GetSelector("alloc");
-                IntPtr initSel = LibObjC.GetSelector("init");
-                IntPtr nsObjectClass = LibObjC.GetClass("NSObject");
-                IntPtr delegateClass = LibObjC.objc_allocateClassPair(nsObjectClass, "CaptureDelegate_" + Handle, IntPtr.Zero);
-                IntPtr selDidOutput = LibObjC.GetSelector("captureOutput:didOutputSampleBuffer:fromConnection:");
-                
-                callbackDelegate = sampleBufferDelegate.CaptureOutputCallback;
-                
-                IntPtr impCallback = Marshal.GetFunctionPointerForDelegate(callbackDelegate);
-
-                // "v@:@@@" this means the methood returns void and receives (self, _cmd, output, sampleBuffer, connection).
-                string types = "v@:@@@";
-                bool added = LibObjC.class_addMethod(delegateClass, selDidOutput, impCallback, types);
-                if (!added)
-                {
-                    return;
-                }
-
-                LibObjC.objc_registerClassPair(delegateClass);
-
-                // Delegate creation
-                IntPtr delegateInstanceAlloc = LibObjC.SendAndGetHandle(delegateClass, allocSel);
-                IntPtr delegateInstance = LibObjC.SendAndGetHandle(delegateInstanceAlloc, initSel);
-                
-                IntPtr setDelegateSel = LibObjC.GetSelector("setSampleBufferDelegate:queue:");
-                LibObjC.SendNoResult(Handle, setDelegateSel, delegateInstance, sampleBufferCallbackQueue.Handle);
-
+                throw new Exception("Error comunicating with the AVCaptureVideoDataOutput");
             }
+
+            // Get NSString value
+            IntPtr nsPixelFormatKey = Marshal.ReadIntPtr(pixelFormatTypeKeyPtr);
+            IntPtr nsNumber = LibObjC.CreateNSNumber(pixelFormat);
+
+            IntPtr nsDictionaryClass = LibObjC.GetClass("NSDictionary");
+            IntPtr dictSel = LibObjC.GetSelector("dictionaryWithObject:forKey:");
+            IntPtr videoSettings = LibObjC.SendAndGetHandle(nsDictionaryClass, dictSel, nsNumber, nsPixelFormatKey);
+            IntPtr setVideoSettingsSel = LibObjC.GetSelector("setVideoSettings:");
+            LibObjC.SendNoResult(this.Handle, setVideoSettingsSel, videoSettings);
+            
+        }
+
+        public void SetSampleBufferDelegate(AVFoundationDevice.VideoBufferHandler sampleBufferDelegate,
+            LibCoreFoundation.DispatchQueue sampleBufferCallbackQueue)
+        {
+            
+            if (sampleBufferDelegate == null)
+            {
+                Console.WriteLine("AVCaptureVideoDataOutputSampleBufferDelegate is null");
+                return;
+            }
+            
+            IntPtr allocSel = LibObjC.GetSelector("alloc");
+            IntPtr initSel = LibObjC.GetSelector("init");
+            IntPtr nsObjectClass = LibObjC.GetClass("NSObject");
+            IntPtr delegateClass = LibObjC.objc_allocateClassPair(nsObjectClass, "CaptureDelegate_" + Handle, IntPtr.Zero);
+            IntPtr selDidOutput = LibObjC.GetSelector("captureOutput:didOutputSampleBuffer:fromConnection:");
+            
+            callbackDelegate = sampleBufferDelegate.CaptureOutputCallback;
+            
+            IntPtr impCallback = Marshal.GetFunctionPointerForDelegate(callbackDelegate);
+
+            // "v@:@@@" this means the methood returns void and receives (self, _cmd, output, sampleBuffer, connection).
+            string types = "v@:@@@";
+            bool added = LibObjC.class_addMethod(delegateClass, selDidOutput, impCallback, types);
+            if (!added)
+            {
+                return;
+            }
+
+            LibObjC.objc_registerClassPair(delegateClass);
+
+            // Delegate creation
+            IntPtr delegateInstanceAlloc = LibObjC.SendAndGetHandle(delegateClass, allocSel);
+            IntPtr delegateInstance = LibObjC.SendAndGetHandle(delegateInstanceAlloc, initSel);
+            
+            IntPtr setDelegateSel = LibObjC.GetSelector("setSampleBufferDelegate:queue:");
+            LibObjC.SendNoResult(Handle, setDelegateSel, delegateInstance, sampleBufferCallbackQueue.Handle);
 
         }
+
     }
 }

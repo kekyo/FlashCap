@@ -12,7 +12,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using FlashCap.Internal;
 using FlashCap.Utilities;
-using static FlashCap.Internal.NativeMethods_AVFoundation.LibAVFoundation;
+using static FlashCap.Internal.AVFoundation.LibAVFoundation;
 
 namespace FlashCap.Devices;
 
