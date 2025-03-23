@@ -1,8 +1,17 @@
+////////////////////////////////////////////////////////////////////////////
+//
+// FlashCap - Independent camera capture library.
+// Copyright (c) Yoh Deadfall (@YohDeadfall)
+//
+// Licensed under Apache-v2: https://opensource.org/licenses/Apache-2.0
+//
+////////////////////////////////////////////////////////////////////////////
+
 using System;
 
 namespace FlashCap.Internal;
 
-public struct FourCharCode : IEquatable<FourCharCode>
+internal readonly struct FourCharCode : IEquatable<FourCharCode>
 {
     private readonly uint value;
 

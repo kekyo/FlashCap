@@ -1,3 +1,12 @@
+////////////////////////////////////////////////////////////////////////////
+//
+// FlashCap - Independent camera capture library.
+// Copyright (c) Yoh Deadfall (@YohDeadfall)
+//
+// Licensed under Apache-v2: https://opensource.org/licenses/Apache-2.0
+//
+////////////////////////////////////////////////////////////////////////////
+
 using System;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -9,7 +18,6 @@ using static FlashCap.Internal.NativeMethods_AVFoundation.LibAVFoundation;
 using static FlashCap.Internal.NativeMethods_AVFoundation.LibCoreFoundation;
 using static FlashCap.Internal.NativeMethods_AVFoundation.LibCoreMedia;
 using static FlashCap.Internal.NativeMethods_AVFoundation.LibCoreVideo;
-
 
 namespace FlashCap.Devices;
 
