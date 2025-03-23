@@ -13,7 +13,7 @@ using System.Linq;
 
 namespace FlashCap.Internal;
 
-public static partial class NativeMethods_AVFoundation
+partial class NativeMethods_AVFoundation
 {
     public static partial class LibAVFoundation
     {

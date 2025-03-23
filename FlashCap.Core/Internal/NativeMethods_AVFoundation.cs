@@ -16,7 +16,7 @@ using System.Threading;
 
 namespace FlashCap.Internal;
 
-public static partial class NativeMethods_AVFoundation
+internal static partial class NativeMethods_AVFoundation
 {
     public static readonly Dictionary<PixelFormats, int> PixelFormatMap = new()
     {
