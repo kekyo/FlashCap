@@ -63,7 +63,7 @@ public sealed class AVFoundationDevice : CaptureDevice
                 $"FlashCap: Couldn't set video format: UniqueID={this.uniqueID}");
         }
 
-        this.bitmapHeader = NativeMethods.AllocateMemory(new IntPtr(Marshal.SizeOf<BITMAPINFOHEADER>()));
+        this.bitmapHeader = NativeMethods.AllocateMemory(new IntPtr(MarshalEx.SizeOf<BITMAPINFOHEADER>()));
 
         try
         {
@@ -71,7 +71,7 @@ public sealed class AVFoundationDevice : CaptureDevice
             {
                 var pBih = (BITMAPINFOHEADER*)this.bitmapHeader.ToPointer();
 
-                pBih->biSize = sizeof(NativeMethods.BITMAPINFOHEADER);
+                pBih->biSize = MarshalEx.SizeOf<BITMAPINFOHEADER>();
                 pBih->biCompression = compression;
                 pBih->biPlanes = 1;
                 pBih->biBitCount = bitCount;
@@ -135,19 +135,19 @@ public sealed class AVFoundationDevice : CaptureDevice
             throw new Exception("Can't add video output");
         }
 
-        return Task.CompletedTask;
+        return TaskCompat.CompletedTask;
     }
 
     protected override Task OnStartAsync(CancellationToken ct)
     {
         this.session?.StartRunning();
-        return Task.CompletedTask;
+        return TaskCompat.CompletedTask;
     }
 
     protected override Task OnStopAsync(CancellationToken ct)
     {
         this.session?.StopRunning();
-        return Task.CompletedTask;
+        return TaskCompat.CompletedTask;
     }
 
     protected override void OnCapture(IntPtr pData, int size, long timestampMicroseconds, long frameIndex, PixelBuffer buffer)
@@ -201,8 +201,6 @@ public sealed class AVFoundationDevice : CaptureDevice
                     CVPixelBufferUnlockBaseAddress(pixelBuffer, PixelBufferLockFlags.ReadOnly);
                 }
             }
-            
         }
-        
     }
 }

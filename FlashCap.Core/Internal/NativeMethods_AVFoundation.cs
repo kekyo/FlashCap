@@ -241,9 +241,9 @@ public static partial class NativeMethods_AVFoundation
             public static IntPtr Create(string signature, Delegate target, BlockLiteralCopy copy, BlockLiteralDispose dispose)
             {
                 var signatureBytes = Encoding.UTF8.GetBytes(signature);
-                var descriptorSize = Marshal.SizeOf<BlockDescriptor>();
+                var descriptorSize = MarshalEx.SizeOf<BlockDescriptor>();
 
-                var memory = Marshal.AllocHGlobal(descriptorSize + signatureBytes.Length);
+                nint memory = Marshal.AllocHGlobal(descriptorSize + signatureBytes.Length);
                 var memoryToSignature = memory + descriptorSize;
 
                 Marshal.Copy(signatureBytes, startIndex: 0, memoryToSignature, length: 0);
@@ -252,7 +252,7 @@ public static partial class NativeMethods_AVFoundation
                 {
                     var descriptor = (BlockDescriptor*)memory;
 
-                    descriptor->Size = new IntPtr(Marshal.SizeOf<BlockLiteral>());
+                    descriptor->Size = new IntPtr(MarshalEx.SizeOf<BlockLiteral>());
                     descriptor->Copy = Marshal.GetFunctionPointerForDelegate(copy);
                     descriptor->Dispose = Marshal.GetFunctionPointerForDelegate(dispose);
                     descriptor->Signature = memoryToSignature;
@@ -514,7 +514,7 @@ public static partial class NativeMethods_AVFoundation
             {
                 var count = CFArrayGetCount(handle).ToInt32();
                 if (count == 0)
-                    return Array.Empty<T>();
+                    return ArrayEx.Empty<T>();
 
                 var buffer = new IntPtr[count];
 
