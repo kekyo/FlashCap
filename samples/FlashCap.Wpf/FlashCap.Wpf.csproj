@@ -1,8 +1,8 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFrameworks>net48;net6.0-windows</TargetFrameworks>
+    <TargetFrameworks>net48;net8.0-windows</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <Nullable>Enable</Nullable>
     <UseWPF>true</UseWPF>
