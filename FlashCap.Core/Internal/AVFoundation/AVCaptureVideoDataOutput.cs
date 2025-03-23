@@ -8,6 +8,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using FlashCap.Devices;
 using static FlashCap.Internal.NativeMethods_AVFoundation;
@@ -95,7 +96,7 @@ partial class LibAVFoundation
             
             if (sampleBufferDelegate == null)
             {
-                Console.WriteLine("AVCaptureVideoDataOutputSampleBufferDelegate is null");
+                Debug.WriteLine("AVCaptureVideoDataOutputSampleBufferDelegate is null");
                 return;
             }
             

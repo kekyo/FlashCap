@@ -8,6 +8,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Linq;
 using static FlashCap.Internal.NativeMethods_AVFoundation;
@@ -188,8 +189,7 @@ internal static partial class LibAVFoundation
             if (errorHandle != IntPtr.Zero)
             {
                 using var error = new LibObjC.NSError(errorHandle, retain: true);
-                Console.WriteLine(error.Error);
-                throw new InvalidOperationException(/* error.FailureReason */);
+                throw new InvalidOperationException(error.Error);
             }
         }
 
@@ -358,8 +358,7 @@ internal static partial class LibAVFoundation
             if (errorHandle != IntPtr.Zero)
             {
                 using var error = new LibObjC.NSError(errorHandle, retain: false);
-                Console.WriteLine(error.Error);
-                throw new InvalidOperationException(/* error.FailureReason */);
+                throw new InvalidOperationException(error.Error);
             }
 
             return inputHandle;
@@ -404,7 +403,7 @@ internal static partial class LibAVFoundation
                 {
                     4 => 2,
                     8 => 3,
-                    _ => throw new NotSupportedException("The current arhitecture isn't supported.")
+                    _ => throw new NotSupportedException("The current architecture isn't supported.")
                 },
                 types: "^v");
 

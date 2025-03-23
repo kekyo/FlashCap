@@ -8,6 +8,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -175,7 +176,7 @@ public sealed class AVFoundationDevice : CaptureDevice
 
         public override void DidDropSampleBuffer(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection)
         {
-            Console.WriteLine("Dropped");
+            Debug.WriteLine("Dropped");
             var valid = CMSampleBufferIsValid(sampleBuffer);
         }
 
