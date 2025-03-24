@@ -22,9 +22,11 @@ internal static class NativeMethods_AVFoundation
     public static readonly Dictionary<PixelFormats, int> PixelFormatMap = new()
     {
         //[PixelFormats.UYVY] = LibCoreVideo.PixelFormatType_24RGB,
-        //[PixelFormats.ARGB32] = 32,
-        [PixelFormats.ARGB32] = LibCoreVideo.PixelFormatType_32BGRA,
-        [PixelFormats.RGB32] = LibCoreVideo.PixelFormatType_32RGBA,
+        [PixelFormats.RGB32] = 32,
+        //[PixelFormats.ARGB32] = LibCoreVideo.PixelFormatType_32BGRA,
+        //[PixelFormats.BGRA32] = LibCoreVideo.PixelFormatType_32BGRA,
+        [PixelFormats.ARGB32] = LibCoreVideo.PixelFormatType_32RGBA,
+        [PixelFormats.RGB24] = LibCoreVideo.PixelFormatType_24RGB,
         [PixelFormats.UYVY] = LibCoreVideo.PixelFormatType_422YpCbCr8_yuvs,
         [PixelFormats.YUYV] = LibCoreVideo.PixelFormatType_422YpCbCr8,
         
