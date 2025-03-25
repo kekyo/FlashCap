@@ -100,7 +100,7 @@ public sealed class AVFoundationDevice : CaptureDevice
             ?? throw new InvalidOperationException(
                 $"FlashCap: Couldn't find device: UniqueID={this.uniqueID}");
 
-        /*this.device.LockForConfiguration();
+        //this.device.LockForConfiguration();
         this.device.ActiveFormat = this.device.Formats
             .FirstOrDefault(format =>
                 format.FormatDescription.Dimensions is var dimensions &&
@@ -117,7 +117,7 @@ public sealed class AVFoundationDevice : CaptureDevice
         device.ActiveVideoMinFrameDuration = frameDuration;
         device.ActiveVideoMaxFrameDuration = frameDuration;
         
-        this.device.UnlockForConfiguration();*/
+        //this.device.UnlockForConfiguration();
 
         this.deviceInput = new AVCaptureDeviceInput(device);
         
