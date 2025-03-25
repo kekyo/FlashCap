@@ -116,6 +116,8 @@ public sealed class AVFoundationDevice : CaptureDevice
         
         device.ActiveVideoMinFrameDuration = frameDuration;
         device.ActiveVideoMaxFrameDuration = frameDuration;
+        
+        this.device.UnlockForConfiguration();
 
         this.deviceInput = new AVCaptureDeviceInput(device);
         
