@@ -101,7 +101,7 @@ public sealed class AVFoundationDevice : CaptureDevice
                 $"FlashCap: Couldn't find device: UniqueID={this.uniqueID}");
 
         this.device.LockForConfiguration();
-        this.device.ActiveFormat = this.device.Formats
+        var formatSelected = this.device.Formats
             .FirstOrDefault(format =>
                 format.FormatDescription.Dimensions is var dimensions &&
                 format.FormatDescription.MediaType == CMMediaType.Video  &&
@@ -109,7 +109,8 @@ public sealed class AVFoundationDevice : CaptureDevice
                 dimensions.Height == characteristics.Height)
             ?? throw new InvalidOperationException(
                 $"FlashCap: Couldn't set video format: UniqueID={this.uniqueID}");
-        this.device.UnlockForConfiguration();
+
+        this.device.ActiveFormat = formatSelected;
 
         var frameDuration = CMTimeMake(
             characteristics.FramesPerSecond.Denominator,
@@ -137,7 +138,7 @@ public sealed class AVFoundationDevice : CaptureDevice
         this.deviceOutput.SetSampleBufferDelegate(new VideoBufferHandler(this), this.queue);
         this.deviceOutput.AlwaysDiscardsLateVideoFrames = true;
 
-     
+        this.device.UnlockForConfiguration();
         
         this.session = new AVCaptureSession();
         this.session.AddInput(this.deviceInput);
