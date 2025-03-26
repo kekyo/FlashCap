@@ -42,10 +42,15 @@ public sealed class AVFoundationDevice : CaptureDevice
 
     protected override async Task OnDisposeAsync()
     {
+        if (this.session != null)
+        {
+            this.session.StopRunning();
+            this.session.Dispose();
+        }
+        
         this.device?.Dispose();
         this.deviceInput?.Dispose();
         this.deviceOutput?.Dispose();
-        this.session?.Dispose();
         this.queue?.Dispose();
 
         Marshal.FreeHGlobal(this.bitmapHeader);
