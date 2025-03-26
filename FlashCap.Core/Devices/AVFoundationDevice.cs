@@ -100,7 +100,7 @@ public sealed class AVFoundationDevice : CaptureDevice
             ?? throw new InvalidOperationException(
                 $"FlashCap: Couldn't find device: UniqueID={this.uniqueID}");
 
-        this.device.LockForConfiguration();
+        /*this.device.LockForConfiguration();
         this.device.ActiveFormat = this.device.Formats
             .FirstOrDefault(format =>
                 format.FormatDescription.Dimensions is var dimensions &&
@@ -109,7 +109,7 @@ public sealed class AVFoundationDevice : CaptureDevice
                 dimensions.Height == characteristics.Height)
             ?? throw new InvalidOperationException(
                 $"FlashCap: Couldn't set video format: UniqueID={this.uniqueID}");
-        
+        this.device.UnlockForConfiguration();*/
 
         var frameDuration = CMTimeMake(
             characteristics.FramesPerSecond.Denominator,
@@ -147,7 +147,7 @@ public sealed class AVFoundationDevice : CaptureDevice
             throw new Exception("Can't add video output");
         }
         
-   		this.device.UnlockForConfiguration();
+   		
         return TaskCompat.CompletedTask;
     }
 
