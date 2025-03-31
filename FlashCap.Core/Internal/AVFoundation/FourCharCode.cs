@@ -65,6 +65,4 @@ internal readonly struct FourCharCode : IEquatable<FourCharCode>
     public static bool operator !=(FourCharCode left, FourCharCode right) => !left.Equals(right);
     
     public int GetIntVal() => (int)value;
-    
-
 }

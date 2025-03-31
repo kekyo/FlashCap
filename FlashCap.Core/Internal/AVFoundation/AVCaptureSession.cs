@@ -15,7 +15,7 @@ namespace FlashCap.Internal.AVFoundation;
 
 partial class LibAVFoundation
 {
-    public sealed partial class AVCaptureSession : LibObjC.NSObject
+    public sealed class AVCaptureSession : LibObjC.NSObject
     {
         public AVCaptureSession() : base(IntPtr.Zero, false)
         {
@@ -35,7 +35,6 @@ partial class LibAVFoundation
             Handle = sessionObj;
 
             LibCoreFoundation.CFRetain(this.Handle);
-
         }
 
         public void AddInput(AVCaptureInput input) =>
@@ -62,8 +61,6 @@ partial class LibAVFoundation
                 Handle,
                 LibObjC.GetSelector("addOutput:"),
                 videoDataOutput);
-
-
         }
 
         public bool CanAddOutput(AVCaptureOutput output) =>

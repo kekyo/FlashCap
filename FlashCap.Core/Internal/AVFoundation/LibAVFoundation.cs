@@ -365,8 +365,6 @@ internal static partial class LibAVFoundation
         }
     }
 
-   
-
     public abstract class AVCaptureVideoDataOutputSampleBuffer : LibObjC.NSObject
     {
         private const string HandleVariableName = nameof(GCHandle);

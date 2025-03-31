@@ -19,8 +19,7 @@ partial class LibAVFoundation
 {
     public sealed class AVCaptureVideoDataOutput : AVCaptureOutput
     {
-        
-        AVCaptureVideoDataOutputSampleBuffer.CaptureOutputDidOutputSampleBuffer? callbackDelegate;
+        private AVCaptureVideoDataOutputSampleBuffer.CaptureOutputDidOutputSampleBuffer? callbackDelegate;
         
         public AVCaptureVideoDataOutput() : base(IntPtr.Zero, retain: false)
         {
@@ -29,7 +28,6 @@ partial class LibAVFoundation
 
         private void Init()
         {
-            
             IntPtr allocSel = LibObjC.GetSelector("alloc");
             IntPtr initSel = LibObjC.GetSelector("init");
             IntPtr videoDataOutputClass = LibObjC.GetClass("AVCaptureVideoDataOutput");
@@ -69,7 +67,6 @@ partial class LibAVFoundation
 
         public void SetPixelFormatType(int format)
         {
-
             var pixelFormat = format;
             
             IntPtr pixelFormatTypeKeyPtr = Dlfcn.dlsym(LibCoreVideo.Handle, "kCVPixelBufferPixelFormatTypeKey");
@@ -93,7 +90,6 @@ partial class LibAVFoundation
         public void SetSampleBufferDelegate(AVFoundationDevice.VideoBufferHandler sampleBufferDelegate,
             LibCoreFoundation.DispatchQueue sampleBufferCallbackQueue)
         {
-            
             if (sampleBufferDelegate == null)
             {
                 Debug.WriteLine("AVCaptureVideoDataOutputSampleBufferDelegate is null");
@@ -126,8 +122,6 @@ partial class LibAVFoundation
             
             IntPtr setDelegateSel = LibObjC.GetSelector("setSampleBufferDelegate:queue:");
             LibObjC.SendNoResult(Handle, setDelegateSel, delegateInstance, sampleBufferCallbackQueue.Handle);
-
         }
-
     }
 }
