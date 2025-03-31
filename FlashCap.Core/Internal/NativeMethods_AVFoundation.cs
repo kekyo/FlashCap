@@ -71,7 +71,7 @@ internal static class NativeMethods_AVFoundation
 
         public static readonly bool IsOnArm64;
 
-        unsafe static LibSystem()
+        static unsafe LibSystem()
         {
             IsOnArm64 =
                 IntPtr.Size == 8 &&
@@ -79,7 +79,7 @@ internal static class NativeMethods_AVFoundation
         }
 
         [DllImport(Path)]
-        private static unsafe extern NXArchInfo* NXGetLocalArchInfo();
+        private static extern unsafe NXArchInfo* NXGetLocalArchInfo();
 
         private enum NXByteOrder
         {
@@ -121,13 +121,13 @@ internal static class NativeMethods_AVFoundation
         public const string Path = "/usr/lib/libc.dylib";
 
         [DllImport(Path, EntryPoint = "dispatch_queue_create")]
-        public extern static IntPtr DispatchQueueCreate(string label, IntPtr attr);
+        public static extern IntPtr DispatchQueueCreate(string label, IntPtr attr);
 
         [DllImport(Path, EntryPoint = "dispatch_release")]
-        public extern static IntPtr DispatchRelease(IntPtr o);
+        public static extern IntPtr DispatchRelease(IntPtr o);
 
         [DllImport(Path, EntryPoint = "dispatch_retain")]
-        public extern static IntPtr DispatchRetain(IntPtr o);
+        public static extern IntPtr DispatchRetain(IntPtr o);
     }
 
     public static class LibObjC
@@ -151,7 +151,7 @@ internal static class NativeMethods_AVFoundation
         public static extern void SendNoResult(IntPtr receiver, IntPtr selector, LibCoreMedia.CMTime arg1);
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
-        public extern static void SendNoResult(IntPtr receiver, IntPtr selector, IntPtr arg1, IntPtr arg2);
+        public static extern void SendNoResult(IntPtr receiver, IntPtr selector, IntPtr arg1, IntPtr arg2);
 
         [DllImport(Path, EntryPoint = "objc_msgSend")]
         public static extern bool SendAndGetBool(IntPtr receiver, IntPtr selector);
@@ -326,7 +326,7 @@ internal static class NativeMethods_AVFoundation
             private static readonly BlockLiteralCopy CopyHandler;
             private static readonly BlockLiteralDispose DisposeHandler;
 
-            unsafe static BlockLiteralFactory()
+            static unsafe BlockLiteralFactory()
             {
                 NSConcreteStackBlock = Dlfcn.GetSymbol(LibSystem.Handle, "_NSConcreteStackBlock");
 
