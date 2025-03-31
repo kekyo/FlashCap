@@ -116,9 +116,9 @@ internal static class NativeMethods_AVFoundation
         }
     }
 
-    public static class LibC
+    private static class LibC
     {
-        public const string Path = "/usr/lib/libc.dylib";
+        private const string Path = "/usr/lib/libc.dylib";
 
         [DllImport(Path, EntryPoint = "dispatch_queue_create")]
         public static extern IntPtr DispatchQueueCreate(string label, IntPtr attr);
@@ -132,7 +132,7 @@ internal static class NativeMethods_AVFoundation
 
     public static class LibObjC
     {
-        public const string Path = "/usr/lib/libobjc.A.dylib";
+        private const string Path = "/usr/lib/libobjc.A.dylib";
 
         public const string InitSelector = "init";
         public const string AllocSelector = "alloc";
@@ -424,7 +424,7 @@ internal static class NativeMethods_AVFoundation
 
     public static class LibCoreFoundation
     {
-        public const string Path = "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation";
+        private const string Path = "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation";
 
         public static readonly IntPtr Handle = Dlfcn.OpenLibrary(Path, Dlfcn.Mode.Now);
         public static readonly IntPtr kCFTypeArrayCallbacks = Dlfcn.GetSymbol(Handle, "kCFTypeArrayCallBacks");
@@ -634,7 +634,7 @@ internal static class NativeMethods_AVFoundation
 
     public static class LibCoreMedia
     {
-        public const string Path = "/System/Library/Frameworks/CoreMedia.framework/CoreMedia";
+        private const string Path = "/System/Library/Frameworks/CoreMedia.framework/CoreMedia";
 
         [DllImport(Path)]
         public static extern IntPtr CMSampleBufferGetAttachments(IntPtr sampleBuffer, int makeWritable);
@@ -652,10 +652,8 @@ internal static class NativeMethods_AVFoundation
             ShouldPropagate = 1
         }
         
-
         // Add this constant
         public static readonly FourCharCode kCMMediaType_Video = new FourCharCode('v', 'i', 'd', 'e');
-        
         
         [DllImport(Path)]
         public static extern CMTime CMTimeMake(long value, int timescale);
@@ -720,8 +718,6 @@ internal static class NativeMethods_AVFoundation
             YpCbCr444_10bits = 1983131952,
             IndexedGrayWhiteIsZero_8bits = 40,
         }
-        
-
 
         [StructLayout(LayoutKind.Sequential)]
         public partial struct CMTime
@@ -765,7 +761,7 @@ internal static class NativeMethods_AVFoundation
 
     public static class LibCoreVideo
     {
-        public const string Path = "/System/Library/Frameworks/CoreVideo.framework/CoreVideo";
+        private const string Path = "/System/Library/Frameworks/CoreVideo.framework/CoreVideo";
         
         private const int RTLD_NOW = 2;
         public static readonly IntPtr Handle = Dlfcn.dlopen(Path, RTLD_NOW);
