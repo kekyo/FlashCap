@@ -100,48 +100,56 @@ public sealed class AVFoundationDevice : CaptureDevice
                     $"FlashCap: Couldn't find device: UniqueID={this.uniqueID}");
 
             this.device.LockForConfiguration();
-            var formatSelected = this.device.Formats
-                .FirstOrDefault(format =>
-                    format.FormatDescription.Dimensions is var dimensions &&
-                    format.FormatDescription.MediaType == CMMediaType.Video  &&
-                    dimensions.Width == characteristics.Width &&
-                    dimensions.Height == characteristics.Height)
-                ?? throw new InvalidOperationException(
-                    $"FlashCap: Couldn't set video format: UniqueID={this.uniqueID}");
-
-            this.device.ActiveFormat = formatSelected;
-
-            var frameDuration = CMTimeMake(
-                characteristics.FramesPerSecond.Denominator,
-                characteristics.FramesPerSecond.Numerator);
-            
-            device.ActiveVideoMinFrameDuration = frameDuration;
-            device.ActiveVideoMaxFrameDuration = frameDuration;
-
-            this.deviceInput = new AVCaptureDeviceInput(device);
-            
-            this.deviceOutput = new AVCaptureVideoDataOutput();
-            
-            if (this.deviceOutput.AvailableVideoCVPixelFormatTypes?.Any() == true)
+            try
             {
-                var validPixelFormat = this.deviceOutput.AvailableVideoCVPixelFormatTypes.FirstOrDefault(p => p == pixelFormatType);
-                this.deviceOutput.SetPixelFormatType(validPixelFormat);
-            }
-            else
-            {
-                // Fallback to the mapped pixel format if no available list is provided
-                this.deviceOutput.SetPixelFormatType(pixelFormatType);
-            }
-            
-            this.deviceOutput.SetSampleBufferDelegate(new VideoBufferHandler(this), this.queue);
-            this.deviceOutput.AlwaysDiscardsLateVideoFrames = true;
+                var formatSelected = this.device.Formats
+                                         .FirstOrDefault(format =>
+                                             format.FormatDescription.Dimensions is var dimensions &&
+                                             format.FormatDescription.MediaType == CMMediaType.Video  &&
+                                             dimensions.Width == characteristics.Width &&
+                                             dimensions.Height == characteristics.Height)
+                                     ?? throw new InvalidOperationException(
+                                         $"FlashCap: Couldn't set video format: UniqueID={this.uniqueID}");
 
-            this.device.UnlockForConfiguration();
+                this.device.ActiveFormat = formatSelected;
+
+                var frameDuration = CMTimeMake(
+                    characteristics.FramesPerSecond.Denominator,
+                    characteristics.FramesPerSecond.Numerator);
+            
+                device.ActiveVideoMinFrameDuration = frameDuration;
+                device.ActiveVideoMaxFrameDuration = frameDuration;
+
+                this.deviceInput = new AVCaptureDeviceInput(device);
+            
+                this.deviceOutput = new AVCaptureVideoDataOutput();
+            
+                if (this.deviceOutput.AvailableVideoCVPixelFormatTypes?.Any() == true)
+                {
+                    var validPixelFormat = this.deviceOutput.AvailableVideoCVPixelFormatTypes.FirstOrDefault(p => p == pixelFormatType);
+                    this.deviceOutput.SetPixelFormatType(validPixelFormat);
+                }
+                else
+                {
+                    // Fallback to the mapped pixel format if no available list is provided
+                    this.deviceOutput.SetPixelFormatType(pixelFormatType);
+                }
+            
+                this.deviceOutput.SetSampleBufferDelegate(new VideoBufferHandler(this), this.queue);
+                this.deviceOutput.AlwaysDiscardsLateVideoFrames = true;
+            }
+            finally
+            {
+                this.device.UnlockForConfiguration();
+            }
             
             this.session = new AVCaptureSession();
             this.session.AddInput(this.deviceInput);
-            
-            if(session.CanAddOutput(deviceOutput)) session.AddOutput(this.deviceOutput);
+
+            if (this.session.CanAddOutput(deviceOutput))
+            {
+                this.session.AddOutput(this.deviceOutput);
+            }
             else
             {
                 throw new Exception("Can't add video output");
