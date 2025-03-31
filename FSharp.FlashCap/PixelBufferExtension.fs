@@ -11,6 +11,8 @@ namespace FlashCap
 
 open System.Diagnostics
 
+#nowarn 3261
+
 [<AutoOpen>]
 module public PixelBufferExtension =
 

@@ -13,6 +13,8 @@ open System
 open System.IO
 open System.Runtime.CompilerServices
 
+#nowarn 3261
+
 [<Extension>]
 type UtilitiesExtension =
     
@@ -25,5 +27,5 @@ type UtilitiesExtension =
     [<Extension>]
     static member asStream(self: byte[]) =
         match self with
-        | null ->  new MemoryStream(ArrayEx.Empty<byte>())
+        | null -> new MemoryStream(ArrayEx.Empty<byte>())
         | _ -> new MemoryStream(self)
