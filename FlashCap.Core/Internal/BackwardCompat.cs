@@ -11,6 +11,7 @@ using FlashCap.Internal;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 #if NET35 || NET40 || NET45
 namespace System
@@ -28,6 +29,29 @@ namespace System
         public static T[] Empty<T>() =>
             EmptyArray<T>.Empty;
     }
+
+    namespace Text
+    {
+        internal static class EncodingEx
+        {
+            public static unsafe string GetString(
+                this Encoding encoding, byte* bytes, int byteCount)
+            {
+                var stringData = new byte[byteCount];
+                Marshal.Copy((IntPtr)bytes, stringData, 0, stringData.Length);
+                return Encoding.UTF8.GetString(stringData);
+            }
+        }
+    }
+
+    namespace Runtime.InteropServices
+    {
+        internal static class MarshalEx
+        {
+            public static int SizeOf<T>() =>
+                Marshal.SizeOf(typeof(T));
+        }
+    }
 }
 #else
 namespace System
@@ -39,6 +63,15 @@ namespace System
 #endif
         public static T[] Empty<T>() =>
             Array.Empty<T>();
+    }
+
+    namespace Runtime.InteropServices
+    {
+        internal static class MarshalEx
+        {
+            public static int SizeOf<T>() =>
+                Marshal.SizeOf<T>();
+        }
     }
 }
 #endif

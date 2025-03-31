@@ -18,7 +18,7 @@
     <RootNamespace>FlashCap</RootNamespace>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1570;CS1591;CA1416;CS8981</NoWarn>
+    <NoWarn>$(NoWarn);CS1570;CS1591;CA1416;CS8981;NETSDK1215</NoWarn>
 
     <Product>FlashCap</Product>
     <Trademark>FlashCap</Trademark>
@@ -50,7 +50,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="RelaxVersioner" Version="3.3.0" PrivateAssets="All" />
+    <PackageReference Include="RelaxVersioner" Version="3.13.0" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'Release'">

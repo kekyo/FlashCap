@@ -1,7 +1,9 @@
-﻿////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////
 //
 // FlashCap - Independent camera capture library.
 // Copyright (c) Kouji Matsui (@kozy_kekyo, @kekyo@mastodon.cloud)
+// Copyright (c) Yoh Deadfall (@YohDeadfall)
+// Copyright (c) Felipe Ferreira Quintella (@ffquintella)
 //
 // Licensed under Apache-v2: https://opensource.org/licenses/Apache-2.0
 //
@@ -35,7 +37,9 @@ public class CaptureDevices
                 new DirectShowDevices(this.DefaultBufferPool).OnEnumerateDescriptors().
                 Concat(new VideoForWindowsDevices(this.DefaultBufferPool).OnEnumerateDescriptors()),
             NativeMethods.Platforms.Linux =>
-                new V4L2Devices(this.DefaultBufferPool).OnEnumerateDescriptors(),
+                new V4L2Devices().OnEnumerateDescriptors(),
+            NativeMethods.Platforms.MacOS =>
+                new AVFoundationDevices().OnEnumerateDescriptors(),
             _ =>
                 ArrayEx.Empty<CaptureDeviceDescriptor>(),
         };
