@@ -7,6 +7,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -18,7 +19,6 @@ namespace FlashCap.Devices;
 
 public sealed class AVFoundationDevices : CaptureDevices
 {
-    
     public AVFoundationDevices() :
         this(new DefaultBufferPool())
     {
@@ -42,7 +42,6 @@ public sealed class AVFoundationDevices : CaptureDevices
         using var discovery = AVCaptureDeviceDiscoverySession.DiscoverySessionWithVideoDevices();
         foreach (var device in discovery.Devices)
         {
-   
             using var deviceOutput = new AVCaptureVideoDataOutput();
 
             var characteristics = new List<VideoCharacteristics>();
@@ -50,8 +49,14 @@ public sealed class AVFoundationDevices : CaptureDevices
             foreach (var format in device.Formats)
             {
                 device.LockForConfiguration();
-                device.ActiveFormat = format;
-                device.UnlockForConfiguration();
+                try
+                {
+                    device.ActiveFormat = format;
+                }
+                finally
+                {
+                    device.UnlockForConfiguration();
+                }
 
                 var pixelFormatsNative = deviceOutput.AvailableVideoCVPixelFormatTypes;
                 var pixelFormatsMapped = NativeMethods_AVFoundation.PixelFormatMap
@@ -88,11 +93,9 @@ public sealed class AVFoundationDevices : CaptureDevices
                     }
                 }
             }
-            
-            // session.Dispose();
 
             yield return new AVFoundationDeviceDescriptor(
-                device.UniqueID.ToString(),
+                device.UniqueID,
                 device.ModelID,
                 device.LocalizedName,
                 characteristics.ToArray(), 
