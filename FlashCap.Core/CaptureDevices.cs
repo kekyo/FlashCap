@@ -2,6 +2,8 @@
 //
 // FlashCap - Independent camera capture library.
 // Copyright (c) Kouji Matsui (@kozy_kekyo, @kekyo@mastodon.cloud)
+// Copyright (c) Yoh Deadfall (@YohDeadfall)
+// Copyright (c) Felipe Ferreira Quintella (@ffquintella)
 //
 // Licensed under Apache-v2: https://opensource.org/licenses/Apache-2.0
 //
