@@ -1,7 +1,7 @@
 ﻿////////////////////////////////////////////////////////////////////////////
 //
 // FlashCap - Independent camera capture library.
-// Copyright (c) Kouji Matsui (@kozy_kekyo, @kekyo@mastodon.cloud)
+// Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 //
 // Licensed under Apache-v2: https://opensource.org/licenses/Apache-2.0
 //
@@ -22,6 +22,7 @@ public enum DeviceTypes
     VideoForWindows,
     DirectShow,
     V4L2,
+    AVFoundation,
 }
 
 public enum TranscodeFormats

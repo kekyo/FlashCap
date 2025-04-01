@@ -1,7 +1,7 @@
 ﻿////////////////////////////////////////////////////////////////////////////
 //
 // FlashCap - Independent camera capture library.
-// Copyright (c) Kouji Matsui (@kozy_kekyo, @kekyo@mastodon.cloud)
+// Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 //
 // Licensed under Apache-v2: https://opensource.org/licenses/Apache-2.0
 //
@@ -12,6 +12,8 @@ namespace FlashCap.Utilities
 open System
 open System.IO
 open System.Runtime.CompilerServices
+
+#nowarn 3261
 
 [<Extension>]
 type UtilitiesExtension =
@@ -25,5 +27,5 @@ type UtilitiesExtension =
     [<Extension>]
     static member asStream(self: byte[]) =
         match self with
-        | null ->  new MemoryStream(ArrayEx.Empty<byte>())
+        | null -> new MemoryStream(ArrayEx.Empty<byte>())
         | _ -> new MemoryStream(self)
