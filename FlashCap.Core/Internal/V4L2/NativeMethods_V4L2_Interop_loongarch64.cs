@@ -28,6 +28,7 @@ namespace FlashCap.Internal.V4L2
         public override uint V4L2_PIX_FMT_UYVY => 1498831189U;
         public override uint V4L2_PIX_FMT_XRGB32 => 875714626U;
         public override uint V4L2_PIX_FMT_YUYV => 1448695129U;
+        public override uint V4L2_PIX_FMT_NV12 => 842094158U;
         public override uint VIDIOC_DQBUF => 3227014673U;
         public override uint VIDIOC_ENUM_FMT => 3225441794U;
         public override uint VIDIOC_ENUM_FRAMEINTERVALS => 3224655435U;
