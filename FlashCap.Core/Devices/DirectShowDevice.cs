@@ -96,20 +96,20 @@ public sealed class DirectShowDevice :
 
         return this.workingContext!.InvokeAsync(() =>
         {
-        if (NativeMethods_DirectShow.EnumerateDeviceMoniker(
-            NativeMethods_DirectShow.CLSID_VideoInputDeviceCategory).
-            Where(moniker =>
-                moniker.GetPropertyBag() is { } pb &&
-                pb.SafeReleaseBlock(pb =>
-                    pb.GetValue("DevicePath", default(string))?.Trim() is { } dp &&
-                    dp.Equals(devicePath))).
-            Collect(moniker =>
-                moniker.BindToObject(null, null, in NativeMethods_DirectShow.IID_IBaseFilter, out var captureSource) == 0 ?
-                captureSource as NativeMethods_DirectShow.IBaseFilter : null).
-            FirstOrDefault() is { } captureSource)
-        {
-            try
+            if (NativeMethods_DirectShow.EnumerateDeviceMoniker(
+                NativeMethods_DirectShow.CLSID_VideoInputDeviceCategory).
+                Where(moniker =>
+                    moniker.GetPropertyBag() is { } pb &&
+                    pb.SafeReleaseBlock(pb =>
+                        pb.GetValue("DevicePath", default(string))?.Trim() is { } dp &&
+                        dp.Equals(devicePath))).
+                Collect(moniker =>
+                    moniker.BindToObject(null, null, in NativeMethods_DirectShow.IID_IBaseFilter, out var captureSource) == 0 ?
+                    captureSource as NativeMethods_DirectShow.IBaseFilter : null).
+                FirstOrDefault() is { } captureSource)
             {
+                try
+                {
                     if (captureSource.EnumeratePins().
                         Collect(pin =>
                             pin.GetPinInfo() is { } pinInfo &&
