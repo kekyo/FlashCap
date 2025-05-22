@@ -25,8 +25,8 @@ internal static class NativeMethods_AVFoundation
         //[PixelFormats.UYVY] = LibCoreVideo.PixelFormatType_24RGB,
         [PixelFormats.RGB32] = 32,
         //[PixelFormats.ARGB32] = LibCoreVideo.PixelFormatType_32BGRA,
-        //[PixelFormats.BGRA32] = LibCoreVideo.PixelFormatType_32BGRA,
-        [PixelFormats.ARGB32] = LibCoreVideo.PixelFormatType_32BGRA,
+        [PixelFormats.BGRA32] = LibCoreVideo.PixelFormatType_32BGRA,
+        //[PixelFormats.ARGB32] = LibCoreVideo.PixelFormatType_32BGRA,
         [PixelFormats.RGB24] = LibCoreVideo.PixelFormatType_24RGB,
         [PixelFormats.UYVY] = LibCoreVideo.PixelFormatType_422YpCbCr8_yuvs,
         [PixelFormats.YUYV] = LibCoreVideo.PixelFormatType_422YpCbCr8,
@@ -394,6 +394,9 @@ internal static class NativeMethods_AVFoundation
         {
             protected NSObject(IntPtr handle, bool retain)
             {
+
+                if (handle == IntPtr.Zero) return;
+                
                 Handle = handle;
 
                 if (retain)
@@ -402,12 +405,16 @@ internal static class NativeMethods_AVFoundation
 
             protected override void Dispose(bool disposing)
             {
+                if (!disposing) return;
+                
                 if (Handle == IntPtr.Zero)
                     return;
 
-                LibObjC.SendNoResult(
+                LibCoreFoundation.CFRelease(Handle);
+                    
+                /*LibObjC.SendNoResult(
                     Handle,
-                    LibObjC.GetSelector(LibObjC.ReleaseSelector));
+                    LibObjC.GetSelector(LibObjC.ReleaseSelector));*/
 
                 Handle = IntPtr.Zero;
             }
@@ -607,16 +614,26 @@ internal static class NativeMethods_AVFoundation
         {
             public DispatchQueue(string label)
             {
-                //Handle = LibC.DispatchQueueCreate(label, IntPtr.Zero) is var handle && handle != IntPtr.Zero
-                //    ? handle : throw new InvalidOperationException("Cannot create a dispatch queue.");
 
-                Handle = LibSystem.dispatch_queue_create(label, IntPtr.Zero);
+                //Handle = LibSystem.dispatch_queue_create(label, IntPtr.Zero);
+                Handle = LibC.DispatchQueueCreate(label, IntPtr.Zero);
+                if (Handle == IntPtr.Zero)
+                {
+                    throw new InvalidOperationException("Handle invalid 0H003.");
+                }
                 CFRetain(Handle);
             }
-
-
-            protected override void Dispose(bool disposing) =>
-                LibC.DispatchRelease(Handle);
+            
+           
+           protected override void Dispose(bool disposing)
+           {
+               if (Handle == IntPtr.Zero) return;
+               if (Handle != IntPtr.Zero)
+               {
+                   LibC.DispatchRelease(Handle);
+                   Handle = IntPtr.Zero;
+               }
+           }
         }
     }
     
