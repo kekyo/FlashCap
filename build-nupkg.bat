@@ -1,7 +1,7 @@
 @echo off
 
 rem FlashCap - Independent camera capture library.
-rem Copyright (c) Kouji Matsui (@kozy_kekyo, @kekyo@mastodon.cloud)
+rem Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 rem
 rem Licensed under Apache-v2: https://opensource.org/licenses/Apache-2.0
 

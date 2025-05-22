@@ -132,7 +132,7 @@ await deviceObservable.StartAsync();
 
 対応する.NETプラットフォームは以下の通りです（ほぼ全てです！）:
 
-* .NET 8 to 5 (`net8.0` and etc)
+* .NET 9 to 5 (`net9.0` and etc)
 * .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (`netcoreapp3.1` and etc)
 * .NET Standard 2.1, 2.0, 1.3 (`netstandard2.1` and etc)
 * .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5 (`net48` and etc)
@@ -142,6 +142,7 @@ await deviceObservable.StartAsync();
 * Windows (DirectShowデバイス, x64/x86)
 * Windows (Video for Windowsデバイス, x64/x86)
 * Linux (V4L2デバイス, x86_64/i686/aarch64/armv7l/mips)
+* OSX (AVFoundationデバイス, x86_64/arm64)
 
 ## テスト済みデバイス
 
@@ -156,6 +157,7 @@ await deviceObservable.StartAsync();
 * Microsoft LifeCam Cinema HD720 (Windows/Linux)
 * Unnamed cheap USB capture module (Windows/Linux)
 * Spirer RP28WD305 (Linux)
+* Magewell Pro Capture, Eco Capture, USB Capture Series (Windows)
 
 確認したコンピューター:
 
@@ -171,13 +173,13 @@ await deviceObservable.StartAsync();
 * Acer Aspire One ZA3 inside camera (i686, Linux)
 * Imagination Creator Ci20 (mipsel, Linux)
 * Radxa ROCK5B (aarch64, Linux)
-* Loongson-LS3A5000-7A2000-1w-EVB-V1.21 (loongarch64, Linux)
 
 確認した、動作しない環境:
 
 * Surface2 (arm32, Windows RT 8.1 JB'd)
   * デバイスが見つかりませんでした。VFWとDirectShowの両方に対応していない可能性があります。
-
+* Loongson-LS3A5000-7A2000-1w-EVB-V1.21 (loongarch64, Linux)
+  * 過去に移植が行われましたが壊れています (#158を参照)
 
 ----
 
@@ -808,6 +810,13 @@ Windows環境に最適化されていて、ターゲットのABIと互換性が�
 
 ----
 
+## 貢献
+
+FlashCapへの大きな貢献をして頂いた方のリストです。ありがとうございます。
+
+* Yoh Deadfall ([@YohDeadfall](https://github.com/YohDeadfall)) : Mac OSX AVFoundation APIへの移植
+* Felipe Ferreira Quintella ([@ffquintella](https://github.com/ffquintella)) : Mac OSX AVFoundation APIへの移植
+
 ## License
 
 Apache-v2.
@@ -817,6 +826,10 @@ Apache-v2.
 
 ## 履歴
 
+* 1.11.0:
+  * Mac OSXのAVFoundation APIに対応しました [#45](https://github.com/kekyo/FlashCap/issues/45) 。
+    移植ステータスにはまだ残件があるため、引き続き、協力を募集します。
+  * .NET 9.0アセンブリを追加。
 * 1.10.0:
   * NV12フォーマットのトランスコードに対応しました。 [#132](https://github.com/kekyo/FlashCap/issues/132)
   * バッファプーリングに対応しました。 [#135](https://github.com/kekyo/FlashCap/issues/135) [#138](https://github.com/kekyo/FlashCap/issues/138)

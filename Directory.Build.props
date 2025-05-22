@@ -25,8 +25,8 @@
     <Copyright>Copyright (c) Kouji Matsui</Copyright>
     <Description>Independent camera capture library on .NET/.NET Core and .NET Framework.</Description>
 
-    <Company>Kouji Matsui (@kozy_kekyo, @kekyo@mastodon.cloud)</Company>
-    <Authors>Kouji Matsui (@kozy_kekyo, @kekyo@mastodon.cloud)</Authors>
+    <Company>Kouji Matsui (@kekyo@mi.kekyo.net)</Company>
+    <Authors>Kouji Matsui (@kekyo@mi.kekyo.net)</Authors>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/kekyo/FlashCap</PackageProjectUrl>
     <PackageIcon>FlashCap.100.png</PackageIcon>

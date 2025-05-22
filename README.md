@@ -131,7 +131,7 @@ Published introduction article: ["Easy to implement video image capture with Fla
 
 .NET platforms supported are as follows (almost all!):
 
-* .NET 8 to 5 (`net8.0` and etc)
+* .NET 9 to 5 (`net9.0` and etc)
 * .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (`netcoreapp3.1` and etc)
 * .NET Standard 2.1, 2.0, 1.3 (`netstandard2.1` and etc)
 * .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5 (`net48` and etc)
@@ -141,6 +141,7 @@ Platforms on which capture devices can be used:
 * Windows (DirectShow devices, tested on x64/x86)
 * Windows (Video for Windows devices, tested on x64/x86)
 * Linux (V4L2 devices, supported on x86_64/i686/aarch64/armv7l/mips)
+* OSX (AVFoundation devices, supported on x86_64/arm64)
 
 ## Tested devices
 
@@ -155,6 +156,7 @@ Verified capture devices / cameras:
 * Microsoft LifeCam Cinema HD720 (Windows/Linux)
 * Unnamed cheap USB capture module (Windows/Linux)
 * Spirer RP28WD305 (Linux)
+* Magewell Pro Capture, Eco Capture, USB Capture Series (Windows)
 
 Verified computers:
 
@@ -170,13 +172,13 @@ Verified computers:
 * Acer Aspire One ZA3 inside camera (i686, Linux)
 * Imagination Creator Ci20 (mipsel, Linux)
 * Radxa ROCK5B (aarch64, Linux)
-* Loongson-LS3A5000-7A2000-1w-EVB-V1.21 (loongarch64, Linux)
 
 Couldn't detect any devices on FlashCap:
 
 * Surface2 (arm32, Windows RT 8.1 JB'd)
   * Any devices are not found, may not be compatible with both VFW and DirectShow.
-
+* Loongson-LS3A5000-7A2000-1w-EVB-V1.21 (loongarch64, Linux)
+  * A port was done in the past but it is broken (see #158).
 
 ----
 
@@ -876,6 +878,13 @@ for the Windows environment and are not compatible with the variation for target
 
 ----
 
+## Contributions
+
+Here is a list of people who have made major contributions to FlashCap. Thank you!
+
+* Yoh Deadfall ([@YohDeadfall](https://github.com/YohDeadfall)) : Port to Mac OSX AVFoundation API
+* Felipe Ferreira Quintella ([@ffquintella](https://github.com/ffquintella)) : Port to Mac OSX AVFoundation API
+
 ## License
 
 Apache-v2.
@@ -885,6 +894,10 @@ Apache-v2.
 
 ## History
 
+* 1.11.0:.
+  * Mac OSX AVFoundation API is now supported [#45](https://github.com/kekyo/FlashCap/issues/45) .
+    We continue to welcome your help as we still have a few cases remaining in the porting status.
+  * Added .NET 9.0 tfm assembly.
 * 1.10.0:
   * Supported for NV12 format transcoding. [#132](https://github.com/kekyo/FlashCap/issues/132)
   * Supported buffer pooling. [#135](https://github.com/kekyo/FlashCap/issues/135) [#138](https://github.com/kekyo/FlashCap/issues/138)
