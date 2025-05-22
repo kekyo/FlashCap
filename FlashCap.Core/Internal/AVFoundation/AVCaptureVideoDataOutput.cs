@@ -39,44 +39,65 @@ partial class LibAVFoundation
             
             LibCoreFoundation.CFRetain(Handle);
         }
+        
+        private void ValidateHandle()
+        {
+            if (Handle == IntPtr.Zero)
+            {
+                throw new ObjectDisposedException(nameof(AVCaptureVideoDataOutput), "Handle invalid.");
+            }
+        }
 
-        public unsafe int[] AvailableVideoCVPixelFormatTypes =>
-            LibCoreFoundation.CFArray.ToArray(
-                LibObjC.SendAndGetHandle(
-                    Handle,
-                    LibObjC.GetSelector("availableVideoCVPixelFormatTypes")),
-                static handle =>
-                {
-                    int value;
-                    if (LibCoreFoundation.CFNumberGetValue(handle, LibCoreFoundation.CFNumberType.sInt32Type, &value))
-                        return value;
-                    throw new InvalidOperationException("The value contained by CFNumber cannot be read as 32-bit signed integer.");
-                });
+        public unsafe int[] AvailableVideoCVPixelFormatTypes
+        {
+            get
+            {
+                ValidateHandle();
+                return LibCoreFoundation.CFArray.ToArray(
+                    LibObjC.SendAndGetHandle(
+                        Handle,
+                        LibObjC.GetSelector("availableVideoCVPixelFormatTypes")),
+                    static handle =>
+                    {
+                        int value;
+                        if (LibCoreFoundation.CFNumberGetValue(handle, LibCoreFoundation.CFNumberType.sInt32Type, &value))
+                            return value;
+                        throw new InvalidOperationException("The value contained by CFNumber cannot be read as 32-bit signed integer.");
+                    });
+            }
+        }
 
         public bool AlwaysDiscardsLateVideoFrames
         {
-            get =>
-                LibObjC.SendAndGetBool(
+            get
+            {
+                ValidateHandle();
+                return LibObjC.SendAndGetBool(
                     Handle,
                     LibObjC.GetSelector("alwaysDiscardsLateVideoFrames"));
-            set =>
+            }
+            set
+            {
+                ValidateHandle();
                 LibObjC.SendNoResult(
                     Handle,
                     LibObjC.GetSelector("setAlwaysDiscardsLateVideoFrames:"),
                     value);
+            }
         }
+
 
         public void SetPixelFormatType(int format)
         {
+            ValidateHandle();
             var pixelFormat = format;
-            
+
             IntPtr pixelFormatTypeKeyPtr = Dlfcn.dlsym(LibCoreVideo.Handle, "kCVPixelBufferPixelFormatTypeKey");
             if (pixelFormatTypeKeyPtr == IntPtr.Zero)
             {
                 throw new Exception("Error comunicating with the AVCaptureVideoDataOutput");
             }
 
-            // Get NSString value
             IntPtr nsPixelFormatKey = Marshal.ReadIntPtr(pixelFormatTypeKeyPtr);
             IntPtr nsNumber = LibObjC.CreateNSNumber(pixelFormat);
 
@@ -85,29 +106,29 @@ partial class LibAVFoundation
             IntPtr videoSettings = LibObjC.SendAndGetHandle(nsDictionaryClass, dictSel, nsNumber, nsPixelFormatKey);
             IntPtr setVideoSettingsSel = LibObjC.GetSelector("setVideoSettings:");
             LibObjC.SendNoResult(this.Handle, setVideoSettingsSel, videoSettings);
-            
         }
 
+        
         public void SetSampleBufferDelegate(AVFoundationDevice.VideoBufferHandler sampleBufferDelegate,
             LibCoreFoundation.DispatchQueue sampleBufferCallbackQueue)
         {
+            ValidateHandle();
             if (sampleBufferDelegate == null)
             {
                 Debug.WriteLine("AVCaptureVideoDataOutputSampleBufferDelegate is null");
                 return;
             }
-            
+
             IntPtr allocSel = LibObjC.GetSelector("alloc");
             IntPtr initSel = LibObjC.GetSelector("init");
             IntPtr nsObjectClass = LibObjC.GetClass("NSObject");
             IntPtr delegateClass = LibObjC.objc_allocateClassPair(nsObjectClass, "CaptureDelegate_" + Handle, IntPtr.Zero);
             IntPtr selDidOutput = LibObjC.GetSelector("captureOutput:didOutputSampleBuffer:fromConnection:");
-            
+
             callbackDelegate = sampleBufferDelegate.CaptureOutputCallback;
-            
+
             IntPtr impCallback = Marshal.GetFunctionPointerForDelegate(callbackDelegate);
 
-            // "v@:@@@" this means the methood returns void and receives (self, _cmd, output, sampleBuffer, connection).
             string types = "v@:@@@";
             bool added = LibObjC.class_addMethod(delegateClass, selDidOutput, impCallback, types);
             if (!added)
@@ -117,30 +138,38 @@ partial class LibAVFoundation
 
             LibObjC.objc_registerClassPair(delegateClass);
 
-            // Delegate creation
             IntPtr delegateInstanceAlloc = LibObjC.SendAndGetHandle(delegateClass, allocSel);
             IntPtr delegateInstance = LibObjC.SendAndGetHandle(delegateInstanceAlloc, initSel);
-            
+
             IntPtr setDelegateSel = LibObjC.GetSelector("setSampleBufferDelegate:queue:");
             LibObjC.SendNoResult(Handle, setDelegateSel, delegateInstance, sampleBufferCallbackQueue.Handle);
         }
         
         public new void Dispose()
         {
-            // Libera o handle nativo se ainda não foi liberado
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
             if (Handle != IntPtr.Zero)
             {
                 LibCoreFoundation.CFRelease(Handle);
                 Handle = IntPtr.Zero;
             }
-            base.Dispose();
-            // Libere outros recursos se necessário
-            GC.SuppressFinalize(this);
+
+            if (disposing)
+            {
+                // Libere recursos gerenciados aqui, se necessário
+            }
+
+            base.Dispose(disposing);
         }
 
         ~AVCaptureVideoDataOutput()
         {
-            Dispose();
+            Dispose(false);
         }
     }
 }

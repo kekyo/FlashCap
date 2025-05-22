@@ -32,20 +32,38 @@ partial class LibAVFoundation
             var sessionObj = LibObjC.SendAndGetHandle(
                 sessionClass,
                 LibObjC.GetSelector("init"));
+            
+            if (sessionObj == IntPtr.Zero)
+            {
+                throw new Exception("Failed to create AVCaptureSession");
+            }
 
             Handle = sessionObj;
 
             LibCoreFoundation.CFRetain(this.Handle);
         }
+        
+        private void ValidateHandle()
+        {
+            if (Handle == IntPtr.Zero)
+            {
+                throw new ObjectDisposedException(nameof(AVCaptureSession), "Handle invalid.");
+            }
+        }
 
-        public void AddInput(AVCaptureInput input) =>
+        public void AddInput(AVCaptureInput input)
+        {
+            ValidateHandle();
             LibObjC.SendNoResult(
                 Handle,
                 LibObjC.GetSelector("addInput:"),
                 input.Handle);
+        }
+
 
         public void AddOutput(AVCaptureOutput output)
         {
+            ValidateHandle();
             IntPtr allocSel = LibObjC.GetSelector("alloc");
             IntPtr initSel = LibObjC.GetSelector("init");
             
@@ -64,20 +82,42 @@ partial class LibAVFoundation
                 videoDataOutput);
         }
 
-        public bool CanAddOutput(AVCaptureOutput output) =>
-            LibObjC.SendAndGetBool(
+        public bool CanAddOutput(AVCaptureOutput output)
+        {
+            ValidateHandle();
+            return LibObjC.SendAndGetBool(
                 Handle,
                 LibObjC.GetSelector("canAddOutput:"),
                 output.Handle);
+        }
 
-        public void StartRunning() =>
+
+        public void StartRunning()
+        {
+            ValidateHandle();
             LibObjC.SendNoResult(
                 Handle,
                 LibObjC.GetSelector("startRunning"));
+        }
 
-        public void StopRunning() =>
+        public void StopRunning()
+        {
+            ValidateHandle();
             LibObjC.SendNoResult(
                 Handle,
                 LibObjC.GetSelector("stopRunning"));
+        }
+        
+        protected override void Dispose(bool disposing)
+        {
+            if (Handle != IntPtr.Zero)
+            {
+                LibCoreFoundation.CFRelease(Handle);
+                Handle = IntPtr.Zero;
+            }
+
+            base.Dispose(disposing);
+        }
+
     }
 }

@@ -24,6 +24,14 @@ internal static partial class LibAVFoundation
 
     public delegate void AVRequestAccessStatus(bool accessGranted);
 
+    private static void ValidateHandle()
+    {
+        if (Handle == IntPtr.Zero)
+        {
+            throw new ObjectDisposedException(nameof(LibAVFoundation), "Handle invalid.");
+        }
+    }
+    
     public sealed class AVFrameRateRange : LibObjC.NSObject
     {
         public AVFrameRateRange(IntPtr handle, bool retain) :
@@ -259,6 +267,7 @@ internal static partial class LibAVFoundation
 
         public static unsafe void RequestAccessForMediaType(IntPtr mediaType, AVRequestAccessStatus completion)
         {
+            ValidateHandle();
             RequestAccessForMediaTypeBlockFactory ??= LibObjC.BlockLiteralFactory.CreateFactory<RequestAccessForMediaTypeTrampoline>(
                 signature: "v@?^vC",
                 delegate (IntPtr block, byte accessGranted)
@@ -280,6 +289,7 @@ internal static partial class LibAVFoundation
 
     public sealed class AVCaptureDeviceDiscoverySession : LibObjC.NSObject
     {
+        
         public AVCaptureDeviceDiscoverySession(IntPtr handle, bool retain) :
             base(handle, retain)
         { }
@@ -293,6 +303,7 @@ internal static partial class LibAVFoundation
 
         public static AVCaptureDeviceDiscoverySession DiscoverySessionWithVideoDevices()
         {
+            ValidateHandle();
             var deviceTypes = new[]
             {
                 AVCaptureDeviceType.BuiltInWideAngleCamera,
