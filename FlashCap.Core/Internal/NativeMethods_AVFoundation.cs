@@ -405,9 +405,11 @@ internal static class NativeMethods_AVFoundation
                 if (Handle == IntPtr.Zero)
                     return;
 
-                LibObjC.SendNoResult(
+                LibCoreFoundation.CFRelease(Handle);
+                    
+                /*LibObjC.SendNoResult(
                     Handle,
-                    LibObjC.GetSelector(LibObjC.ReleaseSelector));
+                    LibObjC.GetSelector(LibObjC.ReleaseSelector));*/
 
                 Handle = IntPtr.Zero;
             }

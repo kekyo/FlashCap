@@ -124,5 +124,23 @@ partial class LibAVFoundation
             IntPtr setDelegateSel = LibObjC.GetSelector("setSampleBufferDelegate:queue:");
             LibObjC.SendNoResult(Handle, setDelegateSel, delegateInstance, sampleBufferCallbackQueue.Handle);
         }
+        
+        public new void Dispose()
+        {
+            // Libera o handle nativo se ainda não foi liberado
+            if (Handle != IntPtr.Zero)
+            {
+                LibCoreFoundation.CFRelease(Handle);
+                Handle = IntPtr.Zero;
+            }
+            base.Dispose();
+            // Libere outros recursos se necessário
+            GC.SuppressFinalize(this);
+        }
+
+        ~AVCaptureVideoDataOutput()
+        {
+            Dispose();
+        }
     }
 }

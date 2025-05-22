@@ -43,25 +43,40 @@ public sealed class AVFoundationDevice : CaptureDevice
 
     protected override async Task OnDisposeAsync()
     {
-        if (this.session != null)
+        try
         {
-            this.session.StopRunning();
-            this.session.Dispose();
+            this.session?.StopRunning();
+            this.session?.Dispose();
+            this.session = null;
+
+            this.device?.Dispose();
+            this.device = null;
+
+            this.deviceInput?.Dispose();
+            this.deviceInput = null;
+
+            this.deviceOutput?.Dispose();
+            this.deviceOutput = null;
+
+            this.queue?.Dispose();
+            this.queue = null;
+
+            if (this.bitmapHeader != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(this.bitmapHeader);
+                this.bitmapHeader = IntPtr.Zero;
+            }
+
+            if (frameProcessor is not null)
+            {
+                await frameProcessor.DisposeAsync().ConfigureAwait(false);
+                frameProcessor = null;
+            }
         }
-        
-        this.device?.Dispose();
-        this.deviceInput?.Dispose();
-        this.deviceOutput?.Dispose();
-        this.queue?.Dispose();
-
-        Marshal.FreeHGlobal(this.bitmapHeader);
-
-        if (frameProcessor is not null)
+        finally
         {
-            await frameProcessor.DisposeAsync().ConfigureAwait(false);
+            await base.OnDisposeAsync().ConfigureAwait(false);
         }
-
-        await base.OnDisposeAsync().ConfigureAwait(false);
     }
 
     protected override Task OnInitializeAsync(VideoCharacteristics characteristics, TranscodeFormats transcodeFormat,
@@ -161,6 +176,21 @@ public sealed class AVFoundationDevice : CaptureDevice
         catch
         {
             NativeMethods.FreeMemory(this.bitmapHeader);
+            
+            if (this.bitmapHeader != IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(this.bitmapHeader);
+                this.bitmapHeader = IntPtr.Zero;
+            }
+            this.queue?.Dispose();
+            this.queue = null;
+            this.device?.Dispose();
+            this.device = null;
+            this.deviceInput?.Dispose();
+            this.deviceInput = null;
+            this.deviceOutput?.Dispose();
+            this.deviceOutput = null;
+            
             throw;
         }
     }
