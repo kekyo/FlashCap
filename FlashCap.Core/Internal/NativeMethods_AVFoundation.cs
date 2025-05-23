@@ -397,7 +397,7 @@ internal static class NativeMethods_AVFoundation
                 
                 if (handle == IntPtr.Zero)
                 {
-                    throw new InvalidOperationException("Handle inválido.");
+                    throw new InvalidOperationException("Handle Invalid 0H001.");
                 }
                 
                 Handle = handle;
@@ -618,7 +618,7 @@ internal static class NativeMethods_AVFoundation
                 
                 if (Handle == IntPtr.Zero)
                 {
-                    throw new InvalidOperationException("Invalid Handle.");
+                    throw new InvalidOperationException("Invalid Handle 0H002.");
                 }
                 //Handle = LibC.DispatchQueueCreate(label, IntPtr.Zero) is var handle && handle != IntPtr.Zero
                 //    ? handle : throw new InvalidOperationException("Cannot create a dispatch queue.");
@@ -626,7 +626,7 @@ internal static class NativeMethods_AVFoundation
                 Handle = LibSystem.dispatch_queue_create(label, IntPtr.Zero);
                 if (Handle == IntPtr.Zero)
                 {
-                    throw new InvalidOperationException("Handle invalid.");
+                    throw new InvalidOperationException("Handle invalid 0H003.");
                 }
                 CFRetain(Handle);
             }
@@ -638,7 +638,7 @@ internal static class NativeMethods_AVFoundation
            {
                if (Handle == IntPtr.Zero)
                {
-                   throw new InvalidOperationException("Handle invalid.");
+                   throw new InvalidOperationException("Handle invalid 0H004.");
                }
                if (Handle != IntPtr.Zero)
                {
