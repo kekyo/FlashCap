@@ -197,13 +197,24 @@ public sealed class AVFoundationDevice : CaptureDevice
 
     protected override Task OnStartAsync(CancellationToken ct)
     {
+        if(session== null) 
+            throw new InvalidOperationException("Session is null");
         this.session?.StartRunning();
+        this.IsRunning = true;
         return TaskCompat.CompletedTask;
     }
 
     protected override Task OnStopAsync(CancellationToken ct)
     {
-        this.session?.StopRunning();
+        if(session== null) 
+            throw new InvalidOperationException("Session is null");
+        if (this.IsRunning)
+        {
+            this.session?.StopRunning();
+            
+            this.IsRunning = false;
+
+        }
         return TaskCompat.CompletedTask;
     }
 
