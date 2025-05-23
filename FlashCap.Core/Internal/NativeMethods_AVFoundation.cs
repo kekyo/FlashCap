@@ -394,11 +394,11 @@ internal static class NativeMethods_AVFoundation
         {
             protected NSObject(IntPtr handle, bool retain)
             {
-                
-                if (handle == IntPtr.Zero)
-                {
-                    throw new InvalidOperationException("Handle Invalid 0H001.");
-                }
+
+                if (handle == IntPtr.Zero) return;
+                //{
+                //    throw new InvalidOperationException("Handle Invalid 0H001.");
+                //}
                 
                 Handle = handle;
 
