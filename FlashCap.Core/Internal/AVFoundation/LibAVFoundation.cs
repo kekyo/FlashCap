@@ -140,12 +140,13 @@ internal static partial class LibAVFoundation
         {
             get
             {
-                _activeFormat?.Dispose();
-                _activeFormat = new AVCaptureDeviceFormat(
-                    LibObjC.SendAndGetHandle(
-                        Handle,
-                        LibObjC.GetSelector("activeFormat")),
-                    retain: true);
+                //_activeFormat?.Dispose();
+                if(_activeFormat == null)
+                    _activeFormat = new AVCaptureDeviceFormat(
+                        LibObjC.SendAndGetHandle(
+                            Handle,
+                            LibObjC.GetSelector("activeFormat")),
+                        retain: true);
                 return _activeFormat;
             }
             set

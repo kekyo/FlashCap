@@ -408,6 +408,8 @@ internal static class NativeMethods_AVFoundation
 
             protected override void Dispose(bool disposing)
             {
+                if (!disposing) return;
+                
                 if (Handle == IntPtr.Zero)
                     return;
 
@@ -636,10 +638,10 @@ internal static class NativeMethods_AVFoundation
            
            protected override void Dispose(bool disposing)
            {
-               if (Handle == IntPtr.Zero)
-               {
-                   throw new InvalidOperationException("Handle invalid 0H004.");
-               }
+               if (Handle == IntPtr.Zero) return;
+               //{
+               //    throw new InvalidOperationException("Handle invalid 0H004.");
+               //}
                if (Handle != IntPtr.Zero)
                {
                    LibC.DispatchRelease(Handle);

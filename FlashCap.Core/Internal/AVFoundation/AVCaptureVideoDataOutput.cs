@@ -44,7 +44,7 @@ partial class LibAVFoundation
         {
             if (Handle == IntPtr.Zero)
             {
-                throw new ObjectDisposedException(nameof(AVCaptureVideoDataOutput), "Handle invalid.");
+                throw new ObjectDisposedException(nameof(AVCaptureVideoDataOutput), "Handle invalid. 0H01X");
             }
         }
 
@@ -161,7 +161,11 @@ partial class LibAVFoundation
 
             if (disposing)
             {
-                // Libere recursos gerenciados aqui, se necessário
+                if (callbackDelegate != null)
+                {
+                    Marshal.FreeHGlobal(Marshal.GetFunctionPointerForDelegate(callbackDelegate));
+                    callbackDelegate = null;
+                }
             }
 
             base.Dispose(disposing);
