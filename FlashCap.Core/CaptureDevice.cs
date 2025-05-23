@@ -87,18 +87,50 @@ public abstract class CaptureDevice :
 
     internal async Task InternalStartAsync(CancellationToken ct)
     {
+        var context = SynchronizationContext.Current;
+
+        if (context == null)
+        {
+            throw new InvalidOperationException("Invalid sync context.");
+        }
+
+        using var _ = await locker.LockAsync(ct).ConfigureAwait(false);
+
+        await Task.Factory.StartNew(
+            async () => await this.OnStartAsync(ct),
+            ct,
+            TaskCreationOptions.None,
+            TaskScheduler.FromCurrentSynchronizationContext()).Unwrap();
+        /*
         using var _ = await locker.LockAsync(ct).
-            ConfigureAwait(false);
+            ConfigureAwait(true);
 
         await this.OnStartAsync(ct);
+        */
     }
 
     internal async Task InternalStopAsync(CancellationToken ct)
     {
+        var context = SynchronizationContext.Current;
+
+        if (context == null)
+        {
+            throw new InvalidOperationException("Invalid sync context.");
+        }
+
+        using var _ = await locker.LockAsync(ct).ConfigureAwait(false);
+
+        await Task.Factory.StartNew(
+            async () => await this.OnStopAsync(ct),
+            ct,
+            TaskCreationOptions.None,
+            TaskScheduler.FromCurrentSynchronizationContext()).Unwrap();
+        /*
         using var _ = await locker.LockAsync(ct).
-            ConfigureAwait(false);
+            ConfigureAwait(true);
 
         await this.OnStopAsync(ct);
+        */
     }
 
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
