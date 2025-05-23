@@ -396,9 +396,6 @@ internal static class NativeMethods_AVFoundation
             {
 
                 if (handle == IntPtr.Zero) return;
-                //{
-                //    throw new InvalidOperationException("Handle Invalid 0H001.");
-                //}
                 
                 Handle = handle;
 
@@ -617,13 +614,6 @@ internal static class NativeMethods_AVFoundation
         {
             public DispatchQueue(string label)
             {
-                
-                if (Handle == IntPtr.Zero)
-                {
-                    throw new InvalidOperationException("Invalid Handle 0H002.");
-                }
-                //Handle = LibC.DispatchQueueCreate(label, IntPtr.Zero) is var handle && handle != IntPtr.Zero
-                //    ? handle : throw new InvalidOperationException("Cannot create a dispatch queue.");
 
                 Handle = LibSystem.dispatch_queue_create(label, IntPtr.Zero);
                 if (Handle == IntPtr.Zero)
@@ -639,9 +629,6 @@ internal static class NativeMethods_AVFoundation
            protected override void Dispose(bool disposing)
            {
                if (Handle == IntPtr.Zero) return;
-               //{
-               //    throw new InvalidOperationException("Handle invalid 0H004.");
-               //}
                if (Handle != IntPtr.Zero)
                {
                    LibC.DispatchRelease(Handle);
