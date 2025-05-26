@@ -122,7 +122,7 @@ partial class LibAVFoundation
             LibObjC.SendNoResult(
                 Handle,
                 LibObjC.GetSelector("stopRunning"));
-                
+            
         }
         
         protected override void Dispose(bool disposing)
