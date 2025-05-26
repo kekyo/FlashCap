@@ -18,7 +18,7 @@ partial class LibAVFoundation
 {
     public sealed class AVCaptureSession : LibObjC.NSObject
     {
-        private IntPtr _handle;
+        /*private IntPtr _handle;
         public new IntPtr Handle
         {
             get
@@ -31,7 +31,7 @@ partial class LibAVFoundation
                 _handle = value;
                 base.Handle = value;
             }
-        }
+        }*/
 
         public AVCaptureSession() : base(IntPtr.Zero, false)
         {
@@ -118,7 +118,7 @@ partial class LibAVFoundation
         public void StopRunning()
         {
             ValidateHandle();
-            Console.WriteLine($"StopRunning: Handle = {Handle}");
+            var selector = LibObjC.GetSelector("stopRunning");
             LibObjC.SendNoResult(
                 Handle,
                 LibObjC.GetSelector("stopRunning"));
