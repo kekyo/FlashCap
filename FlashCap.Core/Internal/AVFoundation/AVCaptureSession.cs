@@ -18,6 +18,11 @@ partial class LibAVFoundation
 {
     public sealed class AVCaptureSession : LibObjC.NSObject
     {
+        
+        private AVCaptureVideoDataOutput? _videoDataOutput;
+        private AVCaptureInput? _videoDataInput;
+
+        
         /*private IntPtr _handle;
         public new IntPtr Handle
         {
@@ -79,6 +84,9 @@ partial class LibAVFoundation
             try
             {
                 ValidateHandle();
+                
+                _videoDataInput = input as AVCaptureInput;
+                
                 LibObjC.SendNoResult(
                     Handle,
                     LibObjC.GetSelector("addInput:"),
@@ -96,17 +104,15 @@ partial class LibAVFoundation
             try
             {
                 ValidateHandle();
-                //IntPtr allocSel = LibObjC.GetSelector("alloc");
-                //IntPtr initSel = LibObjC.GetSelector("init");
                 
-                var videoDataOutputObj = output as AVCaptureVideoDataOutput ;
+                _videoDataOutput = output as AVCaptureVideoDataOutput ;
 
-                if (videoDataOutputObj == null)
+                if (_videoDataOutput == null)
                 {
                     throw new Exception("Failed to get video data output");
                 }
                 
-                var videoDataOutput = videoDataOutputObj.Handle;
+                var videoDataOutput = _videoDataOutput.Handle;
                 
                 LibObjC.SendNoResult(
                     Handle,
@@ -176,6 +182,17 @@ partial class LibAVFoundation
                     LibCoreFoundation.CFRelease(Handle);
                     Handle = IntPtr.Zero;
                 }*/
+                
+                if (_videoDataOutput != null)
+                {
+                    _videoDataOutput.Dispose();
+                    _videoDataOutput = null;
+                }
+                if (_videoDataInput != null)
+                {
+                    _videoDataInput.Dispose();
+                    _videoDataInput = null;
+                }
 
                 base.Dispose(disposing);
             } catch (Exception ex)
