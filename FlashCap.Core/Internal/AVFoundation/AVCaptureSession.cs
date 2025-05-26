@@ -117,8 +117,8 @@ partial class LibAVFoundation
 
         public void StopRunning()
         {
-            //this.Handle = IntPtr.Zero;
             ValidateHandle();
+            Console.WriteLine($"StopRunning: Handle = {Handle}");
             LibObjC.SendNoResult(
                 Handle,
                 LibObjC.GetSelector("stopRunning"));
