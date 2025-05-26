@@ -18,6 +18,21 @@ partial class LibAVFoundation
 {
     public sealed class AVCaptureSession : LibObjC.NSObject
     {
+        private IntPtr _handle;
+        public new IntPtr Handle
+        {
+            get
+            {
+                return _handle;
+            }
+            set
+            {
+                Console.WriteLine("Setting AVCaptureSession handle: " + value);
+                _handle = value;
+                base.Handle = value;
+            }
+        }
+
         public AVCaptureSession() : base(IntPtr.Zero, false)
         {
             Init();
