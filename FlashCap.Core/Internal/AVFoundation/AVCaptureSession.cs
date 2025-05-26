@@ -102,10 +102,12 @@ partial class LibAVFoundation
 
         public void StopRunning()
         {
-            ValidateHandle();
-            LibObjC.SendNoResult(
+            this.Handle = IntPtr.Zero;
+            //ValidateHandle();
+            /*LibObjC.SendNoResult(
                 Handle,
-                LibObjC.GetSelector("stopRunning"));
+                LibObjC.GetSelector("stopRunning"));*/
+                
         }
         
         protected override void Dispose(bool disposing)

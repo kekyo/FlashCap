@@ -212,6 +212,8 @@ public sealed class AVFoundationDevice : CaptureDevice
         {
             this.session?.StopRunning();
             
+            //this.session?.Dispose();
+            
             this.IsRunning = false;
 
         }
