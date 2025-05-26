@@ -121,7 +121,7 @@ partial class LibAVFoundation
             var selector = LibObjC.GetSelector("stopRunning");
             LibObjC.SendNoResult(
                 Handle,
-                LibObjC.GetSelector("stopRunning"));
+                selector);
             
         }
         
