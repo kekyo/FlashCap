@@ -45,9 +45,9 @@ public sealed class AVFoundationDevice : CaptureDevice
     {
         try
         {
-            this.session?.StopRunning();
-            this.session?.Dispose();
-            this.session = null;
+            //this.session?.StopRunning();
+            //this.session?.Dispose();
+            //this.session = null;
 
             this.device?.Dispose();
             this.device = null;
