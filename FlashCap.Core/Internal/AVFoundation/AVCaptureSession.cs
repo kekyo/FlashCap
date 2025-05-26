@@ -117,11 +117,18 @@ partial class LibAVFoundation
 
         public void StopRunning()
         {
-            ValidateHandle();
-            var selector = LibObjC.GetSelector("stopRunning");
-            LibObjC.SendNoResult(
-                Handle,
-                selector);
+            try
+            {
+                ValidateHandle();
+                var selector = LibObjC.GetSelector("stopRunning");
+                LibObjC.SendNoResult(
+                    Handle,
+                    selector);
+            } catch (Exception ex)
+            {
+                Console.WriteLine($"Error stopping AVCaptureSession: {ex.Message}");
+                // Handle the exception as needed, e.g., log it or rethrow
+            }
             
         }
         
