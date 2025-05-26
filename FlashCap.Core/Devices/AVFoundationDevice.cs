@@ -197,38 +197,61 @@ public sealed class AVFoundationDevice : CaptureDevice
 
     protected override Task OnStartAsync(CancellationToken ct)
     {
-        if(session== null) 
-            throw new InvalidOperationException("Session is null");
-        this.session?.StartRunning();
-        this.IsRunning = true;
-        return TaskCompat.CompletedTask;
+        try
+        {
+            if(session== null) 
+                throw new InvalidOperationException("Session is null");
+            this.session?.StartRunning();
+            this.IsRunning = true;
+            return TaskCompat.CompletedTask;
+        }catch (Exception ex)
+        {
+            Debug.WriteLine($"Error starting session: {ex.Message}");
+            throw new InvalidOperationException("Failed to start the capture session.", ex);
+        }
+
     }
 
     protected override Task OnStopAsync(CancellationToken ct)
     {
-        if(session== null) 
-            throw new InvalidOperationException("Session is null");
-        if (this.IsRunning)
+        try
         {
-            this.session?.StopRunning();
+            if(session== null) 
+                throw new InvalidOperationException("Session is null");
+            if (this.IsRunning)
+            {
+                this.session?.StopRunning();
             
-            //this.session?.Dispose();
+                //this.session?.Dispose();
             
-            this.IsRunning = false;
+                this.IsRunning = false;
 
+            }
+            return TaskCompat.CompletedTask;
+        }catch (Exception ex)
+        {
+            Debug.WriteLine($"Error stopping session: {ex.Message}");
+            throw new InvalidOperationException("Failed to stop the capture session.", ex);
         }
-        return TaskCompat.CompletedTask;
+
     }
 
     protected override void OnCapture(IntPtr pData, int size, long timestampMicroseconds, long frameIndex, PixelBuffer buffer)
     {
-        buffer.CopyIn(this.bitmapHeader, pData, size, timestampMicroseconds, frameIndex, TranscodeFormats.Auto);
+        try
+        {
+            buffer.CopyIn(this.bitmapHeader, pData, size, timestampMicroseconds, frameIndex, TranscodeFormats.Auto);
+        }catch (Exception ex)
+        {
+            Debug.WriteLine($"Error capturing frame: {ex.Message}");
+            throw new InvalidOperationException("Failed to capture frame.", ex);
+        }
     }
 
     internal sealed class VideoBufferHandler : AVCaptureVideoDataOutputSampleBuffer
     {
         private readonly AVFoundationDevice device;
-        private int frameIndex;
+        private int frameIndex = 0;
 
         public VideoBufferHandler(AVFoundationDevice device)
         {
@@ -237,7 +260,7 @@ public sealed class AVFoundationDevice : CaptureDevice
 
         public override void DidDropSampleBuffer(IntPtr captureOutput, IntPtr sampleBuffer, IntPtr connection)
         {
-            Debug.WriteLine("Dropped");
+            //Debug.WriteLine("Dropped");
             var valid = CMSampleBufferIsValid(sampleBuffer);
         }
 

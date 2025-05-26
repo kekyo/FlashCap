@@ -40,22 +40,30 @@ partial class LibAVFoundation
 
         private void Init()
         {
-            var sessionClass = LibObjC.SendAndGetHandle(
-                LibObjC.GetClass("AVCaptureSession"),
-                LibObjC.GetSelector(LibObjC.AllocSelector));
-
-            var sessionObj = LibObjC.SendAndGetHandle(
-                sessionClass,
-                LibObjC.GetSelector("init"));
-            
-            if (sessionObj == IntPtr.Zero)
+            try
             {
-                throw new Exception("Failed to create AVCaptureSession");
+                var sessionClass = LibObjC.SendAndGetHandle(
+                    LibObjC.GetClass("AVCaptureSession"),
+                    LibObjC.GetSelector(LibObjC.AllocSelector));
+
+                var sessionObj = LibObjC.SendAndGetHandle(
+                    sessionClass,
+                    LibObjC.GetSelector("init"));
+                
+                if (sessionObj == IntPtr.Zero)
+                {
+                    throw new Exception("Failed to create AVCaptureSession");
+                }
+
+                Handle = sessionObj;
+
+                LibCoreFoundation.CFRetain(this.Handle);
+                
+            } catch (Exception ex)
+            {
+                Console.WriteLine($"Error initializing AVCaptureSession: {ex.Message}");
+                throw;
             }
-
-            Handle = sessionObj;
-
-            LibCoreFoundation.CFRetain(this.Handle);
         }
         
         private void ValidateHandle()
@@ -68,51 +76,79 @@ partial class LibAVFoundation
 
         public void AddInput(AVCaptureInput input)
         {
-            ValidateHandle();
-            LibObjC.SendNoResult(
-                Handle,
-                LibObjC.GetSelector("addInput:"),
-                input.Handle);
+            try
+            {
+                ValidateHandle();
+                LibObjC.SendNoResult(
+                    Handle,
+                    LibObjC.GetSelector("addInput:"),
+                    input.Handle);
+            } catch (Exception ex)
+            {
+                Console.WriteLine($"Error calling addInput: {ex.Message}");
+                throw;
+            }
         }
 
 
         public void AddOutput(AVCaptureOutput output)
         {
-            ValidateHandle();
-            IntPtr allocSel = LibObjC.GetSelector("alloc");
-            IntPtr initSel = LibObjC.GetSelector("init");
-            
-            var videoDataOutputObj = output as AVCaptureVideoDataOutput ;
-
-            if (videoDataOutputObj == null)
+            try
             {
-                throw new Exception("Failed to get video data output");
+                ValidateHandle();
+                //IntPtr allocSel = LibObjC.GetSelector("alloc");
+                //IntPtr initSel = LibObjC.GetSelector("init");
+                
+                var videoDataOutputObj = output as AVCaptureVideoDataOutput ;
+
+                if (videoDataOutputObj == null)
+                {
+                    throw new Exception("Failed to get video data output");
+                }
+                
+                var videoDataOutput = videoDataOutputObj.Handle;
+                
+                LibObjC.SendNoResult(
+                    Handle,
+                    LibObjC.GetSelector("addOutput:"),
+                    videoDataOutput);
+                
+            } catch (Exception ex)
+            {
+                Console.WriteLine($"Error calling addOutput: {ex.Message}");
+                throw;
             }
-            
-            var videoDataOutput = videoDataOutputObj.Handle;
-            
-            LibObjC.SendNoResult(
-                Handle,
-                LibObjC.GetSelector("addOutput:"),
-                videoDataOutput);
         }
 
         public bool CanAddOutput(AVCaptureOutput output)
         {
-            ValidateHandle();
-            return LibObjC.SendAndGetBool(
-                Handle,
-                LibObjC.GetSelector("canAddOutput:"),
-                output.Handle);
+            try
+            {
+                ValidateHandle();
+                return LibObjC.SendAndGetBool(
+                    Handle,
+                    LibObjC.GetSelector("canAddOutput:"),
+                    output.Handle);
+            } catch (Exception ex)
+            {
+                Console.WriteLine($"Error calling canAddOutput: {ex.Message}");
+                throw;
+            }
         }
 
 
         public void StartRunning()
         {
-            ValidateHandle();
-            LibObjC.SendNoResult(
-                Handle,
-                LibObjC.GetSelector("startRunning"));
+            try
+            {
+                ValidateHandle();
+                LibObjC.SendNoResult(
+                    Handle,
+                    LibObjC.GetSelector("startRunning"));
+            } catch (Exception ex)
+            {
+                Console.WriteLine($"Error starting AVCaptureSession: {ex.Message}");
+            }
         }
 
         public void StopRunning()
@@ -127,20 +163,25 @@ partial class LibAVFoundation
             } catch (Exception ex)
             {
                 Console.WriteLine($"Error stopping AVCaptureSession: {ex.Message}");
-                // Handle the exception as needed, e.g., log it or rethrow
             }
             
         }
         
         protected override void Dispose(bool disposing)
         {
-            if (Handle != IntPtr.Zero)
+            try
             {
-                LibCoreFoundation.CFRelease(Handle);
-                Handle = IntPtr.Zero;
-            }
+                /*if (Handle != IntPtr.Zero)
+                {
+                    LibCoreFoundation.CFRelease(Handle);
+                    Handle = IntPtr.Zero;
+                }*/
 
-            base.Dispose(disposing);
+                base.Dispose(disposing);
+            } catch (Exception ex)
+            {
+                Console.WriteLine($"Error disposing AVCaptureSession: {ex.Message}");
+            }
         }
 
     }
