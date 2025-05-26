@@ -192,7 +192,7 @@ partial class LibAVFoundation
                 {
                     if (callbackDelegate != null)
                     {
-                        Marshal.FreeHGlobal(Marshal.GetFunctionPointerForDelegate(callbackDelegate));
+                        //Marshal.FreeHGlobal(Marshal.GetFunctionPointerForDelegate(callbackDelegate));
                         callbackDelegate = null;
                     }
                 }
