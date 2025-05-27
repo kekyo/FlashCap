@@ -34,6 +34,7 @@ public sealed class AVFoundationDevice : CaptureDevice
     private AVCaptureSession? session;
     private FrameProcessor? frameProcessor;
     private IntPtr bitmapHeader;
+    private VideoBufferHandler? videoBufferHandler;
 
     public AVFoundationDevice(string uniqueID, string modelID) :
         base(uniqueID, modelID)
@@ -151,8 +152,10 @@ public sealed class AVFoundationDevice : CaptureDevice
                     // Fallback to the mapped pixel format if no available list is provided
                     this.deviceOutput.SetPixelFormatType(pixelFormatType);
                 }
-            
-                this.deviceOutput.SetSampleBufferDelegate(new VideoBufferHandler(this), this.queue);
+
+                videoBufferHandler = new VideoBufferHandler(this);
+                
+                this.deviceOutput.SetSampleBufferDelegate(videoBufferHandler, this.queue);
                 this.deviceOutput.AlwaysDiscardsLateVideoFrames = true;
             }
             finally

@@ -21,22 +21,7 @@ partial class LibAVFoundation
         
         private AVCaptureVideoDataOutput? _videoDataOutput;
         private AVCaptureInput? _videoDataInput;
-
         
-        /*private IntPtr _handle;
-        public new IntPtr Handle
-        {
-            get
-            {
-                return _handle;
-            }
-            set
-            {
-                Console.WriteLine("Setting AVCaptureSession handle: " + value);
-                _handle = value;
-                base.Handle = value;
-            }
-        }*/
 
         public AVCaptureSession() : base(IntPtr.Zero, false)
         {
