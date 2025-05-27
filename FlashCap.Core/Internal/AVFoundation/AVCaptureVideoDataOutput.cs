@@ -129,19 +129,32 @@ partial class LibAVFoundation
                     Debug.WriteLine("AVCaptureVideoDataOutputSampleBufferDelegate is null");
                     return;
                 }
+                
+                // If the handle is already set, free the previous delegate
+                if (callbackHandle.HasValue)
+                {
+                    callbackHandle.Value.Free();
+                    callbackHandle = null;
+                }
+                
+                IntPtr selDidOutput = LibObjC.GetSelector("captureOutput:didOutputSampleBuffer:fromConnection:");
+                callbackDelegate = sampleBufferDelegate.CaptureOutputCallback;
+                callbackHandle = GCHandle.Alloc(callbackDelegate);
+                IntPtr impCallback = Marshal.GetFunctionPointerForDelegate(callbackDelegate);
 
                 IntPtr allocSel = LibObjC.GetSelector("alloc");
                 IntPtr initSel = LibObjC.GetSelector("init");
                 IntPtr nsObjectClass = LibObjC.GetClass("NSObject");
                 IntPtr delegateClass =
                     LibObjC.objc_allocateClassPair(nsObjectClass, "CaptureDelegate_" + Handle, IntPtr.Zero);
-                IntPtr selDidOutput = LibObjC.GetSelector("captureOutput:didOutputSampleBuffer:fromConnection:");
+                
+                /*IntPtr selDidOutput = LibObjC.GetSelector("captureOutput:didOutputSampleBuffer:fromConnection:");
 
                 callbackDelegate = sampleBufferDelegate.CaptureOutputCallback;
                 
                 callbackHandle = GCHandle.Alloc(callbackDelegate);
 
-                IntPtr impCallback = Marshal.GetFunctionPointerForDelegate(callbackDelegate);
+                IntPtr impCallback = Marshal.GetFunctionPointerForDelegate(callbackDelegate);*/
 
                 string types = "v@:@@@";
                 bool added = LibObjC.class_addMethod(delegateClass, selDidOutput, impCallback, types);
@@ -185,25 +198,13 @@ partial class LibAVFoundation
         {
             try
             {
-                
-                if (disposing)
+                // Cleans  delegates GCHandle 
+                if (callbackHandle.HasValue)
                 {
-                    // Libera o GCHandle do delegate
-                    if (callbackHandle.HasValue)
-                    {
-                        callbackHandle.Value.Free();
-                        callbackHandle = null;
-                    }
+                    callbackHandle.Value.Free();
+                    callbackHandle = null;
                 }
                 
-                /*if (disposing)
-                {
-                    if (callbackDelegate != null)
-                    {
-                        //Marshal.FreeHGlobal(Marshal.GetFunctionPointerForDelegate(callbackDelegate));
-                        callbackDelegate = null;
-                    }
-                }*/
                 
                 if (Handle != IntPtr.Zero)
                 {
