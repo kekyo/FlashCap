@@ -615,16 +615,15 @@ internal static class NativeMethods_AVFoundation
             public DispatchQueue(string label)
             {
 
-                Handle = LibSystem.dispatch_queue_create(label, IntPtr.Zero);
+                //Handle = LibSystem.dispatch_queue_create(label, IntPtr.Zero);
+                Handle = LibC.DispatchQueueCreate(label, IntPtr.Zero);
                 if (Handle == IntPtr.Zero)
                 {
                     throw new InvalidOperationException("Handle invalid 0H003.");
                 }
                 CFRetain(Handle);
             }
-
-
-           // protected override void Dispose(bool disposing) => LibC.DispatchRelease(Handle);
+            
            
            protected override void Dispose(bool disposing)
            {
