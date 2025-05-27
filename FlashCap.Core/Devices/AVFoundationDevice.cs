@@ -63,7 +63,8 @@ public sealed class AVFoundationDevice : CaptureDevice
 
             if (this.bitmapHeader != IntPtr.Zero)
             {
-                Marshal.FreeHGlobal(this.bitmapHeader);
+                NativeMethods.FreeMemory(bitmapHeader);
+                //Marshal.FreeHGlobal(this.bitmapHeader);
                 this.bitmapHeader = IntPtr.Zero;
             }
 
