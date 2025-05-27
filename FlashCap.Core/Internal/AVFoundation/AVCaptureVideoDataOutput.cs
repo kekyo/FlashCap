@@ -21,6 +21,7 @@ partial class LibAVFoundation
     public sealed class AVCaptureVideoDataOutput : AVCaptureOutput
     {
         private AVCaptureVideoDataOutputSampleBuffer.CaptureOutputDidOutputSampleBuffer? callbackDelegate;
+        private GCHandle? callbackHandle;
         
         public AVCaptureVideoDataOutput() : base(IntPtr.Zero, retain: false)
         {
@@ -137,6 +138,8 @@ partial class LibAVFoundation
                 IntPtr selDidOutput = LibObjC.GetSelector("captureOutput:didOutputSampleBuffer:fromConnection:");
 
                 callbackDelegate = sampleBufferDelegate.CaptureOutputCallback;
+                
+                callbackHandle = GCHandle.Alloc(callbackDelegate);
 
                 IntPtr impCallback = Marshal.GetFunctionPointerForDelegate(callbackDelegate);
 
@@ -185,12 +188,22 @@ partial class LibAVFoundation
                 
                 if (disposing)
                 {
+                    // Libera o GCHandle do delegate
+                    if (callbackHandle.HasValue)
+                    {
+                        callbackHandle.Value.Free();
+                        callbackHandle = null;
+                    }
+                }
+                
+                /*if (disposing)
+                {
                     if (callbackDelegate != null)
                     {
                         //Marshal.FreeHGlobal(Marshal.GetFunctionPointerForDelegate(callbackDelegate));
                         callbackDelegate = null;
                     }
-                }
+                }*/
                 
                 if (Handle != IntPtr.Zero)
                 {
