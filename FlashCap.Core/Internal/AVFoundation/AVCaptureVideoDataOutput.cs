@@ -182,20 +182,22 @@ partial class LibAVFoundation
         {
             try
             {
+                
+                if (disposing)
+                {
+                    if (callbackDelegate != null)
+                    {
+                        Marshal.FreeHGlobal(Marshal.GetFunctionPointerForDelegate(callbackDelegate));
+                        callbackDelegate = null;
+                    }
+                }
+                
                 if (Handle != IntPtr.Zero)
                 {
                     LibCoreFoundation.CFRelease(Handle);
                     Handle = IntPtr.Zero;
                 }
-
-                if (disposing)
-                {
-                    if (callbackDelegate != null)
-                    {
-                        //Marshal.FreeHGlobal(Marshal.GetFunctionPointerForDelegate(callbackDelegate));
-                        callbackDelegate = null;
-                    }
-                }
+                
 
                 base.Dispose(disposing);
             } catch( Exception ex)
