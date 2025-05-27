@@ -35,6 +35,8 @@ public sealed class AVFoundationDevice : CaptureDevice
     private FrameProcessor? frameProcessor;
     private IntPtr bitmapHeader;
     private VideoBufferHandler? videoBufferHandler;
+    
+    private GCHandle? videoBufferHandlerHandle;
 
     public AVFoundationDevice(string uniqueID, string modelID) :
         base(uniqueID, modelID)
@@ -46,30 +48,38 @@ public sealed class AVFoundationDevice : CaptureDevice
     {
         try
         {
-            //this.session?.StopRunning();
-            //this.session?.Dispose();
-            //this.session = null;
+            // Ensure that we stop the session if it's running
+            if (session != null && IsRunning)
+            {
+                session.StopRunning();
+                IsRunning = false;
+            }
+            
+            // Clean up the video buffer handler if it exists
+            if (videoBufferHandlerHandle.HasValue)
+            {
+                videoBufferHandlerHandle.Value.Free();
+                videoBufferHandlerHandle = null;
+            }
+            
+            // Now dispose of the session and other resources
+            if (session != null)
+            {
+                session.Dispose();
+                session = null;
+            }
+            device?.Dispose(); device = null;
+            deviceInput?.Dispose(); deviceInput = null;
+            deviceOutput?.Dispose(); deviceOutput = null;
+            queue?.Dispose(); queue = null;
 
-            this.device?.Dispose();
-            this.device = null;
-
-            this.deviceInput?.Dispose();
-            this.deviceInput = null;
-
-            this.deviceOutput?.Dispose();
-            this.deviceOutput = null;
-
-            this.queue?.Dispose();
-            this.queue = null;
-
-            if (this.bitmapHeader != IntPtr.Zero)
+            if (bitmapHeader != IntPtr.Zero)
             {
                 NativeMethods.FreeMemory(bitmapHeader);
-                //Marshal.FreeHGlobal(this.bitmapHeader);
-                this.bitmapHeader = IntPtr.Zero;
+                bitmapHeader = IntPtr.Zero;
             }
 
-            if (frameProcessor is not null)
+            if (frameProcessor != null)
             {
                 await frameProcessor.DisposeAsync().ConfigureAwait(false);
                 frameProcessor = null;
@@ -156,6 +166,10 @@ public sealed class AVFoundationDevice : CaptureDevice
                 videoBufferHandler = new VideoBufferHandler(this);
                 
                 this.deviceOutput.SetSampleBufferDelegate(videoBufferHandler, this.queue);
+                
+                // Protect against GC moving the delegate
+                videoBufferHandlerHandle = GCHandle.Alloc(videoBufferHandler);
+                
                 this.deviceOutput.AlwaysDiscardsLateVideoFrames = true;
             }
             finally
@@ -221,19 +235,16 @@ public sealed class AVFoundationDevice : CaptureDevice
             if (this.IsRunning)
             {
                 this.session?.StopRunning();
-            
-                //this.session?.Dispose();
-            
                 this.IsRunning = false;
 
             }
-            return TaskCompat.CompletedTask;
+            
         }catch (Exception ex)
         {
             Debug.WriteLine($"Error stopping session: {ex.Message}");
             throw new InvalidOperationException("Failed to stop the capture session.", ex);
         }
-
+        return TaskCompat.CompletedTask;
     }
 
     protected override void OnCapture(IntPtr pData, int size, long timestampMicroseconds, long frameIndex, PixelBuffer buffer)
