@@ -177,12 +177,8 @@ public sealed class AVFoundationDevice : CaptureDevice
         catch
         {
             NativeMethods.FreeMemory(this.bitmapHeader);
-            
-            if (this.bitmapHeader != IntPtr.Zero)
-            {
-                Marshal.FreeHGlobal(this.bitmapHeader);
-                this.bitmapHeader = IntPtr.Zero;
-            }
+            this.bitmapHeader = IntPtr.Zero;
+
             this.queue?.Dispose();
             this.queue = null;
             this.device?.Dispose();
@@ -241,6 +237,11 @@ public sealed class AVFoundationDevice : CaptureDevice
     {
         try
         {
+            if (this.bitmapHeader == IntPtr.Zero) return;
+            if (pData == IntPtr.Zero || size <= 0)
+            {
+                throw new ArgumentException("Invalid pixel data or size.");
+            }
             buffer.CopyIn(this.bitmapHeader, pData, size, timestampMicroseconds, frameIndex, TranscodeFormats.Auto);
         }catch (Exception ex)
         {
