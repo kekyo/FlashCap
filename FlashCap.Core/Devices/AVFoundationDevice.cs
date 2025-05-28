@@ -151,11 +151,13 @@ public sealed class AVFoundationDevice : CaptureDevice
                 this.deviceInput = new AVCaptureDeviceInput(device);
             
                 this.deviceOutput = new AVCaptureVideoDataOutput();
+                
             
                 if (this.deviceOutput.AvailableVideoCVPixelFormatTypes?.Any() == true)
                 {
                     var validPixelFormat = this.deviceOutput.AvailableVideoCVPixelFormatTypes.FirstOrDefault(p => p == pixelFormatType);
                     this.deviceOutput.SetPixelFormatType(validPixelFormat);
+                    this.deviceOutput.SetVideoOutputSize(characteristics.Width, characteristics.Height, validPixelFormat);
                 }
                 else
                 {
