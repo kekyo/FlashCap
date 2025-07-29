@@ -25,7 +25,8 @@ public enum PixelFormats
     PNG,
     UYVY,
     YUYV,
-    NV12
+    NV12,
+    BGRA32
 }
 
 public sealed class VideoCharacteristics :
