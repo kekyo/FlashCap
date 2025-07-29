@@ -89,7 +89,7 @@ public abstract class CaptureDevice :
     {
         
         using var _ = await locker.LockAsync(ct).
-            ConfigureAwait(true);
+            ConfigureAwait(false);
 
         await this.OnStartAsync(ct);
         
@@ -99,7 +99,7 @@ public abstract class CaptureDevice :
     {
         
         using var _ = await locker.LockAsync(ct).
-            ConfigureAwait(true);
+            ConfigureAwait(false);
 
         await this.OnStopAsync(ct);
         
@@ -116,7 +116,7 @@ public abstract class CaptureDevice :
         IntPtr parentWindow, CancellationToken ct)
     {
         using var _ = await locker.LockAsync(ct).
-            ConfigureAwait(true);
+            ConfigureAwait(false);
 
         return await this.OnShowPropertyPageAsync(parentWindow, ct);
     }
