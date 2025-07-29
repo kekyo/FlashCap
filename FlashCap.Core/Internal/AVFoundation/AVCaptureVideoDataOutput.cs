@@ -117,7 +117,55 @@ partial class LibAVFoundation
  
         }
 
-        
+        public void SetVideoOutputSize(int width, int height, int pixelFormat)
+        {
+            ValidateHandle();
+
+            // Cria NSNumber para pixelFormat
+            IntPtr nsPixelFormatKeyPtr = Dlfcn.dlsym(LibCoreVideo.Handle, "kCVPixelBufferPixelFormatTypeKey");
+            if (nsPixelFormatKeyPtr == IntPtr.Zero)
+                throw new Exception("Error comunicating with the AVCaptureVideoDataOutput");
+            IntPtr nsPixelFormatKey = Marshal.ReadIntPtr(nsPixelFormatKeyPtr);
+            IntPtr nsNumberPixelFormat = LibObjC.CreateNSNumber(pixelFormat);
+
+            // Cria NSNumber para width
+            IntPtr nsWidthKeyPtr = Dlfcn.dlsym(LibCoreVideo.Handle, "kCVPixelBufferWidthKey");
+            if (nsWidthKeyPtr == IntPtr.Zero)
+                throw new Exception("Error comunicating with the AVCaptureVideoDataOutput");
+            IntPtr nsWidthKey = Marshal.ReadIntPtr(nsWidthKeyPtr);
+            IntPtr nsNumberWidth = LibObjC.CreateNSNumber(width);
+
+            // Cria NSNumber para height
+            IntPtr nsHeightKeyPtr = Dlfcn.dlsym(LibCoreVideo.Handle, "kCVPixelBufferHeightKey");
+            if (nsHeightKeyPtr == IntPtr.Zero)
+                throw new Exception("Error comunicating with the AVCaptureVideoDataOutput");
+            IntPtr nsHeightKey = Marshal.ReadIntPtr(nsHeightKeyPtr);
+            IntPtr nsNumberHeight = LibObjC.CreateNSNumber(height);
+
+            // Cria NSArray de keys e values
+            IntPtr nsArrayClass = LibObjC.GetClass("NSArray");
+            IntPtr arrayWithObjectsSel = LibObjC.GetSelector("arrayWithObjects:count:");
+            IntPtr keysArray;
+            IntPtr valuesArray;
+            unsafe
+            {
+                IntPtr* keys = stackalloc IntPtr[3] { nsPixelFormatKey, nsWidthKey, nsHeightKey };
+                IntPtr* values = stackalloc IntPtr[3] { nsNumberPixelFormat, nsNumberWidth, nsNumberHeight };
+                
+                keysArray = LibObjC.SendAndGetHandle(nsArrayClass, arrayWithObjectsSel, (IntPtr)keys, new IntPtr(3));
+                valuesArray = LibObjC.SendAndGetHandle(nsArrayClass, arrayWithObjectsSel, (IntPtr)values, new IntPtr(3));
+            }
+
+            // Cria NSDictionary com as chaves e valores
+            IntPtr nsDictionaryClass = LibObjC.GetClass("NSDictionary");
+            IntPtr dictWithObjectsForKeysSel = LibObjC.GetSelector("dictionaryWithObjects:forKeys:");
+            IntPtr videoSettings = LibObjC.SendAndGetHandle(nsDictionaryClass, dictWithObjectsForKeysSel, valuesArray, keysArray);
+
+            // Seta o dicionário como video settings
+            IntPtr setVideoSettingsSel = LibObjC.GetSelector("setVideoSettings:");
+            LibObjC.SendNoResult(this.Handle, setVideoSettingsSel, videoSettings);
+        }
+
         public void SetSampleBufferDelegate(AVFoundationDevice.VideoBufferHandler sampleBufferDelegate,
             LibCoreFoundation.DispatchQueue sampleBufferCallbackQueue)
         {
