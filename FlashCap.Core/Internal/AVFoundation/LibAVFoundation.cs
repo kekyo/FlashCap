@@ -9,7 +9,6 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using System;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Linq;
 using static FlashCap.Internal.NativeMethods_AVFoundation;
@@ -24,11 +23,11 @@ internal static partial class LibAVFoundation
 
     public delegate void AVRequestAccessStatus(bool accessGranted);
 
-    private static void ValidateHandle()
+    private static void ValidateHandle(string method)
     {
         if (Handle == IntPtr.Zero)
         {
-            throw new ObjectDisposedException(nameof(LibAVFoundation), "Handle invalid.");
+            throw new NullReferenceException($"{nameof(LibAVFoundation)} handle is NULL in '{method}'.");
         }
     }
     
@@ -234,7 +233,7 @@ internal static partial class LibAVFoundation
 
         public static unsafe void RequestAccessForMediaType(IntPtr mediaType, AVRequestAccessStatus completion)
         {
-            ValidateHandle();
+            ValidateHandle(nameof(RequestAccessForMediaType));
             RequestAccessForMediaTypeBlockFactory ??= LibObjC.BlockLiteralFactory.CreateFactory<RequestAccessForMediaTypeTrampoline>(
                 signature: "v@?^vC",
                 delegate (IntPtr block, byte accessGranted)
@@ -269,7 +268,7 @@ internal static partial class LibAVFoundation
 
         public static AVCaptureDeviceDiscoverySession DiscoverySessionWithVideoDevices()
         {
-            ValidateHandle();
+            ValidateHandle(nameof(DiscoverySessionWithVideoDevices));
             var deviceTypes = new[]
             {
                 AVCaptureDeviceType.BuiltInWideAngleCamera,
@@ -379,7 +378,7 @@ internal static partial class LibAVFoundation
     public abstract class AVCaptureVideoDataOutputSampleBuffer : LibObjC.NSObject
     {
         private const string HandleVariableName = nameof(GCHandle);
-        private static IntPtr HandleVariableDescriptor;
+        private static readonly IntPtr HandleVariableDescriptor;
 
         static AVCaptureVideoDataOutputSampleBuffer()
         {

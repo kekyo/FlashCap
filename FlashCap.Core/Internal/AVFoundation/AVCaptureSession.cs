@@ -23,6 +23,14 @@ partial class LibAVFoundation
             Init();
         }
 
+        private void ValidateHandle(string method)
+        {
+            if (Handle == IntPtr.Zero)
+            {
+                throw new NullReferenceException($"{nameof(AVCaptureSession)} handle is NULL in '{method}'.");
+            }
+        }
+
         private void Init()
         {
             var sessionClass = LibObjC.SendAndGetHandle(
@@ -34,50 +42,61 @@ partial class LibAVFoundation
                 LibObjC.GetSelector("init"));
 
             Handle = sessionObj;
+            ValidateHandle(nameof(Init));
 
             LibCoreFoundation.CFRetain(this.Handle);
         }
 
-        public void AddInput(AVCaptureInput input) =>
+        public void AddInput(AVCaptureInput input)
+        {
+            ValidateHandle(nameof(AddInput));
+
             LibObjC.SendNoResult(
                 Handle,
                 LibObjC.GetSelector("addInput:"),
                 input.Handle);
+        }
 
         public void AddOutput(AVCaptureOutput output)
         {
             IntPtr allocSel = LibObjC.GetSelector("alloc");
             IntPtr initSel = LibObjC.GetSelector("init");
             
-            var videoDataOutputObj = output as AVCaptureVideoDataOutput ;
+            var videoDataOutputObj = output as AVCaptureVideoDataOutput 
+                ?? throw new Exception("Failed to get video data output") ;
 
-            if (videoDataOutputObj == null)
-            {
-                throw new Exception("Failed to get video data output");
-            }
-            
             var videoDataOutput = videoDataOutputObj.Handle;
-            
+
+            ValidateHandle(nameof(AddOutput));
             LibObjC.SendNoResult(
                 Handle,
                 LibObjC.GetSelector("addOutput:"),
                 videoDataOutput);
         }
 
-        public bool CanAddOutput(AVCaptureOutput output) =>
-            LibObjC.SendAndGetBool(
+        public bool CanAddOutput(AVCaptureOutput output)
+        {
+            ValidateHandle(nameof(CanAddOutput));
+            return LibObjC.SendAndGetBool(
                 Handle,
                 LibObjC.GetSelector("canAddOutput:"),
                 output.Handle);
+        }
 
-        public void StartRunning() =>
+        public void StartRunning()
+        {
+            ValidateHandle(nameof(StartRunning));
             LibObjC.SendNoResult(
                 Handle,
                 LibObjC.GetSelector("startRunning"));
+        }
 
-        public void StopRunning() =>
+        public void StopRunning()
+        {
+            ValidateHandle(nameof(StopRunning));
             LibObjC.SendNoResult(
                 Handle,
                 LibObjC.GetSelector("stopRunning"));
+        }
     }
 }
