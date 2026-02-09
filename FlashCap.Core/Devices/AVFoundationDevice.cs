@@ -43,22 +43,35 @@ public sealed class AVFoundationDevice : CaptureDevice
 
     protected override async Task OnDisposeAsync()
     {
-        if (this.session != null)
+        // Ensure that we stop the session if it's running
+        if (this.session is not null && IsRunning)
         {
             this.session.StopRunning();
-            this.session.Dispose();
+            IsRunning = false;
         }
-        
-        this.device?.Dispose();
+
+        this.session?.Dispose();
         this.deviceInput?.Dispose();
         this.deviceOutput?.Dispose();
+        this.device?.Dispose();
         this.queue?.Dispose();
 
-        Marshal.FreeHGlobal(this.bitmapHeader);
+        this.session = null;
+        this.deviceInput = null;
+        this.deviceOutput = null;
+        this.device = null;
+        this.queue = null;
 
-        if (frameProcessor is not null)
+        if (this.bitmapHeader != IntPtr.Zero)
         {
-            await frameProcessor.DisposeAsync().ConfigureAwait(false);
+            Marshal.FreeHGlobal(this.bitmapHeader);
+            this.bitmapHeader = IntPtr.Zero;
+        }
+
+        if (this.frameProcessor is not null)
+        {
+            await this.frameProcessor.DisposeAsync().ConfigureAwait(false);
+            this.frameProcessor = null;
         }
 
         await base.OnDisposeAsync().ConfigureAwait(false);
