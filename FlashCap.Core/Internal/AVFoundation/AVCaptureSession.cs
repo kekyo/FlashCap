@@ -17,6 +17,9 @@ partial class LibAVFoundation
 {
     public sealed class AVCaptureSession : LibObjC.NSObject
     {
+        private AVCaptureInput? _videoDataInput;
+        private AVCaptureVideoDataOutput? _videoDataOutput;
+
         public AVCaptureSession() : base(IntPtr.Zero, false)
         {
             Init();
@@ -50,6 +53,13 @@ partial class LibAVFoundation
         {
             ValidateHandle(nameof(AddInput));
 
+            if (_videoDataInput is not null)
+            {
+                throw new InvalidOperationException("Only one video data input can be added to the session.");
+            }
+
+            _videoDataInput = input;
+                
             LibObjC.SendNoResult(
                 Handle,
                 LibObjC.GetSelector("addInput:"),
@@ -58,16 +68,19 @@ partial class LibAVFoundation
 
         public void AddOutput(AVCaptureVideoDataOutput output)
         {
-            IntPtr allocSel = LibObjC.GetSelector("alloc");
-            IntPtr initSel = LibObjC.GetSelector("init");
-            
-            var videoDataOutput = output.Handle;
-
             ValidateHandle(nameof(AddOutput));
+
+            if (_videoDataOutput is not null)
+            {
+                throw new InvalidOperationException("Only one video data output can be added to the session.");
+            }
+
+            _videoDataOutput = output;
+
             LibObjC.SendNoResult(
                 Handle,
                 LibObjC.GetSelector("addOutput:"),
-                videoDataOutput);
+                output.Handle);
         }
 
         public bool CanAddOutput(AVCaptureOutput output)
@@ -93,6 +106,17 @@ partial class LibAVFoundation
             LibObjC.SendNoResult(
                 Handle,
                 LibObjC.GetSelector("stopRunning"));
+        }
+        
+        protected override void Dispose(bool disposing)
+        {
+            _videoDataOutput?.Dispose();
+            _videoDataOutput = null;
+
+            _videoDataInput?.Dispose();
+            _videoDataInput = null;
+
+            base.Dispose(disposing);
         }
     }
 }
