@@ -561,6 +561,10 @@ internal static class NativeMethods
                 compression = Compression.ARGB;
                 bitCount = 32;
                 return true;
+            case PixelFormats.BGRA32:
+                compression = Compression.ARGB;
+                bitCount = 32;
+                return true;
             case PixelFormats.RGB16:
                 compression = Compression.D3D_RGB565;
                 bitCount = 16;

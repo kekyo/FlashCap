@@ -33,7 +33,7 @@ public abstract class CaptureDevice :
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
     public void Dispose() =>
-        _ = this.DisposeAsync().ConfigureAwait(false);
+        _ = this.DisposeAsync().ConfigureAwait(true);
 
 #if NETCOREAPP3_0_OR_GREATER || NETSTANDARD2_1
     ValueTask IAsyncDisposable.DisposeAsync() =>
@@ -43,10 +43,10 @@ public abstract class CaptureDevice :
     public async Task DisposeAsync()
     {
         using var _ = await locker.LockAsync(default).
-            ConfigureAwait(false);
+            ConfigureAwait(true);
 
         await this.OnDisposeAsync().
-            ConfigureAwait(false);
+            ConfigureAwait(true);
     }
 
     protected virtual Task OnDisposeAsync() =>
