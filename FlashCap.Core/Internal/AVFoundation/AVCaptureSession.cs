@@ -9,7 +9,6 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using System;
-using System.Runtime.InteropServices;
 using static FlashCap.Internal.NativeMethods_AVFoundation;
 
 namespace FlashCap.Internal.AVFoundation;
@@ -57,15 +56,12 @@ partial class LibAVFoundation
                 input.Handle);
         }
 
-        public void AddOutput(AVCaptureOutput output)
+        public void AddOutput(AVCaptureVideoDataOutput output)
         {
             IntPtr allocSel = LibObjC.GetSelector("alloc");
             IntPtr initSel = LibObjC.GetSelector("init");
             
-            var videoDataOutputObj = output as AVCaptureVideoDataOutput 
-                ?? throw new Exception("Failed to get video data output") ;
-
-            var videoDataOutput = videoDataOutputObj.Handle;
+            var videoDataOutput = output.Handle;
 
             ValidateHandle(nameof(AddOutput));
             LibObjC.SendNoResult(
