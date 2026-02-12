@@ -73,7 +73,7 @@ partial class LibAVFoundation
             IntPtr pixelFormatTypeKeyPtr = Dlfcn.dlsym(LibCoreVideo.Handle, "kCVPixelBufferPixelFormatTypeKey");
             if (pixelFormatTypeKeyPtr == IntPtr.Zero)
             {
-                throw new Exception("Error comunicating with the AVCaptureVideoDataOutput");
+                throw new Exception("Error communicating with the AVCaptureVideoDataOutput");
             }
 
             // Get NSString value
@@ -107,7 +107,7 @@ partial class LibAVFoundation
             
             IntPtr impCallback = Marshal.GetFunctionPointerForDelegate(callbackDelegate);
 
-            // "v@:@@@" this means the methood returns void and receives (self, _cmd, output, sampleBuffer, connection).
+            // "v@:@@@" this means the method returns void and receives (self, _cmd, output, sampleBuffer, connection).
             string types = "v@:@@@";
             bool added = LibObjC.class_addMethod(delegateClass, selDidOutput, impCallback, types);
             if (!added)
