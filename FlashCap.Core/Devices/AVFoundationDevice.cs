@@ -34,6 +34,9 @@ public sealed class AVFoundationDevice : CaptureDevice
     private AVCaptureSession? session;
     private FrameProcessor? frameProcessor;
     private IntPtr bitmapHeader;
+    private VideoBufferHandler? videoBufferHandler;
+    
+    private GCHandle? videoBufferHandlerHandle;
 
     public AVFoundationDevice(string uniqueID, string modelID) :
         base(uniqueID, modelID)
@@ -43,38 +46,49 @@ public sealed class AVFoundationDevice : CaptureDevice
 
     protected override async Task OnDisposeAsync()
     {
-        // Ensure that we stop the session if it's running
-        if (this.session is not null && IsRunning)
+        try
         {
-            this.session.StopRunning();
-            IsRunning = false;
+            // Ensure that we stop the session if it's running
+            if (session != null && IsRunning)
+            {
+                session.StopRunning();
+                IsRunning = false;
+            }
+            
+            // Clean up the video buffer handler if it exists
+            if (videoBufferHandlerHandle.HasValue)
+            {
+                videoBufferHandlerHandle.Value.Free();
+                videoBufferHandlerHandle = null;
+            }
+            
+            // Now dispose of the session and other resources
+            if (session != null)
+            {
+                session.Dispose();
+                session = null;
+            }
+            device?.Dispose(); device = null;
+            deviceInput?.Dispose(); deviceInput = null;
+            deviceOutput?.Dispose(); deviceOutput = null;
+            queue?.Dispose(); queue = null;
+
+            if (bitmapHeader != IntPtr.Zero)
+            {
+                NativeMethods.FreeMemory(bitmapHeader);
+                bitmapHeader = IntPtr.Zero;
+            }
+
+            if (frameProcessor != null)
+            {
+                await frameProcessor.DisposeAsync().ConfigureAwait(false);
+                frameProcessor = null;
+            }
         }
-
-        this.session?.Dispose();
-        this.deviceInput?.Dispose();
-        this.deviceOutput?.Dispose();
-        this.device?.Dispose();
-        this.queue?.Dispose();
-
-        this.session = null;
-        this.deviceInput = null;
-        this.deviceOutput = null;
-        this.device = null;
-        this.queue = null;
-
-        if (this.bitmapHeader != IntPtr.Zero)
+        finally
         {
-            Marshal.FreeHGlobal(this.bitmapHeader);
-            this.bitmapHeader = IntPtr.Zero;
+            await base.OnDisposeAsync().ConfigureAwait(false);
         }
-
-        if (this.frameProcessor is not null)
-        {
-            await this.frameProcessor.DisposeAsync().ConfigureAwait(false);
-            this.frameProcessor = null;
-        }
-
-        await base.OnDisposeAsync().ConfigureAwait(false);
     }
 
     protected override Task OnInitializeAsync(VideoCharacteristics characteristics, TranscodeFormats transcodeFormat,
@@ -142,14 +156,21 @@ public sealed class AVFoundationDevice : CaptureDevice
                 {
                     var validPixelFormat = this.deviceOutput.AvailableVideoCVPixelFormatTypes.FirstOrDefault(p => p == pixelFormatType);
                     this.deviceOutput.SetPixelFormatType(validPixelFormat);
+                    this.deviceOutput.SetVideoOutputSize(characteristics.Width, characteristics.Height, validPixelFormat);
                 }
                 else
                 {
                     // Fallback to the mapped pixel format if no available list is provided
                     this.deviceOutput.SetPixelFormatType(pixelFormatType);
                 }
-            
-                this.deviceOutput.SetSampleBufferDelegate(new VideoBufferHandler(this), this.queue);
+
+                videoBufferHandler = new VideoBufferHandler(this);
+                
+                this.deviceOutput.SetSampleBufferDelegate(videoBufferHandler, this.queue);
+                
+                // Protect against GC moving the delegate
+                videoBufferHandlerHandle = GCHandle.Alloc(videoBufferHandler);
+                
                 this.deviceOutput.AlwaysDiscardsLateVideoFrames = true;
             }
             finally
@@ -174,31 +195,80 @@ public sealed class AVFoundationDevice : CaptureDevice
         catch
         {
             NativeMethods.FreeMemory(this.bitmapHeader);
+            this.bitmapHeader = IntPtr.Zero;
+
+            this.queue?.Dispose();
+            this.queue = null;
+            this.device?.Dispose();
+            this.device = null;
+            this.deviceInput?.Dispose();
+            this.deviceInput = null;
+            this.deviceOutput?.Dispose();
+            this.deviceOutput = null;
+            
             throw;
         }
     }
 
     protected override Task OnStartAsync(CancellationToken ct)
     {
-        this.session?.StartRunning();
-        return TaskCompat.CompletedTask;
+        try
+        {
+            if(session== null) 
+                throw new InvalidOperationException("Session is null");
+            this.session?.StartRunning();
+            this.IsRunning = true;
+            return TaskCompat.CompletedTask;
+        }catch (Exception ex)
+        {
+            Debug.WriteLine($"Error starting session: {ex.Message}");
+            throw new InvalidOperationException("Failed to start the capture session.", ex);
+        }
+
     }
 
     protected override Task OnStopAsync(CancellationToken ct)
     {
-        this.session?.StopRunning();
+        try
+        {
+            if(session== null) 
+                throw new InvalidOperationException("Session is null");
+            if (this.IsRunning)
+            {
+                this.session?.StopRunning();
+                this.IsRunning = false;
+
+            }
+            
+        }catch (Exception ex)
+        {
+            Debug.WriteLine($"Error stopping session: {ex.Message}");
+            throw new InvalidOperationException("Failed to stop the capture session.", ex);
+        }
         return TaskCompat.CompletedTask;
     }
 
     protected override void OnCapture(IntPtr pData, int size, long timestampMicroseconds, long frameIndex, PixelBuffer buffer)
     {
-        buffer.CopyIn(this.bitmapHeader, pData, size, timestampMicroseconds, frameIndex, TranscodeFormats.Auto);
+        try
+        {
+            if (this.bitmapHeader == IntPtr.Zero) return;
+            if (pData == IntPtr.Zero || size <= 0)
+            {
+                throw new ArgumentException("Invalid pixel data or size.");
+            }
+            buffer.CopyIn(this.bitmapHeader, pData, size, timestampMicroseconds, frameIndex, TranscodeFormats.Auto);
+        }catch (Exception ex)
+        {
+            Debug.WriteLine($"Error capturing frame: {ex.Message}");
+            throw new InvalidOperationException("Failed to capture frame.", ex);
+        }
     }
 
     internal sealed class VideoBufferHandler : AVCaptureVideoDataOutputSampleBuffer
     {
         private readonly AVFoundationDevice device;
-        private int frameIndex;
+        private int frameIndex = 0;
 
         public VideoBufferHandler(AVFoundationDevice device)
         {

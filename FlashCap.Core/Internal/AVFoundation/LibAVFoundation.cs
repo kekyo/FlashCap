@@ -9,6 +9,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Linq;
 using static FlashCap.Internal.NativeMethods_AVFoundation;
@@ -115,31 +116,65 @@ internal static partial class LibAVFoundation
             }
 
         }
+        
+        private AVCaptureDeviceFormat[]? _formats;
+        private AVCaptureDeviceFormat? _activeFormat;
 
         public AVCaptureDeviceFormat[] Formats
         {
             get
             {
+                _formats?.ToList().ForEach(f => f.Dispose());
+                
                 var handle = LibObjC.SendAndGetHandle(
                     Handle,
                     LibObjC.GetSelector("formats"));
 
-                return LibCoreFoundation.CFArray.ToArray(handle, static handle => new AVCaptureDeviceFormat(handle, retain: true));
+                _formats = LibCoreFoundation.CFArray.ToArray(handle, static handle => new AVCaptureDeviceFormat(handle, retain: true));
+                
+                return _formats;
             }
         }
 
         public AVCaptureDeviceFormat ActiveFormat
         {
-            get => new AVCaptureDeviceFormat(
-                LibObjC.SendAndGetHandle(
-                    Handle,
-                    LibObjC.GetSelector("activeFormat")),
-                retain: true);
-            set =>
+            get
+            {
+                //_activeFormat?.Dispose();
+                if(_activeFormat == null)
+                    _activeFormat = new AVCaptureDeviceFormat(
+                        LibObjC.SendAndGetHandle(
+                            Handle,
+                            LibObjC.GetSelector("activeFormat")),
+                        retain: true);
+                return _activeFormat;
+            }
+            set
+            {
                 LibObjC.SendNoResult(
                     Handle,
                     LibObjC.GetSelector("setActiveFormat:"),
                     value.Handle);
+                _activeFormat?.Dispose();
+                _activeFormat = value;
+            }
+
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                if (_formats != null)
+                {
+                    foreach (var format in _formats)
+                        format.Dispose();
+                    _formats = null;
+                }
+                _activeFormat?.Dispose();
+                _activeFormat = null;
+            }
+            base.Dispose(disposing);
         }
 
         public LibCoreMedia.CMTime ActiveVideoMinFrameDuration
@@ -216,7 +251,7 @@ internal static partial class LibAVFoundation
                 LibObjC.GetSelector("deviceWithUniqueID:"),
                 nativeDeviceUniqueID.Handle);
 
-            return handle == IntPtr.Zero ? null : new AVCaptureDevice(handle, retain: false);
+            return handle == IntPtr.Zero ? null : new AVCaptureDevice(handle, retain: true);
         }
 
         public static AVAuthorizationStatus GetAuthorizationStatus(IntPtr mediaType)
