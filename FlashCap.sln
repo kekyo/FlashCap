@@ -31,6 +31,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.Wpf", "samples\Fla
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.Core", "FlashCap.Core\FlashCap.Core.csproj", "{8D251497-C11E-4FE6-9EFF-913FBA826C6D}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.Core.Tests", "FlashCap.Core.Tests\FlashCap.Core.Tests.csproj", "{74C3DDF5-7599-45CE-8AA8-B1EBC55BF171}"
+EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "FSharp.FlashCap", "FSharp.FlashCap\FSharp.FlashCap.fsproj", "{AAD7F2E9-C6F7-4BDA-9D49-08469C2C7A1D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.OneShot", "samples\FlashCap.OneShot\FlashCap.OneShot.csproj", "{2914E44E-F6F4-4BF0-B0BB-962DE4D505AE}"
@@ -67,6 +69,10 @@ Global
 		{8D251497-C11E-4FE6-9EFF-913FBA826C6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8D251497-C11E-4FE6-9EFF-913FBA826C6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8D251497-C11E-4FE6-9EFF-913FBA826C6D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{74C3DDF5-7599-45CE-8AA8-B1EBC55BF171}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{74C3DDF5-7599-45CE-8AA8-B1EBC55BF171}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{74C3DDF5-7599-45CE-8AA8-B1EBC55BF171}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{74C3DDF5-7599-45CE-8AA8-B1EBC55BF171}.Release|Any CPU.Build.0 = Release|Any CPU
 		{AAD7F2E9-C6F7-4BDA-9D49-08469C2C7A1D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{AAD7F2E9-C6F7-4BDA-9D49-08469C2C7A1D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AAD7F2E9-C6F7-4BDA-9D49-08469C2C7A1D}.Release|Any CPU.ActiveCfg = Release|Any CPU
