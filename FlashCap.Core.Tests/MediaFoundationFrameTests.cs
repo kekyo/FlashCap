@@ -96,13 +96,17 @@ public sealed class MediaFoundationFrameTests
     }
 
     [Test]
-    public void RepackFrameCopiesRowsAndClearsPadding()
+    public unsafe void RepackFrameCopiesRowsAndClearsPadding()
     {
         var source = new byte[] { 1, 2, 3, 99, 4, 5, 6, 99 };
         var target = new byte[] { 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc, 0xcc };
         var layout = new MediaFoundationInterop.FrameLayout(3, 2, 4, 4, false);
 
-        MediaFoundationInterop.RepackFrame(source, target, layout, false);
+        fixed (byte* sourcePointer = source)
+        {
+            MediaFoundationInterop.RepackFrame(
+                sourcePointer, source.Length, target, layout, false);
+        }
 
         Assert.That(
             target,
@@ -110,13 +114,17 @@ public sealed class MediaFoundationFrameTests
     }
 
     [Test]
-    public void RepackFrameReversesRowsWhenRequested()
+    public unsafe void RepackFrameReversesRowsWhenRequested()
     {
         var source = new byte[] { 1, 2, 3, 99, 4, 5, 6, 99 };
         var target = new byte[8];
         var layout = new MediaFoundationInterop.FrameLayout(3, 2, 4, 4, false);
 
-        MediaFoundationInterop.RepackFrame(source, target, layout, true);
+        fixed (byte* sourcePointer = source)
+        {
+            MediaFoundationInterop.RepackFrame(
+                sourcePointer, source.Length, target, layout, true);
+        }
 
         Assert.That(
             target,
@@ -124,21 +132,36 @@ public sealed class MediaFoundationFrameTests
     }
 
     [Test]
-    public void RepackFrameRejectsTruncatedSource()
+    public unsafe void RepackFrameRejectsTruncatedSource()
     {
         var layout = new MediaFoundationInterop.FrameLayout(3, 2, 4, 4, false);
 
+        var source = new byte[7];
         _ = Assert.Throws<ArgumentException>(() =>
-            MediaFoundationInterop.RepackFrame(new byte[7], new byte[8], layout, false));
+            RepackFrame(source, new byte[8], layout, false));
     }
 
     [Test]
-    public void RepackFrameRejectsTruncatedTarget()
+    public unsafe void RepackFrameRejectsTruncatedTarget()
     {
         var layout = new MediaFoundationInterop.FrameLayout(3, 2, 4, 4, false);
 
+        var source = new byte[8];
         _ = Assert.Throws<ArgumentException>(() =>
-            MediaFoundationInterop.RepackFrame(new byte[8], new byte[7], layout, false));
+            RepackFrame(source, new byte[7], layout, false));
+    }
+
+    private static unsafe void RepackFrame(
+        byte[] source,
+        byte[] target,
+        MediaFoundationInterop.FrameLayout layout,
+        bool reverseRows)
+    {
+        fixed (byte* sourcePointer = source)
+        {
+            MediaFoundationInterop.RepackFrame(
+                sourcePointer, source.Length, target, layout, reverseRows);
+        }
     }
 }
 

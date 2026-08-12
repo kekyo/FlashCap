@@ -15,9 +15,7 @@ using System.Runtime.InteropServices.Marshalling;
 using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
-using Windows.Win32;
-using Windows.Win32.Media.MediaFoundation;
-using Windows.Win32.System.Com;
+using static FlashCap.Internal.NativeMethods_MediaFoundation;
 using static FlashCap.Internal.MediaFoundation.MediaFoundationInterop;
 
 namespace FlashCap.Internal.MediaFoundation;
@@ -80,13 +78,7 @@ internal sealed unsafe partial class CaptureSession : IDisposable
     private void RequestSample()
     {
         MediaFoundationHelpers.ThrowIfFailed(
-            this.reader->ReadSample(
-                VideoStreamIndex,
-                0,
-                null,
-                null,
-                null,
-                null),
+            this.reader->ReadSample(VideoStreamIndex, 0),
             "IMFSourceReader.ReadSample(async)");
     }
 
@@ -188,7 +180,7 @@ internal sealed unsafe partial class CaptureSession : IDisposable
         try
         {
             MediaFoundationHelpers.ThrowIfFailed(
-                reader->GetNativeMediaType(VideoStreamIndex, formatKey.MediaTypeIndex, &mediaType),
+                reader->GetNativeMediaType(VideoStreamIndex, formatKey.MediaTypeIndex, out mediaType),
                 "IMFSourceReader.GetNativeMediaType");
             if (mediaType is null ||
                 !TryCreateFormat(mediaType, formatKey.MediaTypeIndex, out var selected) ||
@@ -201,7 +193,7 @@ internal sealed unsafe partial class CaptureSession : IDisposable
             MediaFoundationHelpers.ThrowIfFailed(
                 reader->SetCurrentMediaType(VideoStreamIndex, mediaType),
                 "IMFSourceReader.SetCurrentMediaType");
-            return mediaType->GetUINT32(in PInvoke.MF_MT_DEFAULT_STRIDE, out var stride).Succeeded ?
+            return mediaType->GetUINT32(in MF_MT_DEFAULT_STRIDE, out var stride) >= 0 ?
                 unchecked((int)stride) : null;
         }
         finally
@@ -219,19 +211,19 @@ internal sealed unsafe partial class CaptureSession : IDisposable
     {
         IMFMediaBuffer* buffer = null;
         MediaFoundationHelpers.ThrowIfFailed(
-            sample->ConvertToContiguousBuffer(&buffer),
+            sample->ConvertToContiguousBuffer(out buffer),
             "IMFSample.ConvertToContiguousBuffer");
         if (buffer is null)
         {
             throw new InvalidOperationException("FlashCap: Media Foundation returned no sample buffer.");
         }
 
-        byte* data = null;
         bool locked = false;
         try
         {
-            uint currentLength = 0;
-            MediaFoundationHelpers.ThrowIfFailed(buffer->Lock(&data, null, &currentLength), "IMFMediaBuffer.Lock");
+            MediaFoundationHelpers.ThrowIfFailed(
+                buffer->Lock(out var data, out _, out var currentLength),
+                "IMFMediaBuffer.Lock");
             locked = true;
             if (data is null || currentLength == 0 || currentLength > int.MaxValue)
             {
@@ -289,7 +281,7 @@ internal sealed unsafe partial class CaptureSession : IDisposable
             {
                 var activate = devices[index];
                 if (activate is not null && string.Equals(
-                        GetAllocatedString(activate, in PInvoke.MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK).Trim(),
+                        GetAllocatedString(activate, in MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK).Trim(),
                         symbolicLink, StringComparison.OrdinalIgnoreCase))
                 {
                     devices[index] = null;

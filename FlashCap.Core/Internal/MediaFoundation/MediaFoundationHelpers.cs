@@ -12,18 +12,17 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
-using Windows.Win32.Foundation;
 
 namespace FlashCap.Internal.MediaFoundation;
 
 internal static class MediaFoundationHelpers
 {
-    internal static void ThrowIfFailed(HRESULT result, string operation)
+    internal static void ThrowIfFailed(int result, string operation)
     {
-        if (result.Failed)
+        if (result < 0)
         {
             throw new InvalidOperationException(
-                $"FlashCap: {operation} failed (HRESULT=0x{unchecked((uint)result.Value):X8}).");
+                $"FlashCap: {operation} failed (HRESULT=0x{unchecked((uint)result):X8}).");
         }
     }
 
