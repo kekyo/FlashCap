@@ -1,0 +1,12 @@
+{
+  "$schema": "https://aka.ms/CsWin32.schema.json",
+  "allowMarshaling": false,
+  "friendlyOverloads": {
+    "enabled": true,
+    "comOutPtrGenericOverloads": false
+  },
+  "useSafeHandles": false,
+  "comInterop": {
+    "preserveSigMethods": [ "*" ]
+  }
+}

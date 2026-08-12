@@ -12,11 +12,13 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Threading.Tasks;
 using System.Threading;
 
 namespace FlashCap.Devices;
 
+[SupportedOSPlatform("windows")]
 public sealed class VideoForWindowsDevice : CaptureDevice
 {
     private readonly TimestampCounter counter = new();

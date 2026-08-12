@@ -9,9 +9,11 @@
 
 using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.Versioning;
 
 namespace FlashCap.Devices;
 
+[SupportedOSPlatform("windows")]
 public sealed class VideoForWindowsDeviceDescriptor : CaptureDeviceDescriptor
 {
     private readonly int deviceIndex;

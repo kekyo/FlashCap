@@ -10,7 +10,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.Versioning;
 using System.Threading.Tasks;
 using FlashCap.Internal;
 using FlashCap.Utilities;
@@ -18,6 +20,7 @@ using static FlashCap.Internal.AVFoundation.LibAVFoundation;
 
 namespace FlashCap.Devices;
 
+[SupportedOSPlatform("macos")]
 public sealed class AVFoundationDevices : CaptureDevices
 {
     public AVFoundationDevices() :
@@ -30,8 +33,14 @@ public sealed class AVFoundationDevices : CaptureDevices
     {
     }
     
+    [UnconditionalSuppressMessage("Trimming", "IL2046", Justification = "This backend does not require unreferenced code")]
     protected override IEnumerable<CaptureDeviceDescriptor> OnEnumerateDescriptors()
     {
+        if (!NativeMethods.IsMacOS())
+        {
+            throw new PlatformNotSupportedException("AVFoundation capture requires macOS.");
+        }
+
         if (AVCaptureDevice.GetAuthorizationStatus(AVMediaType.Video) != AVAuthorizationStatus.Authorized)
         {
             TaskCompletionSource<bool> tcs = new();

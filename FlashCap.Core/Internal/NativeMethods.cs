@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Security;
 using System.Text;
 using FlashCap.Utilities;
@@ -61,7 +62,47 @@ internal static class NativeMethods
         }
     }
 
-    public static readonly Platforms CurrentPlatform =
+    [SupportedOSPlatformGuard("windows")]
+    public static bool IsWindows()
+    {
+#if NET5_0_OR_GREATER
+        return OperatingSystem.IsWindows();
+#else
+        return CurrentPlatform == Platforms.Windows;
+#endif
+    }
+
+    [SupportedOSPlatformGuard("windows6.1")]
+    public static bool IsWindowsVersionAtLeast(int major, int minor = 0)
+    {
+#if NET5_0_OR_GREATER
+        return OperatingSystem.IsWindowsVersionAtLeast(major, minor);
+#else
+        return CurrentPlatform == Platforms.Windows; // TODO: Find out windows revision
+#endif
+    }
+
+    [SupportedOSPlatformGuard("linux")]
+    public static bool IsLinux()
+    {
+#if NET5_0_OR_GREATER
+        return OperatingSystem.IsLinux();
+#else
+        return CurrentPlatform == Platforms.Linux;
+#endif
+    }
+
+    [SupportedOSPlatformGuard("macos")]
+    public static bool IsMacOS()
+    {
+#if NET5_0_OR_GREATER
+        return OperatingSystem.IsMacOS();
+#else
+        return CurrentPlatform == Platforms.MacOS;
+#endif
+    }
+
+    private static readonly Platforms CurrentPlatform =
         GetRuntimePlatform();
 
     ////////////////////////////////////////////////////////////////////////

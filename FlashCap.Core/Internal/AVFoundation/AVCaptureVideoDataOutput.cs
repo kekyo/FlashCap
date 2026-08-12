@@ -11,6 +11,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using FlashCap.Devices;
 using static FlashCap.Internal.NativeMethods_AVFoundation;
 
@@ -18,6 +19,7 @@ namespace FlashCap.Internal.AVFoundation;
 
 partial class LibAVFoundation
 {
+    [SupportedOSPlatform("macos")]
     public sealed class AVCaptureVideoDataOutput : AVCaptureOutput
     {
         private AVCaptureVideoDataOutputSampleBuffer.CaptureOutputDidOutputSampleBuffer? callbackDelegate;

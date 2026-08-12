@@ -12,6 +12,7 @@ using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 using FlashCap.Internal;
@@ -23,6 +24,7 @@ using static FlashCap.Internal.NativeMethods_AVFoundation.LibCoreVideo;
 
 namespace FlashCap.Devices;
 
+[SupportedOSPlatform("macos")]
 public sealed class AVFoundationDevice : CaptureDevice
 {
     private readonly string uniqueID;

@@ -11,8 +11,10 @@ using System;
 using FlashCap.Internal;
 using FlashCap.Utilities;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Runtime.Versioning;
 using System.Text;
 
 using static FlashCap.Internal.NativeMethods_V4L2;
@@ -20,6 +22,7 @@ using static FlashCap.Internal.V4L2.NativeMethods_V4L2_Interop;
 
 namespace FlashCap.Devices;
 
+[SupportedOSPlatform("linux")]
 public sealed class V4L2Devices : CaptureDevices
 {
     public V4L2Devices() :
@@ -187,8 +190,15 @@ public sealed class V4L2Devices : CaptureDevices
         return str;
     }
 
-    protected override IEnumerable<CaptureDeviceDescriptor> OnEnumerateDescriptors() =>
-        Directory.GetFiles("/dev", "video*").
+    [UnconditionalSuppressMessage("Trimming", "IL2046", Justification = "This backend does not require unreferenced code")]
+    protected override IEnumerable<CaptureDeviceDescriptor> OnEnumerateDescriptors()
+    {
+        if (!NativeMethods.IsLinux())
+        {
+            throw new PlatformNotSupportedException("V4L2 capture requires Linux.");
+        }
+
+        return Directory.GetFiles("/dev", "video*").
         Collect(devicePath =>
         {
             if (open(devicePath, OPENBITS.O_RDWR) is { } fd && fd >= 0)
@@ -231,4 +241,5 @@ public sealed class V4L2Devices : CaptureDevices
                 return null;
             }
         });
+    }
 }

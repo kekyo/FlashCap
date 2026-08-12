@@ -8,11 +8,13 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace FlashCap.Devices;
 
+[SupportedOSPlatform("macos")]
 public sealed class AVFoundationDeviceDescriptor : CaptureDeviceDescriptor
 {
     private readonly string uniqueId;
