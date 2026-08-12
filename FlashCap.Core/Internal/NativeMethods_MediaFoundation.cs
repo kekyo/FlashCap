@@ -520,6 +520,10 @@ internal static unsafe partial class NativeMethods_MediaFoundation
     {
 #if NET8_0_OR_GREATER
         return ComWrappers.GetOrCreateComInterfaceForObject(callback, CreateComInterfaceFlags.None);
+#elif NETSTANDARD1_3
+        return Marshal.GetComInterfaceForObject<
+            IMFSourceReaderCallbackInterop,
+            IMFSourceReaderCallbackInterop>(callback);
 #else
         return Marshal.GetComInterfaceForObject(callback, typeof(IMFSourceReaderCallbackInterop));
 #endif

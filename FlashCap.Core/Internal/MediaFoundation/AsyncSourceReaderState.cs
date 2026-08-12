@@ -33,8 +33,8 @@ internal sealed class AsyncSourceReaderState
     private readonly Lock sync = new();
     private readonly Action requestSample;
     private readonly Action flush;
-    private readonly TaskCompletionSource<bool> completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private readonly TaskCompletionSource<bool> stopRequested = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly AsyncTaskCompletionSource<bool> completion = new();
+    private readonly AsyncTaskCompletionSource<bool> stopRequested = new();
 
     private Exception? failure;
     private Exception? flushFailure;

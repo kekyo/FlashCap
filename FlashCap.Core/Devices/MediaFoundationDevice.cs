@@ -34,7 +34,7 @@ public sealed class MediaFoundationDevice : CaptureDevice
     private IntPtr bitmapHeader;
     private byte[]? repackBuffer;
     private CancellationTokenSource? stopSource;
-    private Task captureTask = Task.CompletedTask;
+    private Task captureTask = TaskCompat.CompletedTask;
     private bool disposed;
 
     internal MediaFoundationDevice(
@@ -78,7 +78,7 @@ public sealed class MediaFoundationDevice : CaptureDevice
             header->biCompression = compression;
             header->biSizeImage = header->CalculateImageSize();
         }
-        return Task.CompletedTask;
+        return TaskCompat.CompletedTask;
     }
 
     protected override async Task OnDisposeAsync()
@@ -144,17 +144,14 @@ public sealed class MediaFoundationDevice : CaptureDevice
         }
         await MediaFoundationHelpers.WaitAsync(previousCapture, ct).ConfigureAwait(false);
 
-        var startup = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var startup = new AsyncTaskCompletionSource<bool>();
         var stopSource = new CancellationTokenSource();
         lock (this.sync)
         {
             this.stopSource?.Dispose();
             this.stopSource = stopSource;
-            this.captureTask = Task.Factory.StartNew(
-                () => this.Capture(startup, stopSource.Token),
-                CancellationToken.None,
-                TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach,
-                TaskScheduler.Default);
+            this.captureTask = MediaFoundationHelpers.StartCaptureWorker(
+                () => this.Capture(startup, stopSource.Token));
         }
 
         try
@@ -186,7 +183,7 @@ public sealed class MediaFoundationDevice : CaptureDevice
                     {
                         this.stopSource?.Dispose();
                         this.stopSource = null;
-                        this.captureTask = Task.CompletedTask;
+                        this.captureTask = TaskCompat.CompletedTask;
                     }
                 }
             }
@@ -202,7 +199,7 @@ public sealed class MediaFoundationDevice : CaptureDevice
         }
     }
 
-    private unsafe void Capture(TaskCompletionSource<bool> startup, CancellationToken stopToken)
+    private unsafe void Capture(AsyncTaskCompletionSource<bool> startup, CancellationToken stopToken)
     {
         // Runs synchronously on a dedicated MTA thread so COM initialization,
         // Media Foundation lifetime, and COM uninitialization remain on the same thread.
@@ -226,7 +223,7 @@ public sealed class MediaFoundationDevice : CaptureDevice
             startupCompleted = true;
             startup.TrySetResult(true);
 
-            var stopTask = Task.Delay(Timeout.Infinite, stopToken);
+            var stopTask = TaskCompat.Delay(Timeout.Infinite, stopToken);
             _ = Task.WaitAny(session.StopRequested, stopTask);
             session.Stop();
             session.Completion.GetAwaiter().GetResult();

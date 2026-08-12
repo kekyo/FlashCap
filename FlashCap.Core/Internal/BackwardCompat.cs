@@ -244,6 +244,9 @@ namespace System.Threading.Tasks
         public static Task<Task> WhenAny(params Task[] tasks) =>
             Task.WhenAny(tasks);
 
+        public static Task Delay(int millisecondsDelay, CancellationToken cancellationToken) =>
+            Task.Delay(millisecondsDelay, cancellationToken);
+
 #if NET45_OR_GREATER || NETSTANDARD || NETCOREAPP
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
@@ -265,6 +268,9 @@ namespace System.Threading.Tasks
 
         public static Task<Task> WhenAny(params Task[] tasks) =>
             TaskEx.WhenAny(tasks);
+
+        public static Task Delay(int millisecondsDelay, CancellationToken cancellationToken) =>
+            TaskEx.Delay(millisecondsDelay, cancellationToken);
     }
 }
 
@@ -289,6 +295,64 @@ namespace System.Runtime.ExceptionServices
     }
 }
 #endif
+
+namespace System.Threading.Tasks
+{
+    internal sealed class AsyncTaskCompletionSource<T>
+    {
+        private readonly TaskCompletionSource<T> source =
+#if NET35 || NET40 || NET45
+            new TaskCompletionSource<T>();
+        private int completionReserved;
+#else
+            new TaskCompletionSource<T>(TaskCreationOptions.RunContinuationsAsynchronously);
+#endif
+
+        public Task<T> Task => this.source.Task;
+
+        public bool TrySetResult(T result)
+        {
+#if NET35 || NET40 || NET45
+            return this.TryQueueCompletion(() => this.source.TrySetResult(result));
+#else
+            return this.source.TrySetResult(result);
+#endif
+        }
+
+        public bool TrySetException(Exception exception)
+        {
+#if NET35 || NET40 || NET45
+            return this.TryQueueCompletion(() => this.source.TrySetException(exception));
+#else
+            return this.source.TrySetException(exception);
+#endif
+        }
+
+        public bool TrySetCanceled(CancellationToken cancellationToken)
+        {
+#if NET35 || NET40 || NET45
+            return this.TryQueueCompletion(() => this.source.TrySetCanceled());
+#else
+            return this.source.TrySetCanceled(cancellationToken);
+#endif
+        }
+
+#if NET35 || NET40 || NET45
+        private bool TryQueueCompletion(Action completion)
+        {
+            if (Interlocked.CompareExchange(ref this.completionReserved, 1, 0) != 0)
+            {
+                return false;
+            }
+
+            // These TPL versions cannot prevent inline continuations, so publish completion
+            // from another worker instead of the Media Foundation capture or callback thread.
+            ThreadPool.QueueUserWorkItem(_ => completion());
+            return true;
+        }
+#endif
+    }
+}
 
 #if NETSTANDARD1_3
 namespace System.Threading.Tasks

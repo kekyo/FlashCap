@@ -37,8 +37,8 @@ internal sealed unsafe partial class CaptureSession : IDisposable
     {
     }
 
-    internal Task Completion => this.state?.Completion ?? Task.CompletedTask;
-    internal Task StopRequested => this.state?.StopRequested ?? Task.CompletedTask;
+    internal Task Completion => this.state?.Completion ?? TaskCompat.CompletedTask;
+    internal Task StopRequested => this.state?.StopRequested ?? TaskCompat.CompletedTask;
     internal Exception? FlushFailure => this.state?.FlushFailure;
 
     internal static CaptureSession Open(string symbolicLink, FormatKey formatKey, FrameHandler frameHandler)
@@ -310,7 +310,7 @@ internal sealed unsafe partial class CaptureSession : IDisposable
 
         public int OnReadSample(int status, uint streamIndex, uint streamFlags, long timestamp, IntPtr sample)
         {
-            Volatile.Read(ref this.owner)?.OnReadSample(
+            Interlocked.CompareExchange(ref this.owner, null, null)?.OnReadSample(
                 status,
                 streamFlags,
                 timestamp,
@@ -320,13 +320,13 @@ internal sealed unsafe partial class CaptureSession : IDisposable
 
         public int OnFlush(uint streamIndex)
         {
-            Volatile.Read(ref this.owner)?.OnFlush();
+            Interlocked.CompareExchange(ref this.owner, null, null)?.OnFlush();
             return 0;
         }
 
         public int OnEvent(uint streamIndex, IntPtr mediaEvent)
         {
-            Volatile.Read(ref this.owner)?.OnEvent();
+            Interlocked.CompareExchange(ref this.owner, null, null)?.OnEvent();
             return 0;
         }
 

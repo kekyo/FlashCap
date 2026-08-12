@@ -400,7 +400,7 @@ internal static unsafe class MediaFoundationInterop
             sourceRequiredLength < 0 ||
             sourceRequiredLength > sourceLength ||
             targetRequiredLength < 0 ||
-            targetRequiredLength > target.LongLength ||
+            targetRequiredLength > target.Length ||
             source is null && sourceRequiredLength != 0)
         {
             throw new ArgumentException("The frame buffer is truncated.");
