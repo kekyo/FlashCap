@@ -15,6 +15,7 @@ using System.Runtime.InteropServices.Marshalling;
 using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
+using FlashCap.Internal;
 using static FlashCap.Internal.NativeMethods_MediaFoundation;
 using static FlashCap.Internal.MediaFoundation.MediaFoundationInterop;
 
@@ -302,7 +303,7 @@ internal sealed unsafe partial class CaptureSession : IDisposable
     [ComVisible(true)]
     [ClassInterface(ClassInterfaceType.None)]
 #endif
-    private sealed partial class SourceReaderCallback : NativeMethods_MediaFoundation.IMFSourceReaderCallbackInterop
+    private sealed partial class SourceReaderCallback : IMFSourceReaderCallbackInterop
     {
         private CaptureSession? owner;
 

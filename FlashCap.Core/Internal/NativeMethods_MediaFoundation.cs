@@ -496,26 +496,6 @@ internal static unsafe partial class NativeMethods_MediaFoundation
         out IMFActivate** devices,
         out uint count);
 
-#if NET8_0_OR_GREATER
-    [GeneratedComInterface]
-#else
-    [ComImport]
-    [ComVisible(true)]
-    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-#endif
-    [Guid("DEEC8D99-FA1D-4D82-84C2-2C8969944867")]
-    public partial interface IMFSourceReaderCallbackInterop
-    {
-        [PreserveSig]
-        int OnReadSample(int status, uint streamIndex, uint streamFlags, long timestamp, IntPtr sample);
-
-        [PreserveSig]
-        int OnFlush(uint streamIndex);
-
-        [PreserveSig]
-        int OnEvent(uint streamIndex, IntPtr mediaEvent);
-    }
-
     public static IntPtr GetComInterfaceForObject(IMFSourceReaderCallbackInterop callback)
     {
 #if NET8_0_OR_GREATER
@@ -549,5 +529,27 @@ internal static unsafe partial class NativeMethods_MediaFoundation
 #if NET8_0_OR_GREATER
     private static readonly StrategyBasedComWrappers ComWrappers = new();
 #endif
+}
+
+// The runtime COM marshaler requires this callback interface to be publicly visible.
+// Keep the inbound raw COM definitions in the internal NativeMethods container.
+#if NET8_0_OR_GREATER
+[GeneratedComInterface]
+#else
+[ComImport]
+[ComVisible(true)]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+#endif
+[Guid("DEEC8D99-FA1D-4D82-84C2-2C8969944867")]
+public partial interface IMFSourceReaderCallbackInterop
+{
+    [PreserveSig]
+    int OnReadSample(int status, uint streamIndex, uint streamFlags, long timestamp, IntPtr sample);
+
+    [PreserveSig]
+    int OnFlush(uint streamIndex);
+
+    [PreserveSig]
+    int OnEvent(uint streamIndex, IntPtr mediaEvent);
 }
 #endif

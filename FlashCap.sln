@@ -39,6 +39,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlashCap.OneShot", "samples
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlashCap.Avalonia.UI", "samples\FlashCap.Avalonia\FlashCap.Avalonia.UI\FlashCap.Avalonia.UI.csproj", "{539C6CDD-B165-4233-9F83-DF61F4A735AA}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05-4346-4AA6-1389-037BE0695223}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlashCap.Core.LegacyInteropSmoke", "tests\FlashCap.Core.LegacyInteropSmoke\FlashCap.Core.LegacyInteropSmoke.csproj", "{06150000-B9CA-4BDF-A2AE-7EE2FC8D1588}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -85,6 +89,10 @@ Global
 		{539C6CDD-B165-4233-9F83-DF61F4A735AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{539C6CDD-B165-4233-9F83-DF61F4A735AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{539C6CDD-B165-4233-9F83-DF61F4A735AA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{06150000-B9CA-4BDF-A2AE-7EE2FC8D1588}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{06150000-B9CA-4BDF-A2AE-7EE2FC8D1588}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{06150000-B9CA-4BDF-A2AE-7EE2FC8D1588}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{06150000-B9CA-4BDF-A2AE-7EE2FC8D1588}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -96,6 +104,7 @@ Global
 		{583903DC-9D94-4A63-AFCB-2FB88CE14C95} = {655486CC-57A5-494E-97D0-9850B6D55BBA}
 		{2914E44E-F6F4-4BF0-B0BB-962DE4D505AE} = {655486CC-57A5-494E-97D0-9850B6D55BBA}
 		{539C6CDD-B165-4233-9F83-DF61F4A735AA} = {A1BDFB2A-48C0-4D65-AE03-4DBFC12B4BA8}
+		{06150000-B9CA-4BDF-A2AE-7EE2FC8D1588} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {53E3C2D2-05FD-4396-ABF1-6B313F8F82A9}
