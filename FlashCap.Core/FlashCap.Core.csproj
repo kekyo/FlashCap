@@ -5,10 +5,6 @@
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
     <NoWarn>$(NoWarn);CS0649</NoWarn>
     <IsPackable>true</IsPackable>
-    <FlashCapMediaFoundation>true</FlashCapMediaFoundation>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(FlashCapMediaFoundation)' == 'true'">
     <DefineConstants>$(DefineConstants);FLASHCAP_MEDIAFOUNDATION</DefineConstants>
   </PropertyGroup>
 
