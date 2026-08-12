@@ -132,7 +132,7 @@ await deviceObservable.StartAsync();
 
 対応する.NETプラットフォームは以下の通りです（ほぼ全てです！）:
 
-* .NET 9 to 5 (`net9.0` and etc)
+* .NET 10 to 5 (`net10.0` and etc)
 * .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (`netcoreapp3.1` and etc)
 * .NET Standard 2.1, 2.0, 1.3 (`netstandard2.1` and etc)
 * .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5 (`net48` and etc)
@@ -141,8 +141,13 @@ await deviceObservable.StartAsync();
 
 * Windows (DirectShowデバイス, x64/x86)
 * Windows (Video for Windowsデバイス, x64/x86)
+* Windows 7以降 (Media Foundationデバイス, `net35`を含む上記19個全ての対応TFMから利用可能)
 * Linux (V4L2デバイス, x86_64/i686/aarch64/armv7l/mips)
 * OSX (AVFoundationデバイス, x86_64/arm64)
+
+Media Foundationバックエンドは、`System.Memory`、`System.Runtime.CompilerServices.Unsafe`、`Microsoft.Windows.CsWin32`へのパッケージ依存やランタイム依存を追加しません。
+`net8.0`以降では、COMコールバックにソース生成COM相互運用を使用するため、このバックエンドはNative AOTに対応します。それ以前のTFMでは、ランタイムの組み込みCOM相互運用を使用して、コールバックをCOM Callable Wrapper (CCW)として公開します。
+DirectShowは引き続きランタイム生成COM相互運用に依存し、Native AOTには対応しません。そのため、Native AOTアプリケーションでは、DirectShowも含む既定の`CaptureDevices`列挙ではなく、`MediaFoundationDevices`を直接使用して下さい。
 
 ## テスト済みデバイス
 

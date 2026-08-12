@@ -533,6 +533,13 @@ internal static unsafe partial class NativeMethods_MediaFoundation
 
 // The runtime COM marshaler requires this callback interface to be publicly visible.
 // Keep the inbound raw COM definitions in the internal NativeMethods container.
+/// <summary>
+/// Defines callbacks from an asynchronous Media Foundation Source Reader.
+/// </summary>
+/// <remarks>
+/// This interface is public because the runtime COM marshaler requires public visibility
+/// when it creates the COM callable wrapper used by target frameworks earlier than .NET 8.
+/// </remarks>
 #if NET8_0_OR_GREATER
 [GeneratedComInterface]
 #else

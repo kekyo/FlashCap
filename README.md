@@ -131,7 +131,7 @@ Published introduction article: ["Easy to implement video image capture with Fla
 
 .NET platforms supported are as follows (almost all!):
 
-* .NET 9 to 5 (`net9.0` and etc)
+* .NET 10 to 5 (`net10.0` and etc)
 * .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (`netcoreapp3.1` and etc)
 * .NET Standard 2.1, 2.0, 1.3 (`netstandard2.1` and etc)
 * .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5 (`net48` and etc)
@@ -140,8 +140,13 @@ Platforms on which capture devices can be used:
 
 * Windows (DirectShow devices, tested on x64/x86)
 * Windows (Video for Windows devices, tested on x64/x86)
+* Windows 7 or later (Media Foundation devices, available from all 19 supported TFMs listed above, including `net35`)
 * Linux (V4L2 devices, supported on x86_64/i686/aarch64/armv7l/mips)
 * OSX (AVFoundation devices, supported on x86_64/arm64)
+
+The Media Foundation backend does not introduce package or runtime dependencies on `System.Memory`, `System.Runtime.CompilerServices.Unsafe`, or `Microsoft.Windows.CsWin32`.
+On `net8.0` and later, its COM callback uses source-generated COM interop, making this backend compatible with Native AOT; earlier TFMs use the runtime's built-in COM interop to expose the callback as a COM callable wrapper (CCW).
+DirectShow continues to rely on runtime-generated COM interop and is not compatible with Native AOT, so Native AOT applications should use `MediaFoundationDevices` directly instead of the default `CaptureDevices` enumeration that also includes DirectShow.
 
 ## Tested devices
 
