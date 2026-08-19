@@ -145,10 +145,6 @@ await deviceObservable.StartAsync();
 * Linux (V4L2デバイス, x86_64/i686/aarch64/armv7l/mips)
 * OSX (AVFoundationデバイス, x86_64/arm64)
 
-Media Foundationバックエンドは、`System.Memory`、`System.Runtime.CompilerServices.Unsafe`、`Microsoft.Windows.CsWin32`へのパッケージ依存やランタイム依存を追加しません。
-`net8.0`以降では、COMコールバックにソース生成COM相互運用を使用するため、このバックエンドはNative AOTに対応します。それ以前のTFMでは、ランタイムの組み込みCOM相互運用を使用して、コールバックをCOM Callable Wrapper (CCW)として公開します。
-DirectShowは引き続きランタイム生成COM相互運用に依存し、Native AOTには対応しません。そのため、Native AOTアプリケーションでは、DirectShowも含む既定の`CaptureDevices`列挙ではなく、`MediaFoundationDevices`を直接使用して下さい。
-
 ## テスト済みデバイス
 
 サンプルコードを動作させて確認(0.11.0)。
@@ -553,6 +549,12 @@ var devices = new CaptureDevices(bufferPool);
 ```
 
 この`CaptureDevices`のインスタンスから列挙された全てのデバイスで、共通のバッファプーリングとして使用されます。
+
+## Native AOT (Advanced topic)
+
+`net8.0`以降では、COMコールバックにソース生成COM相互運用を使用するため、このバックエンドはNative AOTに対応します。それ以前のTFMでは、ランタイムの組み込みCOM相互運用を使用して、コールバックをCOM Callable Wrapper (CCW)として公開します。
+
+DirectShowは引き続きランタイム生成COM相互運用に依存し、Native AOTには対応しません。そのため、Native AOTアプリケーションでは、DirectShowも含む既定の`CaptureDevices`列挙ではなく、`MediaFoundationDevices`を直接使用して下さい。
 
 ## フレームプロセッサをマスターする (Advanced topic)
 

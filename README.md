@@ -144,10 +144,6 @@ Platforms on which capture devices can be used:
 * Linux (V4L2 devices, supported on x86_64/i686/aarch64/armv7l/mips)
 * OSX (AVFoundation devices, supported on x86_64/arm64)
 
-The Media Foundation backend does not introduce package or runtime dependencies on `System.Memory`, `System.Runtime.CompilerServices.Unsafe`, or `Microsoft.Windows.CsWin32`.
-On `net8.0` and later, its COM callback uses source-generated COM interop, making this backend compatible with Native AOT; earlier TFMs use the runtime's built-in COM interop to expose the callback as a COM callable wrapper (CCW).
-DirectShow continues to rely on runtime-generated COM interop and is not compatible with Native AOT, so Native AOT applications should use `MediaFoundationDevices` directly instead of the default `CaptureDevices` enumeration that also includes DirectShow.
-
 ## Tested devices
 
 Run the sample code to verify in 0.11.0.
@@ -599,6 +595,12 @@ var devices = new CaptureDevices(bufferPool);
 ```
 
 It is used as a common buffer pooling for all devices enumerated from this instance.
+
+## Native AOT (Advanced topic)
+
+On `net8.0` and later, its COM callback uses source-generated COM interop, making this backend compatible with Native AOT; earlier TFMs use the runtime's built-in COM interop to expose the callback as a COM callable wrapper (CCW).
+
+DirectShow continues to rely on runtime-generated COM interop and is not compatible with Native AOT, so Native AOT applications should use `MediaFoundationDevices` directly instead of the default `CaptureDevices` enumeration that also includes DirectShow.
 
 ## Master for frame processor (Advanced topic)
 
