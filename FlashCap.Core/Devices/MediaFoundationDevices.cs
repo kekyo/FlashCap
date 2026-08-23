@@ -48,7 +48,11 @@ public sealed class MediaFoundationDevices(BufferPool defaultBufferPool) : Captu
                         this.DefaultBufferPool))
                     .ToArray(),
                 CancellationToken.None,
+#if NET35 || NET40
+                TaskCreationOptions.LongRunning,
+#else
                 TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach,
+#endif
                 TaskScheduler.Default).GetAwaiter().GetResult();
         }
         catch (Exception exception)

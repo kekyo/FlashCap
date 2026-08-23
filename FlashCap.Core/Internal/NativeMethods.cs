@@ -77,10 +77,19 @@ internal static class NativeMethods
     {
 #if NET5_0_OR_GREATER
         return OperatingSystem.IsWindowsVersionAtLeast(major, minor);
+#elif NETSTANDARD1_3
+        // The portable contract does not expose Environment.OSVersion.
+        // Media Foundation availability is verified when its entry points are invoked.
+        return CurrentPlatform == Platforms.Windows;
 #else
-        return CurrentPlatform == Platforms.Windows; // TODO: Find out windows revision
+        return CurrentPlatform == Platforms.Windows &&
+            IsVersionAtLeast(Environment.OSVersion.Version, major, minor);
 #endif
     }
+
+    internal static bool IsVersionAtLeast(Version version, int major, int minor) =>
+        version.Major > major ||
+        version.Major == major && version.Minor >= minor;
 
     [SupportedOSPlatformGuard("linux")]
     public static bool IsLinux()

@@ -21,13 +21,13 @@ namespace FlashCap.Devices;
 public sealed class MediaFoundationDeviceDescriptor : CaptureDeviceDescriptor
 {
     private readonly string symbolicLink;
-    private readonly IReadOnlyDictionary<VideoCharacteristics, MediaFoundationInterop.FormatKey> characteristicToFormatLookup;
+    private readonly Dictionary<VideoCharacteristics, MediaFoundationInterop.FormatKey> characteristicToFormatLookup;
 
     internal MediaFoundationDeviceDescriptor(
         string symbolicLink,
         string name,
         string description,
-        IReadOnlyDictionary<VideoCharacteristics, MediaFoundationInterop.FormatKey> characteristicToFormatLookup,
+        Dictionary<VideoCharacteristics, MediaFoundationInterop.FormatKey> characteristicToFormatLookup,
         BufferPool defaultBufferPool) :
         base(name, description, characteristicToFormatLookup.Keys.ToArray(), defaultBufferPool)
     {

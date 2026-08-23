@@ -12,11 +12,8 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using Windows.Win32;
-using Windows.Win32.Foundation;
-using Windows.Win32.Media.MediaFoundation;
-using Windows.Win32.System.Com;
 using FlashCap.Utilities;
+using static FlashCap.Internal.NativeMethods_MediaFoundation;
 using static FlashCap.Internal.MediaFoundation.MediaFoundationHelpers;
 
 namespace FlashCap.Internal.MediaFoundation;
@@ -41,7 +38,7 @@ internal static unsafe class MediaFoundationInterop
     internal readonly record struct DeviceInfo(
         string SymbolicLink,
         string Name,
-        IReadOnlyDictionary<VideoCharacteristics, FormatKey> Formats);
+        Dictionary<VideoCharacteristics, FormatKey> Formats);
 
     internal readonly record struct FrameLayout(
         int RowLength,
@@ -66,33 +63,33 @@ internal static unsafe class MediaFoundationInterop
     /// </summary>
     internal static void Initialize()
     {
-        var result = PInvoke.CoInitializeEx(COINIT.COINIT_MULTITHREADED);
-        ThrowIfFailed(result, nameof(PInvoke.CoInitializeEx));
+        var result = NativeMethods.CoInitializeEx(IntPtr.Zero, NativeMethods.COINIT.MULTITHREADED);
+        ThrowIfFailed(result, nameof(NativeMethods.CoInitializeEx));
 
-        result = PInvoke.MFStartup(PInvoke.MF_VERSION, PInvoke.MFSTARTUP_FULL);
-        if (result.Failed)
+        result = MFStartup(MF_VERSION, MFSTARTUP_FULL);
+        if (result < 0)
         {
-            PInvoke.CoUninitialize();
-            ThrowIfFailed(result, nameof(PInvoke.MFStartup));
+            NativeMethods.CoUninitialize();
+            ThrowIfFailed(result, nameof(MFStartup));
         }
     }
 
     internal static void Uninitialize()
     {
-        _ = PInvoke.MFShutdown();
-        PInvoke.CoUninitialize();
+        _ = MFShutdown();
+        NativeMethods.CoUninitialize();
     }
 
     internal static IMFAttributes* CreateVideoCaptureAttributes()
     {
         IMFAttributes* attributes = null;
-        ThrowIfFailed(PInvoke.MFCreateAttributes(&attributes, 1), nameof(PInvoke.MFCreateAttributes));
+        ThrowIfFailed(MFCreateAttributes(&attributes, 1), nameof(MFCreateAttributes));
         try
         {
             ThrowIfFailed(
                 attributes->SetGUID(
-                    in PInvoke.MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE,
-                    in PInvoke.MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID),
+                    in MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE,
+                    in MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_GUID),
                 "IMFAttributes.SetGUID");
             return attributes;
         }
@@ -109,8 +106,8 @@ internal static unsafe class MediaFoundationInterop
         try
         {
             ThrowIfFailed(
-                PInvoke.MFEnumDeviceSources(attributes, out var devices, out count),
-                nameof(PInvoke.MFEnumDeviceSources));
+                MFEnumDeviceSources(attributes, out var devices, out count),
+                nameof(MFEnumDeviceSources));
             return devices;
         }
         finally
@@ -142,7 +139,7 @@ internal static unsafe class MediaFoundationInterop
                 {
                     var symbolicLink = GetAllocatedString(
                         activate,
-                        in PInvoke.MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK).Trim();
+                        in MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK).Trim();
                     if (string.IsNullOrEmpty(symbolicLink))
                     {
                         continue;
@@ -150,7 +147,7 @@ internal static unsafe class MediaFoundationInterop
 
                     var name = GetAllocatedString(
                         activate,
-                        in PInvoke.MF_DEVSOURCE_ATTRIBUTE_FRIENDLY_NAME).Trim();
+                        in MF_DEVSOURCE_ATTRIBUTE_FRIENDLY_NAME).Trim();
                     if (string.IsNullOrEmpty(name))
                     {
                         name = "Media Foundation camera";
@@ -181,7 +178,7 @@ internal static unsafe class MediaFoundationInterop
         }
     }
 
-    private static IReadOnlyDictionary<VideoCharacteristics, FormatKey> EnumerateDeviceFormats(
+    private static Dictionary<VideoCharacteristics, FormatKey> EnumerateDeviceFormats(
         IMFActivate* activate)
     {
         IMFMediaSource* mediaSource = null;
@@ -213,26 +210,27 @@ internal static unsafe class MediaFoundationInterop
 
     internal static string GetAllocatedString(IMFActivate* activate, in Guid key)
     {
-        var result = activate->GetAllocatedString(in key, out var value, out _);
-        if (result.Failed || value.Value is null)
-        {
-            return string.Empty;
-        }
-
+        var value = IntPtr.Zero;
         try
         {
-            return Marshal.PtrToStringUni((IntPtr)value.Value) ?? string.Empty;
+            var result = activate->GetAllocatedString(in key, out value, out _);
+            return result < 0 || value == IntPtr.Zero ?
+                string.Empty :
+                Marshal.PtrToStringUni(value) ?? string.Empty;
         }
         finally
         {
-            Marshal.FreeCoTaskMem((IntPtr)value.Value);
+            if (value != IntPtr.Zero)
+            {
+                Marshal.FreeCoTaskMem(value);
+            }
         }
     }
 
     internal static IMFMediaSource* ActivateMediaSource(IMFActivate* activate)
     {
         ThrowIfFailed(
-            activate->ActivateObject(in IMFMediaSource.IID_Guid, out var value),
+            activate->ActivateObject(in IID_IMFMediaSource, out var value),
             "IMFActivate.ActivateObject"
         );
         if (value is null)
@@ -253,14 +251,14 @@ internal static unsafe class MediaFoundationInterop
         {
             if (callback is not null)
             {
-                ThrowIfFailed(PInvoke.MFCreateAttributes(&attributes, 1), nameof(PInvoke.MFCreateAttributes));
+                ThrowIfFailed(MFCreateAttributes(&attributes, 1), nameof(MFCreateAttributes));
                 ThrowIfFailed(
-                    attributes->SetUnknown(in PInvoke.MF_SOURCE_READER_ASYNC_CALLBACK, callback),
+                    attributes->SetUnknown(in MF_SOURCE_READER_ASYNC_CALLBACK, callback),
                     "IMFAttributes.SetUnknown(async callback)");
             }
             ThrowIfFailed(
-                PInvoke.MFCreateSourceReaderFromMediaSource(mediaSource, attributes, &reader),
-                nameof(PInvoke.MFCreateSourceReaderFromMediaSource));
+                MFCreateSourceReaderFromMediaSource(mediaSource, attributes, &reader),
+                nameof(MFCreateSourceReaderFromMediaSource));
         }
         finally
         {
@@ -279,8 +277,8 @@ internal static unsafe class MediaFoundationInterop
         for (uint index = 0; ; index++)
         {
             IMFMediaType* mediaType = null;
-            var result = reader->GetNativeMediaType(VideoStreamIndex, index, &mediaType);
-            if (result == HRESULT.MF_E_NO_MORE_TYPES)
+            var result = reader->GetNativeMediaType(VideoStreamIndex, index, out mediaType);
+            if (result == MF_E_NO_MORE_TYPES)
             {
                 break;
             }
@@ -303,11 +301,11 @@ internal static unsafe class MediaFoundationInterop
     internal static bool TryCreateFormat(IMFMediaType* mediaType, uint index, out Format format)
     {
         format = default;
-        if (mediaType->GetGUID(in PInvoke.MF_MT_MAJOR_TYPE, out var majorType).Failed ||
-            majorType != PInvoke.MFMediaType_Video ||
-            mediaType->GetGUID(in PInvoke.MF_MT_SUBTYPE, out var subtype).Failed ||
-            mediaType->GetUINT64(in PInvoke.MF_MT_FRAME_SIZE, out var frameSize).Failed ||
-            mediaType->GetUINT64(in PInvoke.MF_MT_FRAME_RATE, out var frameRate).Failed)
+        if (mediaType->GetGUID(in MF_MT_MAJOR_TYPE, out var majorType) < 0 ||
+            majorType != MFMediaType_Video ||
+            mediaType->GetGUID(in MF_MT_SUBTYPE, out var subtype) < 0 ||
+            mediaType->GetUINT64(in MF_MT_FRAME_SIZE, out var frameSize) < 0 ||
+            mediaType->GetUINT64(in MF_MT_FRAME_RATE, out var frameRate) < 0)
         {
             return false;
         }
@@ -336,15 +334,15 @@ internal static unsafe class MediaFoundationInterop
 
     internal static bool TryMapPixelFormat(Guid subtype, out PixelFormats format, out string name)
     {
-        if (subtype == PInvoke.MFVideoFormat_RGB24) { format = PixelFormats.RGB24; name = "RGB24"; return true; }
-        if (subtype == PInvoke.MFVideoFormat_RGB32) { format = PixelFormats.RGB32; name = "RGB32"; return true; }
-        if (subtype == PInvoke.MFVideoFormat_ARGB32) { format = PixelFormats.ARGB32; name = "ARGB32"; return true; }
-        if (subtype == PInvoke.MFVideoFormat_RGB555) { format = PixelFormats.RGB15; name = "RGB555"; return true; }
-        if (subtype == PInvoke.MFVideoFormat_RGB565) { format = PixelFormats.RGB16; name = "RGB565"; return true; }
-        if (subtype == PInvoke.MFVideoFormat_MJPG) { format = PixelFormats.JPEG; name = "MJPG"; return true; }
-        if (subtype == PInvoke.MFVideoFormat_UYVY) { format = PixelFormats.UYVY; name = "UYVY"; return true; }
-        if (subtype == PInvoke.MFVideoFormat_YUY2) { format = PixelFormats.YUYV; name = "YUY2"; return true; }
-        if (subtype == PInvoke.MFVideoFormat_NV12) { format = PixelFormats.NV12; name = "NV12"; return true; }
+        if (subtype == MFVideoFormat_RGB24) { format = PixelFormats.RGB24; name = "RGB24"; return true; }
+        if (subtype == MFVideoFormat_RGB32) { format = PixelFormats.RGB32; name = "RGB32"; return true; }
+        if (subtype == MFVideoFormat_ARGB32) { format = PixelFormats.ARGB32; name = "ARGB32"; return true; }
+        if (subtype == MFVideoFormat_RGB555) { format = PixelFormats.RGB15; name = "RGB555"; return true; }
+        if (subtype == MFVideoFormat_RGB565) { format = PixelFormats.RGB16; name = "RGB565"; return true; }
+        if (subtype == MFVideoFormat_MJPG) { format = PixelFormats.JPEG; name = "MJPG"; return true; }
+        if (subtype == MFVideoFormat_UYVY) { format = PixelFormats.UYVY; name = "UYVY"; return true; }
+        if (subtype == MFVideoFormat_YUY2) { format = PixelFormats.YUYV; name = "YUY2"; return true; }
+        if (subtype == MFVideoFormat_NV12) { format = PixelFormats.NV12; name = "NV12"; return true; }
         format = PixelFormats.Unknown;
         name = subtype.ToString("D");
         return false;
@@ -381,22 +379,47 @@ internal static unsafe class MediaFoundationInterop
     }
 
     internal static void RepackFrame(
-        ReadOnlySpan<byte> source,
-        Span<byte> target,
+        byte* source,
+        int sourceLength,
+        byte[] target,
         FrameLayout layout,
         bool reverseRows)
     {
-        if ((long)layout.SourceStride * layout.Rows > source.Length || layout.TargetLength > target.Length)
+        if (target is null)
+        {
+            throw new ArgumentNullException(nameof(target));
+        }
+
+        var sourceRequiredLength = (long)layout.SourceStride * layout.Rows;
+        var targetRequiredLength = (long)layout.TargetStride * layout.Rows;
+        if (sourceLength < 0 ||
+            layout.RowLength < 0 ||
+            layout.Rows < 0 ||
+            layout.SourceStride < layout.RowLength ||
+            layout.TargetStride < layout.RowLength ||
+            sourceRequiredLength < 0 ||
+            sourceRequiredLength > sourceLength ||
+            targetRequiredLength < 0 ||
+            targetRequiredLength > target.Length ||
+            source is null && sourceRequiredLength != 0)
         {
             throw new ArgumentException("The frame buffer is truncated.");
         }
 
-        target.Slice(0, layout.TargetLength).Clear();
-        for (var row = 0; row < layout.Rows; row++)
+        var targetLength = checked((int)targetRequiredLength);
+        Array.Clear(target, 0, targetLength);
+        fixed (byte* targetPointer = target)
         {
-            var sourceRow = reverseRows ? layout.Rows - row - 1 : row;
-            source.Slice(sourceRow * layout.SourceStride, layout.RowLength).
-                CopyTo(target.Slice(row * layout.TargetStride, layout.RowLength));
+            for (var row = 0; row < layout.Rows; row++)
+            {
+                var sourceRow = reverseRows ? layout.Rows - row - 1 : row;
+                var sourceOffset = checked((int)((long)sourceRow * layout.SourceStride));
+                var targetOffset = checked((int)((long)row * layout.TargetStride));
+                NativeMethods.CopyMemory(
+                    (IntPtr)(targetPointer + targetOffset),
+                    (IntPtr)(source + sourceOffset),
+                    (IntPtr)layout.RowLength);
+            }
         }
     }
 
@@ -415,12 +438,5 @@ internal static unsafe class MediaFoundationInterop
         Marshal.FreeCoTaskMem((IntPtr)devices);
     }
 
-    internal static void Release<T>(T* value) where T : unmanaged
-    {
-        if (value is not null)
-        {
-            _ = ((IUnknown*)value)->Release();
-        }
-    }
 }
 #endif
