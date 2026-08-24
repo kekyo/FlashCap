@@ -10,10 +10,16 @@
 using FlashCap.Internal;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.Versioning;
 
 namespace FlashCap.Devices;
 
+#if NET6_0_OR_GREATER // Remove this when dropping net5.0. Its required because RequiresUnreferencedCode was not allowed on class level in net5.0
+[RequiresUnreferencedCode("Direct show depends on COM runtime generation and might require unreferenced code.")]
+#endif
+[SupportedOSPlatform("windows")]
 public sealed class DirectShowDevices : CaptureDevices
 {
     public DirectShowDevices() :

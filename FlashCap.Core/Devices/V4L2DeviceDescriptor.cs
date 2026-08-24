@@ -7,11 +7,13 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace FlashCap.Devices;
 
+[SupportedOSPlatform("linux")]
 public sealed class V4L2DeviceDescriptor : CaptureDeviceDescriptor
 {
     private readonly string devicePath;

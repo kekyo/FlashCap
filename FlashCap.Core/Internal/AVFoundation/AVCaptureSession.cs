@@ -9,7 +9,6 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using System;
-using System.Runtime.InteropServices;
 using static FlashCap.Internal.NativeMethods_AVFoundation;
 
 namespace FlashCap.Internal.AVFoundation;
@@ -18,9 +17,20 @@ partial class LibAVFoundation
 {
     public sealed class AVCaptureSession : LibObjC.NSObject
     {
+        private AVCaptureInput? _videoDataInput;
+        private AVCaptureVideoDataOutput? _videoDataOutput;
+
         public AVCaptureSession() : base(IntPtr.Zero, false)
         {
             Init();
+        }
+
+        private void ValidateHandle(string method)
+        {
+            if (Handle == IntPtr.Zero)
+            {
+                throw new NullReferenceException($"{nameof(AVCaptureSession)} handle is NULL in '{method}'.");
+            }
         }
 
         private void Init()
@@ -34,50 +44,79 @@ partial class LibAVFoundation
                 LibObjC.GetSelector("init"));
 
             Handle = sessionObj;
+            ValidateHandle(nameof(Init));
 
             LibCoreFoundation.CFRetain(this.Handle);
         }
 
-        public void AddInput(AVCaptureInput input) =>
+        public void AddInput(AVCaptureInput input)
+        {
+            ValidateHandle(nameof(AddInput));
+
+            if (_videoDataInput is not null)
+            {
+                throw new InvalidOperationException("Only one video data input can be added to the session.");
+            }
+
+            _videoDataInput = input;
+                
             LibObjC.SendNoResult(
                 Handle,
                 LibObjC.GetSelector("addInput:"),
                 input.Handle);
+        }
 
-        public void AddOutput(AVCaptureOutput output)
+        public void AddOutput(AVCaptureVideoDataOutput output)
         {
-            IntPtr allocSel = LibObjC.GetSelector("alloc");
-            IntPtr initSel = LibObjC.GetSelector("init");
-            
-            var videoDataOutputObj = output as AVCaptureVideoDataOutput ;
+            ValidateHandle(nameof(AddOutput));
 
-            if (videoDataOutputObj == null)
+            if (_videoDataOutput is not null)
             {
-                throw new Exception("Failed to get video data output");
+                throw new InvalidOperationException("Only one video data output can be added to the session.");
             }
-            
-            var videoDataOutput = videoDataOutputObj.Handle;
-            
+
+            _videoDataOutput = output;
+
             LibObjC.SendNoResult(
                 Handle,
                 LibObjC.GetSelector("addOutput:"),
-                videoDataOutput);
+                output.Handle);
         }
 
-        public bool CanAddOutput(AVCaptureOutput output) =>
-            LibObjC.SendAndGetBool(
+        public bool CanAddOutput(AVCaptureOutput output)
+        {
+            ValidateHandle(nameof(CanAddOutput));
+            return LibObjC.SendAndGetBool(
                 Handle,
                 LibObjC.GetSelector("canAddOutput:"),
                 output.Handle);
+        }
 
-        public void StartRunning() =>
+        public void StartRunning()
+        {
+            ValidateHandle(nameof(StartRunning));
             LibObjC.SendNoResult(
                 Handle,
                 LibObjC.GetSelector("startRunning"));
+        }
 
-        public void StopRunning() =>
+        public void StopRunning()
+        {
+            ValidateHandle(nameof(StopRunning));
             LibObjC.SendNoResult(
                 Handle,
                 LibObjC.GetSelector("stopRunning"));
+        }
+        
+        protected override void Dispose(bool disposing)
+        {
+            _videoDataOutput?.Dispose();
+            _videoDataOutput = null;
+
+            _videoDataInput?.Dispose();
+            _videoDataInput = null;
+
+            base.Dispose(disposing);
+        }
     }
 }

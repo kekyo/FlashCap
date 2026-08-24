@@ -11,3 +11,4 @@ using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("FlashCap")]
 [assembly: InternalsVisibleTo("FSharp.FlashCap")]
+[assembly: InternalsVisibleTo("FlashCap.Core.Tests")]

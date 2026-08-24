@@ -1,6 +1,6 @@
 name: .NET
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   build:
@@ -39,6 +39,12 @@ jobs:
           7.0.x
           8.0.x
           9.0.x
+          10.0.x
+
+    - name: Setup native build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install --yes clang mono-runtime zlib1g-dev
 
     - name: Setup NuGet package reference
       run: |
@@ -48,11 +54,9 @@ jobs:
     #-----------------------------------------------------------------------
     # Build
     
-    - name: Build
-      run: dotnet build -p:Configuration=Release -p:Platform="Any CPU" -p:RestoreNoCache=True -p:BuildIdentifier=${GITHUB_RUN_NUMBER} FlashCap.sln
-
-    - name: Build NuGet packages
-      run: dotnet pack -p:Configuration=Release -p:Platform="Any CPU" -p:BuildIdentifier=${GITHUB_RUN_NUMBER} -o artifacts FlashCap.sln
+    - name: Build and verify
+      run: node scripts/test-all.mjs
+      timeout-minutes: 30
 
     #-----------------------------------------------------------------------
     # Test

@@ -11,6 +11,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using FlashCap.Devices;
 using static FlashCap.Internal.NativeMethods_AVFoundation;
 
@@ -18,6 +19,7 @@ namespace FlashCap.Internal.AVFoundation;
 
 partial class LibAVFoundation
 {
+    [SupportedOSPlatform("macos")]
     public sealed class AVCaptureVideoDataOutput : AVCaptureOutput
     {
         private AVCaptureVideoDataOutputSampleBuffer.CaptureOutputDidOutputSampleBuffer? callbackDelegate;
@@ -73,7 +75,7 @@ partial class LibAVFoundation
             IntPtr pixelFormatTypeKeyPtr = Dlfcn.dlsym(LibCoreVideo.Handle, "kCVPixelBufferPixelFormatTypeKey");
             if (pixelFormatTypeKeyPtr == IntPtr.Zero)
             {
-                throw new Exception("Error comunicating with the AVCaptureVideoDataOutput");
+                throw new Exception("Error communicating with the AVCaptureVideoDataOutput");
             }
 
             // Get NSString value
@@ -107,7 +109,7 @@ partial class LibAVFoundation
             
             IntPtr impCallback = Marshal.GetFunctionPointerForDelegate(callbackDelegate);
 
-            // "v@:@@@" this means the methood returns void and receives (self, _cmd, output, sampleBuffer, connection).
+            // "v@:@@@" this means the method returns void and receives (self, _cmd, output, sampleBuffer, connection).
             string types = "v@:@@@";
             bool added = LibObjC.class_addMethod(delegateClass, selDidOutput, impCallback, types);
             if (!added)

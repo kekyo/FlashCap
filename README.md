@@ -131,7 +131,7 @@ Published introduction article: ["Easy to implement video image capture with Fla
 
 .NET platforms supported are as follows (almost all!):
 
-* .NET 9 to 5 (`net9.0` and etc)
+* .NET 5 or upper (`net10.0` and etc)
 * .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (`netcoreapp3.1` and etc)
 * .NET Standard 2.1, 2.0, 1.3 (`netstandard2.1` and etc)
 * .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5 (`net48` and etc)
@@ -140,6 +140,7 @@ Platforms on which capture devices can be used:
 
 * Windows (DirectShow devices, tested on x64/x86)
 * Windows (Video for Windows devices, tested on x64/x86)
+* Windows 7 or later (Media Foundation API, tested on x64)
 * Linux (V4L2 devices, supported on x86_64/i686/aarch64/armv7l/mips)
 * OSX (AVFoundation devices, supported on x86_64/arm64)
 
@@ -235,6 +236,10 @@ var characteristics = descriptor0.Characteristics.
 
 FlashCap enumerates all formats returned by the device.
 Therefore, by checking the information in `VideoCharacteristics` with `PixelFormats.Unknown`, you can analyze what formats the device supports.
+
+Note: Entries not listed in `Characteristics` may be rejected even if you manually construct a `VideoCharacteristics` object.
+This is because `VideoCharacteristics` includes a value that uniquely identifies the device, and if this value is not specified, the device may not be identified correctly.
+The safest approach is to identify the instance of the characteristic you need from the entries obtained from `Characteristics` and use it as is.
 
 ### Displaying camera device property page
 
@@ -595,6 +600,12 @@ var devices = new CaptureDevices(bufferPool);
 
 It is used as a common buffer pooling for all devices enumerated from this instance.
 
+## Native AOT (Advanced topic)
+
+On `net8.0` and later, its COM callback uses source-generated COM interop, making this backend compatible with Native AOT; earlier TFMs use the runtime's built-in COM interop to expose the callback as a COM callable wrapper (CCW).
+
+DirectShow continues to rely on runtime-generated COM interop and is not compatible with Native AOT, so Native AOT applications should use `MediaFoundationDevices` directly instead of the default `CaptureDevices` enumeration that also includes DirectShow.
+
 ## Master for frame processor (Advanced topic)
 
 Welcome to the underground dungeon, where FlashCap's frame processor is a polished gem.
@@ -769,7 +780,7 @@ The supported platforms are listed below:
 * i686, x86_64
 * aarch64, armv7l
 * mipsel
-* loongarch64
+* loongarch64 (broken)
 
 The supported platforms listed here are simply those that I and contributors have been able to verify work,
 successfully captured the camera using FlashCap.
@@ -884,6 +895,7 @@ Here is a list of people who have made major contributions to FlashCap. Thank yo
 
 * Yoh Deadfall ([@YohDeadfall](https://github.com/YohDeadfall)) : Port to Mac OSX AVFoundation API
 * Felipe Ferreira Quintella ([@ffquintella](https://github.com/ffquintella)) : Port to Mac OSX AVFoundation API
+* Ole Ross ([@OleRoss](https://github.com/OleRoss)) : Port to Windows Media Foundation API
 
 ## License
 
@@ -894,7 +906,10 @@ Apache-v2.
 
 ## History
 
-* 1.11.0:.
+* 1.12.0:
+  * Media Foundation API in Windows platform is now supported [#180](https://github.com/kekyo/FlashCap/pull/180) .
+  * Added .NET 10.0 tfm assembly.
+* 1.11.0:
   * Mac OSX AVFoundation API is now supported [#45](https://github.com/kekyo/FlashCap/issues/45) .
     We continue to welcome your help as we still have a few cases remaining in the porting status.
   * Added .NET 9.0 tfm assembly.

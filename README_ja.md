@@ -132,7 +132,7 @@ await deviceObservable.StartAsync();
 
 対応する.NETプラットフォームは以下の通りです（ほぼ全てです！）:
 
-* .NET 9 to 5 (`net9.0` and etc)
+* .NET 5 or upper (`net10.0` and etc)
 * .NET Core 3.1, 3.0, 2.2, 2.1, 2.0 (`netcoreapp3.1` and etc)
 * .NET Standard 2.1, 2.0, 1.3 (`netstandard2.1` and etc)
 * .NET Framework 4.8, 4.6.1, 4.5, 4.0, 3.5 (`net48` and etc)
@@ -141,6 +141,7 @@ await deviceObservable.StartAsync();
 
 * Windows (DirectShowデバイス, x64/x86)
 * Windows (Video for Windowsデバイス, x64/x86)
+* Windows 7以降 (Media Foundation API, x64)
 * Linux (V4L2デバイス, x86_64/i686/aarch64/armv7l/mips)
 * OSX (AVFoundationデバイス, x86_64/arm64)
 
@@ -233,6 +234,10 @@ var characteristics = descriptor0.Characteristics.
 
 FlashCapは、デバイスが返す全てのフォーマットを列挙します。
 従って、 `PixelFormats.Unknown` である `VideoCharacteristics` の情報を確認する事で、デバイスがどのようなフォーマットに対応しているのかを分析することが出来ます。
+
+注意: `Characteristics` から列挙されないエントリは、手動で `VideoCharacteristics` を構築しても拒否される事があります。
+`VideoCharacteristics` にはデバイスを一位に特定する値も含まれており、これを指定しないと正しく判定されない可能性があるからです。
+最も安全なのは、 `Characteristics` から得られたエントリから、あなたが必要としている特性のインスタンスを特定して、それをそのまま使用することです。
 
 ### カメラデバイスのプロパティページを表示する
 
@@ -549,6 +554,12 @@ var devices = new CaptureDevices(bufferPool);
 
 この`CaptureDevices`のインスタンスから列挙された全てのデバイスで、共通のバッファプーリングとして使用されます。
 
+## Native AOT (Advanced topic)
+
+`net8.0`以降では、COMコールバックにソース生成COM相互運用を使用するため、このバックエンドはNative AOTに対応します。それ以前のTFMでは、ランタイムの組み込みCOM相互運用を使用して、コールバックをCOM Callable Wrapper (CCW)として公開します。
+
+DirectShowは引き続きランタイム生成COM相互運用に依存し、Native AOTには対応しません。そのため、Native AOTアプリケーションでは、DirectShowも含む既定の`CaptureDevices`列挙ではなく、`MediaFoundationDevices`を直接使用して下さい。
+
 ## フレームプロセッサをマスターする (Advanced topic)
 
 地下ダンジョンへようこそ。FlashCapのフレームプロセッサは、磨けば光る宝石です。しかし、余程のことが無い限り、フレームプロセッサを理解する必要はありません。この解説は、やむを得ずフレームプロセッサを扱う場合の参考にして下さい。また、FlashCapが[デフォルトで内蔵するフレームプロセッサの実装](https://github.com/kekyo/FlashCap/tree/main/FlashCap/FrameProcessors)も参考になるでしょう。
@@ -705,7 +716,7 @@ FlashCapはV4L2に対応していて、これによりLinuxの様々なプラッ
 * i686, x86_64
 * aarch64, armv7l
 * mipsel
-* loongarch64
+* loongarch64 (broken)
 
 ここに挙げた対応プラットフォームは、単に私やコントリビューターが動作確認出来た、つまり現実のハードウェアを持ち合わせていて、
 FlashCapを使って実際にカメラのキャプチャに成功したものです。
@@ -816,6 +827,7 @@ FlashCapへの大きな貢献をして頂いた方のリストです。ありが
 
 * Yoh Deadfall ([@YohDeadfall](https://github.com/YohDeadfall)) : Mac OSX AVFoundation APIへの移植
 * Felipe Ferreira Quintella ([@ffquintella](https://github.com/ffquintella)) : Mac OSX AVFoundation APIへの移植
+* Ole Ross ([@OleRoss](https://github.com/OleRoss)) : Windows Media Foundation APIへの移植
 
 ## License
 
@@ -826,6 +838,9 @@ Apache-v2.
 
 ## 履歴
 
+* 1.12.0:
+  * Windowsにおいて、Media Foundation APIに対応しました [#180](https://github.com/kekyo/FlashCap/pull/180) .
+  * .NET 10.0アセンブリを追加。
 * 1.11.0:
   * Mac OSXのAVFoundation APIに対応しました [#45](https://github.com/kekyo/FlashCap/issues/45) 。
     移植ステータスにはまだ残件があるため、引き続き、協力を募集します。

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net35;net40;net45;net461;net48</TargetFrameworks>
+    <AssemblyName>FlashCap.Core.Tests</AssemblyName>
+    <RootNamespace>FlashCap.Core.LegacyInteropSmoke</RootNamespace>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../FlashCap.Core/FlashCap.Core.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -12,6 +12,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,6 +21,7 @@ using static FlashCap.Internal.V4L2.NativeMethods_V4L2_Interop;
 
 namespace FlashCap.Devices;
 
+[SupportedOSPlatform("linux")]
 public sealed class V4L2Device : CaptureDevice
 {
     private const int BufferCount = 2;
