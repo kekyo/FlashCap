@@ -58,6 +58,13 @@ public sealed class V4L2Devices : CaptureDevices
 
     private static IEnumerable<FrameSize> EnumerateFrameSize(
         int fd, uint pixelFormat) =>
+        EnumerateFrameSizes(fd, pixelFormat) is { Length: >= 1 } frameSizes ?
+            frameSizes :
+            // Some drivers, such as the ones of analog video grabbers, don't enumerate frame sizes:
+            GetFrameSize(fd, pixelFormat);
+
+    private static FrameSize[] EnumerateFrameSizes(
+        int fd, uint pixelFormat) =>
         Enumerable.Range(0, 1000).
         CollectWhile(index =>
         {
@@ -117,6 +124,13 @@ public sealed class V4L2Devices : CaptureDevices
     }
 
     private static IEnumerable<FramesPerSecond> EnumerateFramesPerSecond(
+        int fd, uint pixelFormat, int width, int height) =>
+        EnumerateFrameIntervals(fd, pixelFormat, width, height) is { Length: >= 1 } framesPerSecond ?
+            framesPerSecond :
+            // Some drivers, such as the ones of analog video grabbers, don't enumerate frame intervals:
+            GetFramesPerSecond(fd);
+
+    private static FramesPerSecond[] EnumerateFrameIntervals(
         int fd, uint pixelFormat, int width, int height) =>
         Enumerable.Range(0, 1000).
         CollectWhile(index =>
@@ -181,6 +195,66 @@ public sealed class V4L2Devices : CaptureDevices
             };
         }).
         ToArray();   // Important: Iteration process must be continuous, avoid ioctl calls with other requests.
+
+    private static FrameSize[] GetFrameSize(
+        int fd, uint pixelFormat)
+    {
+        var fmt_pix = Interop.Create_v4l2_pix_format();
+        fmt_pix.width = 1920;
+        fmt_pix.height = 1080;
+        fmt_pix.pixelformat = pixelFormat;
+        fmt_pix.field = (uint)v4l2_field.ANY;
+
+        var format = Interop.Create_v4l2_format();
+        format.type = (uint)v4l2_buf_type.VIDEO_CAPTURE;
+        format.fmt_pix = fmt_pix;
+
+        // The driver adjusts a tried format to the nearest size it supports.
+        return ioctl(fd, Interop.VIDIOC_TRY_FMT, format) == 0 &&
+            format.fmt_pix.pixelformat == pixelFormat &&
+            format.fmt_pix.width >= 1 && format.fmt_pix.height >= 1 ?
+            new[] { new FrameSize
+                { Width = (int)format.fmt_pix.width, Height = (int)format.fmt_pix.height, IsDiscrete = true, }, } :
+            ArrayEx.Empty<FrameSize>();
+    }
+
+    private static FramesPerSecond[] GetFramesPerSecond(
+        int fd)
+    {
+        // Current frame rate:
+        var streamparm = new byte[sizeof_v4l2_streamparm];
+        Array.Copy(
+            BitConverter.GetBytes((uint)v4l2_buf_type.VIDEO_CAPTURE), 0,
+            streamparm, offsetof_v4l2_streamparm_type, sizeof(uint));
+        if (ioctl(fd, Interop.VIDIOC_G_PARM, streamparm) == 0)
+        {
+            var numerator = BitConverter.ToUInt32(streamparm, offsetof_v4l2_streamparm_timeperframe_numerator);
+            var denominator = BitConverter.ToUInt32(streamparm, offsetof_v4l2_streamparm_timeperframe_denominator);
+            if (numerator >= 1 && denominator >= 1)
+            {
+                // timeperframe is "interval", so do reciprocal to make fps.
+                return new[] { new FramesPerSecond
+                    { Value = new Fraction((int)denominator, (int)numerator), IsDiscrete = true, }, };
+            }
+        }
+
+        // Or the frame rate of the video standard:
+        var std = new byte[sizeof(ulong)];
+        if (ioctl(fd, Interop.VIDIOC_G_STD, std) == 0)
+        {
+            var id = BitConverter.ToUInt64(std, 0);
+            if ((id & V4L2_STD_625_50) != 0)
+            {
+                return new[] { new FramesPerSecond { Value = new Fraction(25, 1), IsDiscrete = true, }, };
+            }
+            if ((id & V4L2_STD_525_60) != 0)
+            {
+                return new[] { new FramesPerSecond { Value = new Fraction(30000, 1001), IsDiscrete = true, }, };
+            }
+        }
+
+        return ArrayEx.Empty<FramesPerSecond>();
+    }
 
     private static string ToString(byte[] data)
     {
