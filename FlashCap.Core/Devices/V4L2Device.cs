@@ -301,14 +301,11 @@ public sealed class V4L2Device : CaptureDevice
     {
         if (this.IsRunning)
         {
-            if (ioctl(
+            // Release the device even when it couldn't stop, such as when it was unplugged.
+            var code = ioctl(
                 this.fd, Interop.VIDIOC_STREAMOFF,
-                (int)v4l2_buf_type.VIDEO_CAPTURE) < 0)
-            {
-                var code = Marshal.GetLastWin32Error();
-                throw new ArgumentException(
-                    $"FlashCap: Couldn't stop capture: Code={code}, DevicePath={this.devicePath}");
-            }
+                (int)v4l2_buf_type.VIDEO_CAPTURE) < 0 ?
+                Marshal.GetLastWin32Error() : 0;
                 
             write(this.abortwfd, new byte[] { 0x01 }, 1);
 
@@ -336,6 +333,13 @@ public sealed class V4L2Device : CaptureDevice
             this.fd = -1;
 
             this.IsRunning = false;
+
+            // An unplugged device has stopped by itself.
+            if (code != 0 && code != ENODEV)
+            {
+                throw new ArgumentException(
+                    $"FlashCap: Couldn't stop capture: Code={code}, DevicePath={this.devicePath}");
+            }
         }
     }
 
@@ -393,6 +397,15 @@ public sealed class V4L2Device : CaptureDevice
                         (fds[0].revents & POLLBITS.POLLRDHUP) == POLLBITS.POLLRDHUP ||
                         (fds[0].revents & POLLBITS.POLLERR) == POLLBITS.POLLERR)
                     {
+                        break;
+                    }
+                    // The device reports errors and hang ups without asking, such as when it was unplugged.
+                    if ((fds[1].revents & POLLBITS.POLLERR) == POLLBITS.POLLERR ||
+                        (fds[1].revents & POLLBITS.POLLHUP) == POLLBITS.POLLHUP ||
+                        (fds[1].revents & POLLBITS.POLLNVAL) == POLLBITS.POLLNVAL)
+                    {
+                        Trace.WriteLine(
+                            $"FlashCap: Capture device was lost: Events={fds[1].revents}, DevicePath={this.devicePath}");
                         break;
                     }
                     if ((fds[1].revents & POLLBITS.POLLIN) == POLLBITS.POLLIN)
