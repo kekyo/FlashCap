@@ -8,6 +8,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using System;
+using System.Linq;
 using System.Runtime.InteropServices.Marshalling;
 using FlashCap;
 using FlashCap.Devices;
@@ -22,6 +23,21 @@ internal static partial class Program
 
     private static int Main()
     {
+        if (OperatingSystem.IsMacOS())
+        {
+            var devices = new AVFoundationDevices();
+            _ = devices.EnumerateDescriptors().ToArray();
+            _ = devices.GetDescriptors();
+            return 0;
+        }
+
+        if (OperatingSystem.IsLinux())
+        {
+            var devices = new V4L2Devices();
+            _ = devices.EnumerateDescriptors().ToArray();
+            _ = devices.GetDescriptors();
+        }
+
         try
         {
 #pragma warning disable CA1416

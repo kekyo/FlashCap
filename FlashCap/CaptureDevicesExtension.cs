@@ -45,4 +45,52 @@ public static class CaptureDevicesExtension
     public static CaptureDeviceDescriptor[] GetDescriptors(
         this MediaFoundationDevices captureDevices) =>
         captureDevices.InternalEnumerateDescriptors().ToArray();
+
+    /// <summary>
+    /// Enumerates capture device descriptors using the V4L2 backend.
+    /// </summary>
+    /// <param name="captureDevices">The V4L2 device enumerator.</param>
+    /// <returns>The available capture device descriptors.</returns>
+#if NET6_0_OR_GREATER
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "The V4L2 override does not require unreferenced code.")]
+#endif
+    public static IEnumerable<CaptureDeviceDescriptor> EnumerateDescriptors(
+        this V4L2Devices captureDevices) =>
+        captureDevices.InternalEnumerateDescriptors();
+
+    /// <summary>
+    /// Gets capture device descriptors using the V4L2 backend.
+    /// </summary>
+    /// <param name="captureDevices">The V4L2 device enumerator.</param>
+    /// <returns>An array of the available capture device descriptors.</returns>
+#if NET6_0_OR_GREATER
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "The V4L2 override does not require unreferenced code.")]
+#endif
+    public static CaptureDeviceDescriptor[] GetDescriptors(
+        this V4L2Devices captureDevices) =>
+        captureDevices.InternalEnumerateDescriptors().ToArray();
+
+    /// <summary>
+    /// Enumerates capture device descriptors using the AVFoundation backend.
+    /// </summary>
+    /// <param name="captureDevices">The AVFoundation device enumerator.</param>
+    /// <returns>The available capture device descriptors.</returns>
+#if NET6_0_OR_GREATER
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "The AVFoundation override does not require unreferenced code.")]
+#endif
+    public static IEnumerable<CaptureDeviceDescriptor> EnumerateDescriptors(
+        this AVFoundationDevices captureDevices) =>
+        captureDevices.InternalEnumerateDescriptors();
+
+    /// <summary>
+    /// Gets capture device descriptors using the AVFoundation backend.
+    /// </summary>
+    /// <param name="captureDevices">The AVFoundation device enumerator.</param>
+    /// <returns>An array of the available capture device descriptors.</returns>
+#if NET6_0_OR_GREATER
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "The AVFoundation override does not require unreferenced code.")]
+#endif
+    public static CaptureDeviceDescriptor[] GetDescriptors(
+        this AVFoundationDevices captureDevices) =>
+        captureDevices.InternalEnumerateDescriptors().ToArray();
 }
