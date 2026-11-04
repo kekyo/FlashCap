@@ -49,6 +49,10 @@
                         IsEnabled="{Binding IsEnabledShowPropertyPage}"
                         Content="Show property page"
                         Command="{Binding ShowPropertyPage}" />
+                <Button BorderBrush="White" BorderThickness="1"
+                        IsEnabled="{Binding IsEnabledShowControls}"
+                        Content="Camera controls"
+                        Command="{Binding ShowControls}" />
             </StackPanel>
             <TextBlock Foreground="Yellow"
                        Text="{Binding Statistics1}" />

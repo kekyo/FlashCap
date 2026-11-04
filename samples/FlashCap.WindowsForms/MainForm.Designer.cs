@@ -32,6 +32,7 @@
             this.imageList1 = new System.Windows.Forms.ImageList(this.components);
             this.deviceLabel = new System.Windows.Forms.Label();
             this.characteristicsLabel = new System.Windows.Forms.Label();
+            this.controlsButton = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // imageList1
@@ -66,6 +67,19 @@
             this.characteristicsLabel.TabIndex = 1;
             this.characteristicsLabel.Text = "characteristicsLabel";
             // 
+            // controlsButton
+            // 
+            this.controlsButton.AutoSize = true;
+            this.controlsButton.BackColor = System.Drawing.SystemColors.Control;
+            this.controlsButton.Enabled = false;
+            this.controlsButton.Location = new System.Drawing.Point(2, 30);
+            this.controlsButton.Name = "controlsButton";
+            this.controlsButton.Size = new System.Drawing.Size(100, 23);
+            this.controlsButton.TabIndex = 2;
+            this.controlsButton.Text = "Camera controls";
+            this.controlsButton.UseVisualStyleBackColor = false;
+            this.controlsButton.Click += new System.EventHandler(this.controlsButton_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -73,6 +87,7 @@
             this.BackColor = System.Drawing.Color.Black;
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
             this.ClientSize = new System.Drawing.Size(800, 488);
+            this.Controls.Add(this.controlsButton);
             this.Controls.Add(this.characteristicsLabel);
             this.Controls.Add(this.deviceLabel);
             this.DoubleBuffered = true;
@@ -90,5 +105,6 @@
         private System.Windows.Forms.ImageList imageList1;
         private System.Windows.Forms.Label deviceLabel;
         private System.Windows.Forms.Label characteristicsLabel;
+        private System.Windows.Forms.Button controlsButton;
     }
 }
