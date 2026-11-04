@@ -300,6 +300,29 @@ try {
     run(join(outputDirectory, "FlashCap.Core.Tests"), []);
   }
 
+  // Build the macOS consumers with AOT analysis; native linking requires macOS.
+  for (const runtime of ["osx-x64", "osx-arm64"]) {
+    run("dotnet", [
+      "restore",
+      aotProject,
+      "--runtime",
+      runtime,
+      "--configfile",
+      consumerNuGetConfig,
+      `-p:FlashCapPackageVersion=${corePackage.version}`,
+    ], isolatedEnvironment);
+    run("dotnet", [
+      "build",
+      aotProject,
+      "--configuration",
+      "Release",
+      "--runtime",
+      runtime,
+      "--no-restore",
+      `-p:FlashCapPackageVersion=${corePackage.version}`,
+    ], isolatedEnvironment);
+  }
+
   process.stdout.write("\nAll FlashCap verification steps passed.\n");
 } finally {
   rmSync(temporaryRoot, { recursive: true, force: true });
