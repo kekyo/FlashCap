@@ -53,8 +53,9 @@ public sealed class DirectShowDevices : CaptureDevices
                                     pinInfo.dir == NativeMethods_DirectShow.PIN_DIRECTION.Output ?
                                         pin : null).
                                 SelectMany(pin =>
-                                    pin.EnumerateFormats().
-                                    Collect(format => format.CreateVideoCharacteristics())).
+                                    pin.EnumerateFormats(captureSource).
+                                    SelectMany(format => format.EnumerateVideoCharacteristics().
+                                        Select(entry => entry.Value))).
                                 Distinct().
                                 OrderByDescending(vc => vc).
                                 ToArray()) :
