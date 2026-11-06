@@ -98,6 +98,7 @@ internal static class NativeMethods_V4L2
         pixelFormats.ContainsKey(pix_fmt);
 
     public const int EINTR = 4;
+    public const int ENODEV = 19;
     public const int EINVAL = 22;
 
     ///////////////////////////////////////////////////////////
