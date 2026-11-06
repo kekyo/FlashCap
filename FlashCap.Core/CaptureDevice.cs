@@ -76,6 +76,18 @@ public abstract class CaptureDevice :
         IntPtr parentWindow, CancellationToken ct) =>
         TaskCompat.FromResult(false);
 
+    protected virtual Task<CaptureDeviceControl[]> OnGetControlsAsync(
+        CancellationToken ct) =>
+        TaskCompat.FromResult(ArrayEx.Empty<CaptureDeviceControl>());
+
+    protected virtual Task<CaptureDeviceControlValue?> OnGetControlValueAsync(
+        CaptureDeviceControlTypes type, CancellationToken ct) =>
+        TaskCompat.FromResult<CaptureDeviceControlValue?>(null);
+
+    protected virtual Task<bool> OnSetControlValueAsync(
+        CaptureDeviceControlTypes type, int value, bool isAuto, CancellationToken ct) =>
+        TaskCompat.FromResult(false);
+
     //////////////////////////////////////////////////////////////////////////
 
     internal Task InternalInitializeAsync(
@@ -115,5 +127,32 @@ public abstract class CaptureDevice :
             ConfigureAwait(false);
 
         return await this.OnShowPropertyPageAsync(parentWindow, ct);
+    }
+
+    internal async Task<CaptureDeviceControl[]> InternalGetControlsAsync(
+        CancellationToken ct)
+    {
+        using var _ = await locker.LockAsync(ct).
+            ConfigureAwait(false);
+
+        return await this.OnGetControlsAsync(ct);
+    }
+
+    internal async Task<CaptureDeviceControlValue?> InternalGetControlValueAsync(
+        CaptureDeviceControlTypes type, CancellationToken ct)
+    {
+        using var _ = await locker.LockAsync(ct).
+            ConfigureAwait(false);
+
+        return await this.OnGetControlValueAsync(type, ct);
+    }
+
+    internal async Task<bool> InternalSetControlValueAsync(
+        CaptureDeviceControlTypes type, int value, bool isAuto, CancellationToken ct)
+    {
+        using var _ = await locker.LockAsync(ct).
+            ConfigureAwait(false);
+
+        return await this.OnSetControlValueAsync(type, value, isAuto, ct);
     }
 }

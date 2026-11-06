@@ -271,6 +271,36 @@ Currently, property pages can only be displayed when the target is a DirectShow 
 
 See [Avalonia sample code](samples/FlashCap.Avalonia/) and [WPF sample code](samples/FlashCap.Wpf/) for a complete implementation.
 
+### Camera controls
+
+Camera controls such as the brightness, the zoom or the exposure can be read and set.
+The values are in the native unit of the device, see `CaptureDeviceControlTypes`.
+
+```csharp
+using var device = await descriptor.OpenAsync(
+    characteristics,
+    async bufferScope =>
+    {
+        // ...
+    });
+
+// Controls the device offers, with their ranges
+foreach (var control in await device.GetControlsAsync())
+{
+    var value = await device.GetControlValueAsync(control.Type);
+    Console.WriteLine($"{control}: {value}");
+}
+
+// Set the zoom
+await device.SetControlValueAsync(CaptureDeviceControlTypes.Zoom, 200);
+
+// Let the device set the exposure itself
+await device.SetControlValueAsync(CaptureDeviceControlTypes.Exposure, 0, isAuto: true);
+```
+
+Currently, camera controls are supported when the target is a DirectShow or a V4L2 device.
+The exposure is the binary logarithm of seconds on DirectShow and the time in 100 µs units on V4L2.
+
 
 ----
 

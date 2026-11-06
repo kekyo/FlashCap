@@ -1033,4 +1033,73 @@ internal static class NativeMethods_DirectShow
     public static extern int OleCreatePropertyFrame(IntPtr hwndOwner, int x, int y, [MarshalAs(UnmanagedType.LPWStr)] string caption, int cObjects, [MarshalAs(UnmanagedType.Interface)] ref object ppUnk, int cPages, IntPtr lpPageClsID, int lcid, int dwReserved, IntPtr lpvReserved);
     
     #endregion
+
+    #region CAMERA_CONTROLS
+
+    // https://learn.microsoft.com/en-us/windows/win32/api/strmif/nn-strmif-iamvideoprocamp
+    // https://learn.microsoft.com/en-us/windows/win32/api/strmif/nn-strmif-iamcameracontrol
+
+    public enum VideoProcAmpProperty
+    {
+        Brightness = 0,
+        Contrast = 1,
+        Hue = 2,
+        Saturation = 3,
+        Sharpness = 4,
+        Gamma = 5,
+        ColorEnable = 6,
+        WhiteBalance = 7,
+        BacklightCompensation = 8,
+        Gain = 9,
+    }
+
+    public enum CameraControlProperty
+    {
+        Pan = 0,
+        Tilt = 1,
+        Roll = 2,
+        Zoom = 3,
+        Exposure = 4,
+        Iris = 5,
+        Focus = 6,
+    }
+
+    [Flags]
+    public enum ControlFlags
+    {
+        Auto = 0x1,
+        Manual = 0x2,
+    }
+
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("C6E13360-30AC-11D0-A18C-00A0C9118956")]
+    internal interface IAMVideoProcAmp
+    {
+        [PreserveSig]
+        int GetRange(VideoProcAmpProperty property, out int min, out int max, out int steppingDelta, out int defaultValue, out ControlFlags capsFlags);
+
+        [PreserveSig]
+        int Set(VideoProcAmpProperty property, int value, ControlFlags flags);
+
+        [PreserveSig]
+        int Get(VideoProcAmpProperty property, out int value, out ControlFlags flags);
+    }
+
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("C6E13370-30AC-11D0-A18C-00A0C9118956")]
+    internal interface IAMCameraControl
+    {
+        [PreserveSig]
+        int GetRange(CameraControlProperty property, out int min, out int max, out int steppingDelta, out int defaultValue, out ControlFlags capsFlags);
+
+        [PreserveSig]
+        int Set(CameraControlProperty property, int value, ControlFlags flags);
+
+        [PreserveSig]
+        int Get(CameraControlProperty property, out int value, out ControlFlags flags);
+    }
+
+    #endregion
 }

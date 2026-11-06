@@ -25,3 +25,15 @@ module public CaptureDeviceExtension =
 
         member self.showPropertyPage(parentWindow: nativeint, ?ct: CancellationToken) =
             self.InternalShowPropertyPageAsync(parentWindow, asCT ct) |> Async.AwaitTask
+
+        member self.getControls(?ct: CancellationToken) =
+            self.InternalGetControlsAsync(asCT ct) |> Async.AwaitTask
+
+        member self.getControlValue(controlType: CaptureDeviceControlTypes, ?ct: CancellationToken) = async {
+            let! value = self.InternalGetControlValueAsync(controlType, asCT ct) |> Async.AwaitTask
+            return match value with
+                   | null -> None
+                   | _ -> Some value }
+
+        member self.setControlValue(controlType: CaptureDeviceControlTypes, value: int, ?isAuto: bool, ?ct: CancellationToken) =
+            self.InternalSetControlValueAsync(controlType, value, defaultArg isAuto false, asCT ct) |> Async.AwaitTask

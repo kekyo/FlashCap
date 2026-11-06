@@ -8,6 +8,7 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using Epoxy;
+using FlashCap.Wpf.Views;
 using SkiaSharp;
 using System;
 using System.Collections.ObjectModel;
@@ -36,6 +37,9 @@ public sealed class MainWindowViewModel
     // Constructed capture device.
     private CaptureDevice? captureDevice;
 
+    // Shown camera controls window.
+    private CaptureDeviceControlsWindow? controlsWindow;
+
     // Binding members.
     public Command Loaded { get; }
     public SKBitmap? Image { get; private set; }
@@ -43,9 +47,11 @@ public sealed class MainWindowViewModel
     public Command StartCapture { get; }
     public Command StopCapture { get; }
     public Command ShowPropertyPage { get; }
+    public Command ShowControls { get; }
     public bool IsEnabledStartCapture { get; private set; }
     public bool IsEnabledStopCapture { get; private set; }
     public bool IsEnabledShowPropertyPage { get; private set; }
+    public bool IsEnabledShowControls { get; private set; }
 
     public Pile<Window> WindowPile { get; } = Pile.Factory.Create<Window>();
 
@@ -54,6 +60,8 @@ public sealed class MainWindowViewModel
 
     public ObservableCollection<VideoCharacteristics> CharacteristicsList { get; } = new();
     public VideoCharacteristics? Characteristics { get; set; }
+
+    public ObservableCollection<CaptureDeviceControlViewModel> Controls { get; } = new();
 
     public string? Statistics1 { get; private set; }
     public string? Statistics2 { get; private set; }
@@ -126,6 +134,27 @@ public sealed class MainWindowViewModel
                 });
             }
         });
+
+        // Clicked camera controls button.
+        this.ShowControls = Command.Factory.Create(async () =>
+        {
+            if (this.controlsWindow is { } shown)
+            {
+                shown.Activate();
+                return;
+            }
+
+            // Partially rent Window object from the anchor.
+            await this.WindowPile.RentAsync(window =>
+            {
+                // The controls window shows the controls of this view model.
+                var controlsWindow = new CaptureDeviceControlsWindow { Owner = window, DataContext = this };
+                controlsWindow.Closed += (s, e) => this.controlsWindow = null;
+                this.controlsWindow = controlsWindow;
+                controlsWindow.Show();
+                return default;
+            });
+        });
     }
 
     // Buttons enabling control.
@@ -150,6 +179,7 @@ public sealed class MainWindowViewModel
         }
 
         this.IsEnabledShowPropertyPage = this.captureDevice?.HasPropertyPage ?? false;
+        this.IsEnabledShowControls = this.Controls.Count >= 1;
     }
 
     // Devices combo box was changed.
@@ -210,6 +240,7 @@ public sealed class MainWindowViewModel
             if (this.captureDevice is { } captureDevice)
             {
                 this.captureDevice = null;
+                this.Controls.Clear();
 
                 this.UpdateCurrentState(States.NotShown);
 
@@ -236,6 +267,13 @@ public sealed class MainWindowViewModel
                 this.captureDevice = await descriptor.OpenAsync(
                     characteristics,
                     this.OnPixelBufferArrivedAsync);
+
+                // Camera controls the device offers, such as the brightness or the zoom:
+                foreach (var control in await this.captureDevice.GetControlsAsync())
+                {
+                    var value = await this.captureDevice.GetControlValueAsync(control.Type);
+                    this.Controls.Add(new CaptureDeviceControlViewModel(this.captureDevice, control, value));
+                }
 
                 this.UpdateCurrentState(States.Ready);
             }

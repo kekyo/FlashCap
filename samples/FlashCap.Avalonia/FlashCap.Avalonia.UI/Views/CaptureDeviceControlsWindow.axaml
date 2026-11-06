@@ -1,0 +1,51 @@
+<Window
+    xmlns="https://github.com/avaloniaui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:viewmodels="clr-namespace:FlashCap.Avalonia.ViewModels"
+    mc:Ignorable="d" d:DesignWidth="320" d:DesignHeight="480"
+    x:Class="FlashCap.Avalonia.Views.CaptureDeviceControlsWindow"
+    x:DataType="viewmodels:MainWindowViewModel"
+    Title="Camera controls" Width="320" Height="560">
+
+    <!-- Camera controls the device offers. -->
+    <ScrollViewer>
+        <ItemsControl ItemsSource="{Binding Controls}" Margin="12">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="viewmodels:CaptureDeviceControlViewModel">
+                    <StackPanel Margin="0,0,0,10">
+                        <DockPanel>
+                            <CheckBox DockPanel.Dock="Right"
+                                      Content="Auto"
+                                      IsVisible="{Binding SupportsAuto}"
+                                      IsChecked="{Binding IsAuto, Mode=TwoWay}" />
+                            <TextBlock VerticalAlignment="Center">
+                                <Run Text="{Binding Name}" />
+                                <Run Text="{Binding Value}" Foreground="Gray" />
+                            </TextBlock>
+                        </DockPanel>
+                        <!-- A slider for a range of values. -->
+                        <Slider IsVisible="{Binding IsSlider}"
+                                Minimum="{Binding Minimum}"
+                                Maximum="{Binding Maximum}"
+                                SmallChange="{Binding Step}"
+                                IsEnabled="{Binding !IsAuto}"
+                                Value="{Binding Value, Mode=TwoWay}" />
+                        <!-- A check box for a control which is on or off. -->
+                        <CheckBox IsVisible="{Binding IsSwitch}"
+                                  Content="On"
+                                  IsEnabled="{Binding !IsAuto}"
+                                  IsChecked="{Binding IsOn, Mode=TwoWay}" />
+                        <!-- A choice for named values. -->
+                        <ComboBox IsVisible="{Binding IsChoice}"
+                                  HorizontalAlignment="Stretch"
+                                  IsEnabled="{Binding !IsAuto}"
+                                  ItemsSource="{Binding Choices}"
+                                  SelectedItem="{Binding Choice, Mode=TwoWay}" />
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </ScrollViewer>
+</Window>
