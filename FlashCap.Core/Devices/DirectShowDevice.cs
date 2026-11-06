@@ -124,17 +124,15 @@ public sealed class DirectShowDevice :
                             pinInfo.dir == NativeMethods_DirectShow.PIN_DIRECTION.Output ?
                                 pin : null).
                         SelectMany(pin =>
-                            pin.EnumerateFormats().
-                            Collect(format =>
-                            {
-                                var vfc = format.CreateVideoCharacteristics();
-                                return characteristics.Equals(vfc) ?
-                                    new { pin, format, vfc } : null;
-                            })).
+                            pin.EnumerateFormats(captureSource).
+                            SelectMany(format => format.EnumerateVideoCharacteristics().
+                                Collect(vfc =>
+                                    characteristics.Equals(vfc.Value) ?
+                                        new { pin, format, interval = vfc.Key, vfc = vfc.Value } : null))).
                         FirstOrDefault() is { } entry)
                     {
                         this.Characteristics = entry.vfc;
-                        entry.pin.SetFormat(entry.format);
+                        entry.pin.SetFormat(entry.format, entry.interval);
                     }
                     else
                     {
