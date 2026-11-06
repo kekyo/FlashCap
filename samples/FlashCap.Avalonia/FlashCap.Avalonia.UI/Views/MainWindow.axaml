@@ -10,6 +10,7 @@
     x:Class="FlashCap.Avalonia.Views.MainWindow"
     x:DataType="viewmodels:MainWindowViewModel"
     Title="FlashCap.Avalonia" Height="450" Width="800"
+    RequestedThemeVariant="Dark"
     TransparencyBackgroundFallback="Black"
     epoxy:Anchor.Pile="{Binding WindowPile}">
 
