@@ -102,6 +102,24 @@ internal static class NativeMethods_V4L2
 
     ///////////////////////////////////////////////////////////
 
+    // Video standards of v4l2_std_id in videodev2.h, analog video grabbers follow them.
+
+    // PAL, PAL-N, PAL-Nc and SECAM: 25 frames per second.
+    public const ulong V4L2_STD_625_50 = 0x000000ff | 0x00000200 | 0x00000400 | 0x00ff0000;
+    // NTSC, PAL-M and PAL-60: 30000/1001 frames per second.
+    public const ulong V4L2_STD_525_60 = 0x00000100 | 0x00000800 | 0x00001000 | 0x00002000 | 0x00004000 | 0x00008000;
+
+    // struct v4l2_streamparm, the same layout on all architectures:
+    //   __u32 type; union { struct v4l2_captureparm capture; __u8 raw_data[200]; } parm;
+    // struct v4l2_captureparm starts with:
+    //   __u32 capability; __u32 capturemode; struct v4l2_fract timeperframe;
+    public const int sizeof_v4l2_streamparm = 204;
+    public const int offsetof_v4l2_streamparm_type = 0;
+    public const int offsetof_v4l2_streamparm_timeperframe_numerator = 12;
+    public const int offsetof_v4l2_streamparm_timeperframe_denominator = 16;
+
+    ///////////////////////////////////////////////////////////
+
     // Camera controls of videodev2.h and v4l2-controls.h.
     // struct v4l2_queryctrl and v4l2_control have the same layout on all architectures,
     // only the ioctl numbers come from the generated interop.
