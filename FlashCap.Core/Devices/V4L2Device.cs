@@ -36,8 +36,8 @@ public sealed class V4L2Device : CaptureDevice
 
     private long frameIndex;
     
-    private IntPtr[] pBuffers = new IntPtr[BufferCount];
-    private int[] bufferLength = new int[BufferCount];
+    private IntPtr[] pBuffers = ArrayEx.Empty<IntPtr>();
+    private int[] bufferLength = ArrayEx.Empty<int>();
     
     private int fd;
     private IntPtr pBih;
@@ -213,6 +213,10 @@ public sealed class V4L2Device : CaptureDevice
                         throw new ArgumentException(
                             $"FlashCap: Couldn't allocate video buffer: Code={code}, DevicePath={this.devicePath}");
                     }
+
+                    // The driver may require more buffers than requested.
+                    this.pBuffers = new IntPtr[requestbuffers.count];
+                    this.bufferLength = new int[requestbuffers.count];
 
                     for (var index = 0; index < requestbuffers.count; index++)
                     {
