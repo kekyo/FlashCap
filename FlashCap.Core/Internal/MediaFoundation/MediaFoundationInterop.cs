@@ -241,20 +241,31 @@ internal static unsafe class MediaFoundationInterop
     }
 
     internal static IMFSourceReader* CreateSourceReader(IMFMediaSource* mediaSource)
-        => CreateSourceReader(mediaSource, null);
+        => CreateSourceReader(mediaSource, null, false);
 
-    internal static IMFSourceReader* CreateSourceReader(IMFMediaSource* mediaSource, IUnknown* callback)
+    internal static IMFSourceReader* CreateSourceReader(IMFMediaSource* mediaSource, IUnknown* callback, bool keepSourceAlive)
     {
         IMFSourceReader* reader = null;
         IMFAttributes* attributes = null;
         try
         {
+            if (callback is not null || keepSourceAlive)
+            {
+                ThrowIfFailed(MFCreateAttributes(&attributes, 2), nameof(MFCreateAttributes));
+            }
             if (callback is not null)
             {
-                ThrowIfFailed(MFCreateAttributes(&attributes, 1), nameof(MFCreateAttributes));
                 ThrowIfFailed(
                     attributes->SetUnknown(in MF_SOURCE_READER_ASYNC_CALLBACK, callback),
                     "IMFAttributes.SetUnknown(async callback)");
+            }
+            if (keepSourceAlive)
+            {
+                // CaptureSource owns Shutdown; stopping a reader must leave camera controls usable.
+                // https://learn.microsoft.com/en-us/windows/win32/medfound/mf-source-reader-disconnect-mediasource-on-shutdown
+                ThrowIfFailed(
+                    attributes->SetUINT32(in MF_SOURCE_READER_DISCONNECT_MEDIASOURCE_ON_SHUTDOWN, 1),
+                    "IMFAttributes.SetUINT32(disconnect source)");
             }
             ThrowIfFailed(
                 MFCreateSourceReaderFromMediaSource(mediaSource, attributes, &reader),

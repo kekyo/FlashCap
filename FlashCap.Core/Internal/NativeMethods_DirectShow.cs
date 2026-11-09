@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Security;
@@ -390,6 +391,21 @@ internal static class NativeMethods_DirectShow
     }
 
     [SuppressUnmanagedCodeSecurity]
+    [Guid("6a2e0670-28e4-11d0-a18c-00a0c9118956")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    public interface IAMVideoControl
+    {
+        [PreserveSig] int GetCaps(IPin pin, out int capsFlags);
+        [PreserveSig] int SetMode(IPin pin, int mode);
+        [PreserveSig] int GetMode(IPin pin, out int mode);
+        [PreserveSig] int GetCurrentActualFrameRate(IPin pin, out long actualFrameRate);
+        [PreserveSig] int GetMaxAvailableFrameRate(
+            IPin pin, int index, NativeMethods.SIZE dimensions, out long maxAvailableFrameRate);
+        [PreserveSig] int GetFrameRateList(
+            IPin pin, int index, NativeMethods.SIZE dimensions, out int listSize, out IntPtr frameRates);
+    }
+
+    [SuppressUnmanagedCodeSecurity]
     [Guid("56a868a9-0ad4-11ce-b03a-0020af0ba770")]
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     public interface IGraphBuilder : IFilterGraph
@@ -732,6 +748,7 @@ internal static class NativeMethods_DirectShow
         public readonly AM_MEDIA_TYPE PartialMediaType;
         public readonly NativeMethods.VIDEOINFOHEADER VideoInformation;
         public readonly VIDEO_STREAM_CONFIG_CAPS Capabilities;
+        public readonly long[] FrameIntervals;
         
         private IntPtr pBih_;
 
@@ -739,7 +756,8 @@ internal static class NativeMethods_DirectShow
             AM_MEDIA_TYPE partialMediaType,
             in NativeMethods.VIDEOINFOHEADER information,
             IntPtr pBih,
-            in VIDEO_STREAM_CONFIG_CAPS capabilities)
+            in VIDEO_STREAM_CONFIG_CAPS capabilities,
+            long[] frameIntervals)
         {
             Debug.Assert(partialMediaType.pFormat == IntPtr.Zero);
             Debug.Assert(partialMediaType.pUnk == IntPtr.Zero);
@@ -748,6 +766,12 @@ internal static class NativeMethods_DirectShow
             this.VideoInformation = information;
             this.pBih_ = pBih;
             this.Capabilities = capabilities;
+            // The default interval of the format first, then the others the device supports.
+            var defaultInterval = information.AvgTimePerFrame;
+            this.FrameIntervals = new[] { defaultInterval }.
+                Concat(frameIntervals.Where(interval => interval > 0 && interval != defaultInterval)).
+                Distinct().
+                ToArray();
         }
 
         ~VideoMediaFormat() =>
@@ -766,10 +790,12 @@ internal static class NativeMethods_DirectShow
             this.pBih_;
 
         [RequiresUnreferencedCode("Direct show depends on COM runtime generation and might require unreferenced code.")]
-        public unsafe AM_MEDIA_TYPE AllocateFormalMediaType()
+        public unsafe AM_MEDIA_TYPE AllocateFormalMediaType(long frameInterval)
         {
             // Copy.
             var mediaType = this.PartialMediaType;
+            var videoInformation = this.VideoInformation;
+            videoInformation.AvgTimePerFrame = frameInterval;
 
             if (mediaType.formattype == FORMAT_VideoInfo)
             {
@@ -780,7 +806,7 @@ internal static class NativeMethods_DirectShow
                 mediaType.pFormat = NativeMethods.AllocateMemory((IntPtr)mediaType.formatSize);
 
                 var pVihTo = (NativeMethods.VIDEOINFOHEADER*)mediaType.pFormat;
-                *pVihTo = this.VideoInformation;
+                *pVihTo = videoInformation;
 
                 var pBihTo = (NativeMethods.BITMAPINFOHEADER*)(pVihTo + 1);
                 NativeMethods.CopyMemory((IntPtr)pBihTo, (IntPtr)pBihFrom, (IntPtr)bihFromSize);
@@ -794,7 +820,7 @@ internal static class NativeMethods_DirectShow
                 mediaType.pFormat = NativeMethods.AllocateMemory((IntPtr)mediaType.formatSize);
 
                 var pVihTo = (NativeMethods.VIDEOINFOHEADER*)mediaType.pFormat;
-                *pVihTo = this.VideoInformation;
+                *pVihTo = videoInformation;
 
                 var pBihTo = (NativeMethods.BITMAPINFOHEADER*)(((byte*)pVihTo) + sizeof(NativeMethods.VIDEOINFOHEADER2));
                 NativeMethods.CopyMemory((IntPtr)pBihTo, (IntPtr)pBihFrom, (IntPtr)bihFromSize);
@@ -807,15 +833,26 @@ internal static class NativeMethods_DirectShow
             return mediaType;
         }
         
-        public VideoCharacteristics? CreateVideoCharacteristics() =>
+        public VideoCharacteristics? CreateVideoCharacteristics(long frameInterval) =>
             NativeMethods.CreateVideoCharacteristics(
                 this.pBih,
                 new Fraction(
                     // Precision is only under 3 digits (0.001)
-                    (int)(10_000_000_000.0 / this.VideoInformation.AvgTimePerFrame),
+                    (int)(10_000_000_000.0 / frameInterval),
                     1_000).Reduce(),
                 true, // TODO: support non discrete entries.
                 this.PartialMediaType.subtype.ToString());
+
+        public IEnumerable<KeyValuePair<long, VideoCharacteristics>> EnumerateVideoCharacteristics()
+        {
+            foreach (var interval in this.FrameIntervals)
+            {
+                if (this.CreateVideoCharacteristics(interval) is { } vc)
+                {
+                    yield return new KeyValuePair<long, VideoCharacteristics>(interval, vc);
+                }
+            }
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////
@@ -824,11 +861,11 @@ internal static class NativeMethods_DirectShow
         sizeof(VIDEO_STREAM_CONFIG_CAPS);
 
     [RequiresUnreferencedCode("Direct show depends on COM runtime generation and might require unreferenced code.")]
-    public static bool SetFormat(this IPin pin, VideoMediaFormat format)
+    public static bool SetFormat(this IPin pin, VideoMediaFormat format, long frameInterval)
     {
         if (pin is IAMStreamConfig streamConfig)
         {
-            var mediaType = format.AllocateFormalMediaType();
+            var mediaType = format.AllocateFormalMediaType(frameInterval);
             try
             {
                 if (streamConfig.SetFormat(in mediaType) == 0)
@@ -845,8 +882,42 @@ internal static class NativeMethods_DirectShow
     }
 
     public static IEnumerable<VideoMediaFormat> EnumerateFormats(
-        this IPin pin)
+        this IPin pin, IBaseFilter? captureSource = null)
     {
+        // A format of IAMStreamConfig has only its default frame rate and a range of frame intervals,
+        // the frame rates the device supports in it are listed by IAMVideoControl of the filter.
+        static unsafe long[] GetFrameIntervals(
+            IAMVideoControl? videoControl, IPin pin, int index, IntPtr pBih)
+        {
+            if (videoControl == null)
+            {
+                return ArrayEx.Empty<long>();
+            }
+
+            var pb = (NativeMethods.BITMAPINFOHEADER*)pBih.ToPointer();
+            var dimensions = new NativeMethods.SIZE { cx = pb->biWidth, cy = Math.Abs(pb->biHeight) };
+            if (videoControl.GetFrameRateList(pin, index, dimensions, out var listSize, out var pFrameRates) != 0 ||
+                pFrameRates == IntPtr.Zero)
+            {
+                return ArrayEx.Empty<long>();
+            }
+
+            try
+            {
+                var intervals = new long[Math.Max(0, listSize)];
+                var p = (long*)pFrameRates.ToPointer();
+                for (var i = 0; i < intervals.Length; i++)
+                {
+                    intervals[i] = p[i];
+                }
+                return intervals;
+            }
+            finally
+            {
+                NativeMethods.FreeMemory(pFrameRates);
+            }
+        }
+
         static unsafe AM_MEDIA_TYPE CloneAndRelease(IntPtr pMediaType)
         {
             var pmt = (AM_MEDIA_TYPE*)pMediaType.ToPointer();
@@ -898,6 +969,7 @@ internal static class NativeMethods_DirectShow
             return false;
         }
 
+        var videoControl = captureSource as IAMVideoControl;
         if (pin is IAMStreamConfig streamConfig)
         {
             if (streamConfig.GetNumberOfCapabilities(out var count, out var size) == 0 &&
@@ -916,7 +988,9 @@ internal static class NativeMethods_DirectShow
                                 // Copy.
                                 var partialMediaType = mediaType;
                                 partialMediaType.pFormat = IntPtr.Zero;
-                                yield return new VideoMediaFormat(partialMediaType, vih, pBih, caps);
+                                yield return new VideoMediaFormat(
+                                    partialMediaType, vih, pBih, caps,
+                                    GetFrameIntervals(videoControl, pin, index, pBih));
                             }
                         }
                         finally
@@ -1032,5 +1106,74 @@ internal static class NativeMethods_DirectShow
     [DllImport("oleaut32.dll")]
     public static extern int OleCreatePropertyFrame(IntPtr hwndOwner, int x, int y, [MarshalAs(UnmanagedType.LPWStr)] string caption, int cObjects, [MarshalAs(UnmanagedType.Interface)] ref object ppUnk, int cPages, IntPtr lpPageClsID, int lcid, int dwReserved, IntPtr lpvReserved);
     
+    #endregion
+
+    #region CAMERA_CONTROLS
+
+    // https://learn.microsoft.com/en-us/windows/win32/api/strmif/nn-strmif-iamvideoprocamp
+    // https://learn.microsoft.com/en-us/windows/win32/api/strmif/nn-strmif-iamcameracontrol
+
+    public enum VideoProcAmpProperty
+    {
+        Brightness = 0,
+        Contrast = 1,
+        Hue = 2,
+        Saturation = 3,
+        Sharpness = 4,
+        Gamma = 5,
+        ColorEnable = 6,
+        WhiteBalance = 7,
+        BacklightCompensation = 8,
+        Gain = 9,
+    }
+
+    public enum CameraControlProperty
+    {
+        Pan = 0,
+        Tilt = 1,
+        Roll = 2,
+        Zoom = 3,
+        Exposure = 4,
+        Iris = 5,
+        Focus = 6,
+    }
+
+    [Flags]
+    public enum ControlFlags
+    {
+        Auto = 0x1,
+        Manual = 0x2,
+    }
+
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("C6E13360-30AC-11D0-A18C-00A0C9118956")]
+    internal interface IAMVideoProcAmp
+    {
+        [PreserveSig]
+        int GetRange(VideoProcAmpProperty property, out int min, out int max, out int steppingDelta, out int defaultValue, out ControlFlags capsFlags);
+
+        [PreserveSig]
+        int Set(VideoProcAmpProperty property, int value, ControlFlags flags);
+
+        [PreserveSig]
+        int Get(VideoProcAmpProperty property, out int value, out ControlFlags flags);
+    }
+
+    [ComImport]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    [Guid("C6E13370-30AC-11D0-A18C-00A0C9118956")]
+    internal interface IAMCameraControl
+    {
+        [PreserveSig]
+        int GetRange(CameraControlProperty property, out int min, out int max, out int steppingDelta, out int defaultValue, out ControlFlags capsFlags);
+
+        [PreserveSig]
+        int Set(CameraControlProperty property, int value, ControlFlags flags);
+
+        [PreserveSig]
+        int Get(CameraControlProperty property, out int value, out ControlFlags flags);
+    }
+
     #endregion
 }

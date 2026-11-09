@@ -93,7 +93,7 @@ public sealed class DelegatedScatteringProcessor :
 
     protected override async Task OnDisposeAsync()
     {
-        await base.DisposeAsync().
+        await base.OnDisposeAsync().
             ConfigureAwait(false);
         this.pixelBufferArrived = null!;
     }
@@ -142,7 +142,7 @@ public sealed class DelegatedScatteringTaskProcessor :
 
     protected override async Task OnDisposeAsync()
     {
-        await base.DisposeAsync().
+        await base.OnDisposeAsync().
             ConfigureAwait(false);
         this.pixelBufferArrived = null!;
     }

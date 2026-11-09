@@ -10,22 +10,17 @@
 
 using FlashCap.Internal;
 using System;
-using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 using FlashCap.Internal.MediaFoundation;
-#if !NET9_0_OR_GREATER
-using Lock = System.Object;
-#endif
 
 namespace FlashCap.Devices;
 
 [SupportedOSPlatform("windows6.1")]
 public sealed class MediaFoundationDevice : CaptureDevice
 {
-    private readonly Lock sync = new();
     private readonly string symbolicLink;
     private readonly MediaFoundationInterop.FormatKey formatKey;
 
@@ -33,7 +28,9 @@ public sealed class MediaFoundationDevice : CaptureDevice
     private TranscodeFormats transcodeFormat;
     private IntPtr bitmapHeader;
     private byte[]? repackBuffer;
-    private CancellationTokenSource? stopSource;
+    private MediaFoundationWorker? worker;
+    private CaptureSource? source;
+    private CaptureSession? captureSession;
     private Task captureTask = TaskCompat.CompletedTask;
     private bool disposed;
 
@@ -47,7 +44,7 @@ public sealed class MediaFoundationDevice : CaptureDevice
         this.formatKey = formatKey;
     }
 
-    protected override Task OnInitializeAsync(
+    protected override async Task OnInitializeAsync(
         VideoCharacteristics characteristics,
         TranscodeFormats transcodeFormat,
         FrameProcessor frameProcessor,
@@ -78,7 +75,9 @@ public sealed class MediaFoundationDevice : CaptureDevice
             header->biCompression = compression;
             header->biSizeImage = header->CalculateImageSize();
         }
-        return TaskCompat.CompletedTask;
+        this.worker = new MediaFoundationWorker(MediaFoundationInterop.Initialize, MediaFoundationInterop.Uninitialize);
+        await this.worker.InvokeAsync(() =>
+            this.source = CaptureSource.Open(this.symbolicLink), ct).ConfigureAwait(false);
     }
 
     protected override async Task OnDisposeAsync()
@@ -89,38 +88,50 @@ public sealed class MediaFoundationDevice : CaptureDevice
         }
         this.disposed = true;
 
-        Exception? stopFailure = null;
         try
         {
             await this.OnStopAsync(CancellationToken.None).ConfigureAwait(false);
-        }
-        catch (Exception exception)
-        {
-            stopFailure = exception;
         }
         finally
         {
             try
             {
-                if (this.frameProcessor is not null)
+                if (this.worker is { } worker)
                 {
-                    await this.frameProcessor.DisposeAsync().ConfigureAwait(false);
-                    this.frameProcessor = null;
+                    try
+                    {
+                        await worker.InvokeAsync(() =>
+                        {
+                            this.source?.Dispose();
+                            this.source = null;
+                        }, CancellationToken.None).ConfigureAwait(false);
+                    }
+                    finally
+                    {
+                        await worker.DisposeAsync().ConfigureAwait(false);
+                        this.worker = null;
+                    }
                 }
             }
             finally
             {
-                if (this.bitmapHeader != IntPtr.Zero)
+                try
                 {
-                    NativeMethods.FreeMemory(this.bitmapHeader);
-                    this.bitmapHeader = IntPtr.Zero;
+                    if (this.frameProcessor is not null)
+                    {
+                        await this.frameProcessor.DisposeAsync().ConfigureAwait(false);
+                        this.frameProcessor = null;
+                    }
+                }
+                finally
+                {
+                    if (this.bitmapHeader != IntPtr.Zero)
+                    {
+                        NativeMethods.FreeMemory(this.bitmapHeader);
+                        this.bitmapHeader = IntPtr.Zero;
+                    }
                 }
             }
-        }
-
-        if (stopFailure is not null)
-        {
-            ExceptionDispatchInfo.Capture(stopFailure).Throw();
         }
     }
 
@@ -130,118 +141,72 @@ public sealed class MediaFoundationDevice : CaptureDevice
         {
             throw new ObjectDisposedException(nameof(MediaFoundationDevice));
         }
-        Task previousCapture;
-        bool alreadyRunning;
-        lock (this.sync)
-        {
-            previousCapture = this.captureTask;
-            alreadyRunning = this.IsRunning &&
-                this.stopSource is { IsCancellationRequested: false };
-        }
-        if (alreadyRunning)
+        // A canceled StopAsync may have requested a flush without awaiting cleanup.
+        // Wait for that session before restarting, even while IsRunning still reports true.
+        if (this.captureSession?.IsRunning == true)
         {
             return;
         }
-        await MediaFoundationHelpers.WaitAsync(previousCapture, ct).ConfigureAwait(false);
-
-        var startup = new AsyncTaskCompletionSource<bool>();
-        var stopSource = new CancellationTokenSource();
-        lock (this.sync)
-        {
-            this.stopSource?.Dispose();
-            this.stopSource = stopSource;
-            this.captureTask = MediaFoundationHelpers.StartCaptureWorker(
-                () => this.Capture(startup, stopSource.Token));
-        }
-
-        try
-        {
-            await MediaFoundationHelpers.WaitAsync(startup.Task, ct).ConfigureAwait(false);
-        }
-        catch
-        {
-            await this.OnStopAsync(CancellationToken.None).ConfigureAwait(false);
-            throw;
-        }
+        await MediaFoundationHelpers.WaitAsync(this.captureTask, ct).ConfigureAwait(false);
+        var worker = this.GetWorker();
+        var session = await worker.InvokeAsync(this.StartCapture, ct).ConfigureAwait(false);
+        this.captureTask = this.ObserveCaptureAsync(worker, session);
     }
 
     protected override async Task OnStopAsync(CancellationToken ct)
     {
-        this.PrepareStop(out var captureTask);
-
-        try
+        if (this.worker is { } worker)
         {
-            await MediaFoundationHelpers.WaitAsync(captureTask, ct).ConfigureAwait(false);
+            await worker.InvokeAsync(() => this.captureSession?.Stop(), ct).ConfigureAwait(false);
         }
-        finally
-        {
-            if (captureTask.IsCompleted)
-            {
-                lock (this.sync)
-                {
-                    if (ReferenceEquals(this.captureTask, captureTask))
-                    {
-                        this.stopSource?.Dispose();
-                        this.stopSource = null;
-                        this.captureTask = TaskCompat.CompletedTask;
-                    }
-                }
-            }
-        }
+        await MediaFoundationHelpers.WaitAsync(this.captureTask, ct).ConfigureAwait(false);
     }
 
-    private void PrepareStop(out Task captureTask)
+    private MediaFoundationWorker GetWorker()
     {
-        lock (this.sync)
+        if (this.disposed || this.worker is null)
         {
-            this.stopSource?.Cancel();
-            captureTask = this.captureTask;
+            throw new ObjectDisposedException(nameof(MediaFoundationDevice));
         }
+        return this.worker;
     }
 
-    private unsafe void Capture(AsyncTaskCompletionSource<bool> startup, CancellationToken stopToken)
+    private unsafe CaptureSession StartCapture()
     {
-        // Runs synchronously on a dedicated MTA thread so COM initialization,
-        // Media Foundation lifetime, and COM uninitialization remain on the same thread.
-        CaptureSession? session = null;
-        bool initialized = false;
-        bool startupCompleted = false;
+        // The persistent worker owns COM initialization, source lifetime and uninitialization.
+        // A new reader gets fresh callback state and timestamps for each capture run.
+        var session = this.source!.OpenSession(this.formatKey, this.OnFrame);
         try
         {
-            MediaFoundationInterop.Initialize();
-            initialized = true;
-
-            session = CaptureSession.Open(this.symbolicLink, this.formatKey, this.OnFrame);
-
             if (!session.Start())
             {
-                stopToken.ThrowIfCancellationRequested();
                 throw new InvalidOperationException(
                     "FlashCap: The Media Foundation session was stopped before it could start.");
             }
+            this.captureSession = session;
             this.IsRunning = true;
-            startupCompleted = true;
-            startup.TrySetResult(true);
-
-            var stopTask = TaskCompat.Delay(Timeout.Infinite, stopToken);
-            _ = Task.WaitAny(session.StopRequested, stopTask);
-            session.Stop();
-            session.Completion.GetAwaiter().GetResult();
+            return session;
         }
-        catch (OperationCanceledException) when (stopToken.IsCancellationRequested)
+        catch
         {
-            if (!startupCompleted)
-            {
-                startup.TrySetCanceled(stopToken);
-            }
+            session.Dispose();
+            throw;
+        }
+    }
+
+    private async Task ObserveCaptureAsync(MediaFoundationWorker worker, CaptureSession session)
+    {
+        try
+        {
+            // Error callbacks can request a stop independently of the public device lock.
+            // Reader disposal is queued with camera commands, and never disposes the source.
+            await TaskCompat.WhenAny(session.StopRequested, session.Completion).ConfigureAwait(false);
+            await worker.InvokeAsync(session.Stop, CancellationToken.None).ConfigureAwait(false);
+            await session.Completion.ConfigureAwait(false);
         }
         catch (Exception exception)
         {
-            if (!startupCompleted)
-            {
-                startup.TrySetException(exception);
-            }
-            else if (session?.FlushFailure is { } flushFailure)
+            if (session.FlushFailure is { } flushFailure)
             {
                 throw flushFailure;
             }
@@ -252,19 +217,23 @@ public sealed class MediaFoundationDevice : CaptureDevice
         }
         finally
         {
-            this.IsRunning = false;
-            session?.Dispose();
-            if (initialized)
+            await worker.InvokeAsync(() =>
             {
-                MediaFoundationInterop.Uninitialize();
-            }
-            if (!startupCompleted)
-            {
-                startup.TrySetException(new InvalidOperationException(
-                    "FlashCap: Media Foundation capture ended during startup."));
-            }
+                this.IsRunning = false;
+                this.captureSession = null;
+                session.Dispose();
+            }, CancellationToken.None).ConfigureAwait(false);
         }
     }
+
+    protected override Task<CaptureDeviceControl[]> OnGetControlsAsync(CancellationToken ct) =>
+        this.GetWorker().InvokeAsync(() => this.source!.Controls.GetControls(), ct);
+
+    protected override Task<CaptureDeviceControlValue?> OnGetControlValueAsync(CaptureDeviceControlTypes type, CancellationToken ct) =>
+        this.GetWorker().InvokeAsync(() => this.source!.Controls.GetValue(type), ct);
+
+    protected override Task<bool> OnSetControlValueAsync(CaptureDeviceControlTypes type, int value, bool isAuto, CancellationToken ct) =>
+        this.GetWorker().InvokeAsync(() => this.source!.Controls.SetValue(type, value, isAuto), ct);
 
     internal unsafe void OnFrame(
         byte* data,

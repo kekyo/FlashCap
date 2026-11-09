@@ -269,6 +269,66 @@ if (device.HasPropertyPage)
 
 完全な実装は、[Avaloniaサンプルコード](samples/FlashCap.Avalonia/)や、[WPFサンプルコード](samples/FlashCap.Wpf/)を参照して下さい。
 
+### カメラコントロール
+
+明るさ、ズーム、露出などの設定を読み書きできます。
+DirectShow、Media Foundation、V4L2に対応しており、操作できる項目と値の範囲はカメラによって異なります。
+`GetControlsAsync()`で対応項目を取得してから操作してください。
+対応項目がない場合は空の配列を返します。
+一覧に含まれる項目は、選択したバックエンドを通じてカメラが公開している制御です。
+`SupportsAuto`で自動・手動の切り替えに対応しているかを判断できます。
+`Minimum`と`Maximum`が等しい項目は固定値です。
+
+```csharp
+var device = await descriptor.OpenAsync(characteristics, bufferScope =>
+{
+    // 映像を処理します。
+});
+try
+{
+    foreach (var control in await device.GetControlsAsync())
+    {
+        var value = await device.GetControlValueAsync(control.Type);
+        Console.WriteLine($"{control}: {value}");
+
+        if (control.Type == CaptureDeviceControlTypes.Exposure && control.SupportsAuto)
+        {
+            await device.SetControlValueAsync(control.Type, 0, isAuto: true);
+        }
+    }
+}
+finally
+{
+    await device.DisposeAsync();
+}
+```
+
+設定を変更できるのは、撮影開始前、撮影中、停止後です。
+Media Foundationでは、`DisposeAsync()`を呼び出すまでカメラへの接続を保持します。
+非対応項目や取得できなかった値の読み出し結果は`null`です。
+非対応項目への設定や、カメラが拒否した設定は`false`を返します。
+これらの戻り値だけでは、カメラの非対応、バックエンドの非対応、通信失敗を区別できません。
+設定の戻り値は、ドライバーが要求を受理したかどうかを示します。反映された値は`GetControlValueAsync()`で再取得して確認してください。
+
+設定値はデバイスのネイティブ単位です。
+露出はDirectShowとMedia Foundationでは秒数の底2対数、V4L2では100 µs単位です。
+次の項目も、対応するカメラでは設定できます。
+
+| 項目 | 意味 | DirectShow / Media Foundation | V4L2 |
+|:---|:---|:---|:---|
+| `PowerLineFrequency` | フリッカー抑制。0は無効、1は50 Hz、2は60 Hz、3は自動 | 対応 | 対応 |
+| `AutoExposurePriority` | 自動露出時のフレームレート。0は固定、1は低下を許可 | 対応 | 対応 |
+| `Roll` | カメラの撮影軸を中心とする回転 | 対応 | 非対応 |
+| `Iris` | 絞り | 対応 | 対応 |
+| `ColorEnable` | 0は白黒、1はカラー | 対応 | 対応する両モードがある場合のみ |
+
+表の「対応」はバックエンドの対応状況です。実際に使える項目と範囲は`GetControlsAsync()`で確認してください。
+`AutoExposurePriority`を1にしても自動露出には切り替わりません。
+V4L2では、露出と絞りの自動設定が連動する場合があります。変更後は両方の値を再取得してください。
+これは[V4L2の露出モード](https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/ext-ctrls-camera.html)を共有するためです。
+V4L2の`ColorEnable`は[カラー効果](https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/control.html)の「効果なし」と「白黒」を切り替えます。
+別の効果が設定されている場合、現在値は`null`を返します。
+
 
 ----
 

@@ -60,6 +60,42 @@ public sealed unsafe class NativeMethodsMediaFoundationTests
     }
 
     [Test]
+    public void IMFAttributesSetUINT32PreservesTheKeyAndFourByteValue()
+    {
+        void** vtable = stackalloc void*[VtableLength];
+        var instance = new FakeComObject { Vtable = vtable };
+        Prepare(
+            vtable,
+            (void*)(delegate* unmanaged[Stdcall]<void*, Guid*, uint, int>)&UnexpectedSetUInt32,
+            21,
+            (void*)(delegate* unmanaged[Stdcall]<void*, Guid*, uint, int>)&SetUInt32,
+            &instance);
+        var key = InputGuid;
+        var result = ((MediaFoundation.IMFAttributes*)&instance)->SetUINT32(in key, 0xfedcba98);
+        Assert.That(result, Is.EqualTo(ExpectedHResult));
+        Assert.That(actualGuid, Is.EqualTo(InputGuid));
+        Assert.That(actualUInt32, Is.EqualTo(0xfedcba98));
+        AssertExpectedCall();
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+    private static int SetUInt32(void* self, Guid* key, uint value)
+    {
+        actualSelf = (nint)self;
+        actualGuid = *key;
+        actualUInt32 = value;
+        expectedCallCount++;
+        return ExpectedHResult;
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+    private static int UnexpectedSetUInt32(void* self, Guid* key, uint value)
+    {
+        unexpectedCallCount++;
+        return UnexpectedHResult;
+    }
+
+    [Test]
     public void IUnknownReleaseUsesZeroBasedSlot2()
     {
         void** vtable = stackalloc void*[VtableLength];

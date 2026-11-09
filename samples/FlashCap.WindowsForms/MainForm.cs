@@ -69,6 +69,9 @@ public partial class MainForm : Form
 
                 // Start capturing.
                 await this.captureDevice.StartAsync();
+
+                // Enable the camera controls when the device offers some, such as the brightness or the zoom.
+                this.controlsButton.Enabled = (await this.captureDevice.GetControlsAsync()).Length >= 1;
             }
         }
     }
@@ -118,6 +121,14 @@ public partial class MainForm : Form
                 this.BackgroundImage = bitmap;
             }
         }, null);
+    }
+
+    private void controlsButton_Click(object sender, EventArgs e)
+    {
+        if (this.captureDevice != null)
+        {
+            new CaptureDeviceControlsForm(this.captureDevice).Show(this);
+        }
     }
 
     private void MainForm_FormClosed(object sender, FormClosedEventArgs e)

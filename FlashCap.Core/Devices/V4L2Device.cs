@@ -35,8 +35,8 @@ public sealed class V4L2Device : CaptureDevice
 
     private long frameIndex;
     
-    private IntPtr[] pBuffers = new IntPtr[BufferCount];
-    private int[] bufferLength = new int[BufferCount];
+    private IntPtr[] pBuffers = ArrayEx.Empty<IntPtr>();
+    private int[] bufferLength = ArrayEx.Empty<int>();
     
     private int fd;
     private IntPtr pBih;
@@ -151,12 +151,16 @@ public sealed class V4L2Device : CaptureDevice
 
     protected override async Task OnDisposeAsync()
     {
-        if (this.IsRunning)
+        try
         {
-            await this.frameProcessor.DisposeAsync().
+            // DisposeAsync already holds the device lock.
+            await this.OnStopAsync(default).
                 ConfigureAwait(false);
-
-            await this.InternalStopAsync(default).
+        }
+        finally
+        {
+            // The frame processor also needs releasing after an explicit StopAsync.
+            await this.frameProcessor.DisposeAsync().
                 ConfigureAwait(false);
         }
     }
@@ -212,6 +216,10 @@ public sealed class V4L2Device : CaptureDevice
                         throw new ArgumentException(
                             $"FlashCap: Couldn't allocate video buffer: Code={code}, DevicePath={this.devicePath}");
                     }
+
+                    // The driver may require more buffers than requested.
+                    this.pBuffers = new IntPtr[requestbuffers.count];
+                    this.bufferLength = new int[requestbuffers.count];
 
                     for (var index = 0; index < requestbuffers.count; index++)
                     {
@@ -301,16 +309,14 @@ public sealed class V4L2Device : CaptureDevice
     {
         if (this.IsRunning)
         {
-            if (ioctl(
-                this.fd, Interop.VIDIOC_STREAMOFF,
-                (int)v4l2_buf_type.VIDEO_CAPTURE) < 0)
-            {
-                var code = Marshal.GetLastWin32Error();
-                throw new ArgumentException(
-                    $"FlashCap: Couldn't stop capture: Code={code}, DevicePath={this.devicePath}");
-            }
-                
+            // STREAMOFF also wakes poll with POLLERR, so signal normal shutdown first.
             write(this.abortwfd, new byte[] { 0x01 }, 1);
+
+            // Release the device even when it couldn't stop, such as when it was unplugged.
+            var code = ioctl(
+                this.fd, Interop.VIDIOC_STREAMOFF,
+                (int)v4l2_buf_type.VIDEO_CAPTURE) < 0 ?
+                Marshal.GetLastWin32Error() : 0;
 
             var task = Interlocked.Exchange(ref this.task, null!);
             await task.ConfigureAwait(false);
@@ -336,6 +342,13 @@ public sealed class V4L2Device : CaptureDevice
             this.fd = -1;
 
             this.IsRunning = false;
+
+            // An unplugged device has stopped by itself.
+            if (code != 0 && code != ENODEV)
+            {
+                throw new ArgumentException(
+                    $"FlashCap: Couldn't stop capture: Code={code}, DevicePath={this.devicePath}");
+            }
         }
     }
 
@@ -393,6 +406,15 @@ public sealed class V4L2Device : CaptureDevice
                         (fds[0].revents & POLLBITS.POLLRDHUP) == POLLBITS.POLLRDHUP ||
                         (fds[0].revents & POLLBITS.POLLERR) == POLLBITS.POLLERR)
                     {
+                        break;
+                    }
+                    // The device reports errors and hang ups without asking, such as when it was unplugged.
+                    if ((fds[1].revents & POLLBITS.POLLERR) == POLLBITS.POLLERR ||
+                        (fds[1].revents & POLLBITS.POLLHUP) == POLLBITS.POLLHUP ||
+                        (fds[1].revents & POLLBITS.POLLNVAL) == POLLBITS.POLLNVAL)
+                    {
+                        Trace.WriteLine(
+                            $"FlashCap: Capture device was lost: Events={fds[1].revents}, DevicePath={this.devicePath}");
                         break;
                     }
                     if ((fds[1].revents & POLLBITS.POLLIN) == POLLBITS.POLLIN)
@@ -456,4 +478,69 @@ public sealed class V4L2Device : CaptureDevice
         long timestampMicroseconds, long frameIndex,
         PixelBuffer buffer) =>
         buffer.CopyIn(this.pBih, pData, size, timestampMicroseconds, frameIndex, this.transcodeFormat);
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////
+
+    protected override Task<CaptureDeviceControl[]> OnGetControlsAsync(
+        CancellationToken ct) =>
+        TaskCompat.FromResult(this.UseControlDevice(fd =>
+            CreateControls(fd).GetControls(), ArrayEx.Empty<CaptureDeviceControl>()));
+
+    protected override Task<CaptureDeviceControlValue?> OnGetControlValueAsync(
+        CaptureDeviceControlTypes type, CancellationToken ct) =>
+        TaskCompat.FromResult(this.UseControlDevice(fd =>
+            CreateControls(fd).GetValue(type), default(CaptureDeviceControlValue?)));
+
+    protected override Task<bool> OnSetControlValueAsync(
+        CaptureDeviceControlTypes type, int value, bool isAuto, CancellationToken ct) =>
+        TaskCompat.FromResult(this.UseControlDevice(fd =>
+            CreateControls(fd).SetValue(type, value, isAuto), false));
+
+    private static V4L2CameraControls CreateControls(int fd) => new(
+        id => QueryControl(fd, id), id => GetControl(fd, id),
+        (id, value) => SetControl(fd, id, value),
+        (id, value) => ioctl(fd, Interop.VIDIOC_QUERYMENU,
+            new v4l2_querymenu { id = id, index = (uint)value }) == 0);
+
+    private T UseControlDevice<T>(Func<int, T> action, T fallback)
+    {
+        // The device is open while capturing:
+        if (this.IsRunning)
+        {
+            return action(this.fd);
+        }
+
+        // Otherwise the controls open it for a while.
+        var fd = open(this.devicePath ?? (string)this.Identity, OPENBITS.O_RDWR);
+        if (fd < 0)
+        {
+            return fallback;
+        }
+        try
+        {
+            return action(fd);
+        }
+        finally
+        {
+            close(fd);
+        }
+    }
+
+    private static v4l2_queryctrl? QueryControl(int fd, uint id)
+    {
+        var query = new v4l2_queryctrl { id = id };
+        return ioctl(fd, Interop.VIDIOC_QUERYCTRL, query) == 0 &&
+            (query.flags & V4L2_CTRL_FLAG_DISABLED) == 0 ?
+            query : null;
+    }
+
+    private static int? GetControl(int fd, uint id)
+    {
+        var control = new v4l2_control { id = id };
+        return ioctl(fd, Interop.VIDIOC_G_CTRL, control) == 0 ?
+            control.value : null;
+    }
+
+    private static bool SetControl(int fd, uint id, int value) =>
+        ioctl(fd, Interop.VIDIOC_S_CTRL, new v4l2_control { id = id, value = value }) == 0;
 }

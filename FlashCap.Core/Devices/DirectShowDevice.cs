@@ -9,6 +9,7 @@
 
 using FlashCap.Internal;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -78,6 +79,9 @@ public sealed class DirectShowDevice :
     private TranscodeFormats transcodeFormat;
     private FrameProcessor frameProcessor;
     private NativeMethods_DirectShow.IGraphBuilder? graphBuilder;
+    // COM object of the capture source, its control interfaces are queried at runtime.
+    private object? captureSource;
+    private KernelStreamingControls? extendedControls;
     private SampleGrabberSink? sampleGrabberSink;
     private IntPtr pBih;
 
@@ -121,17 +125,15 @@ public sealed class DirectShowDevice :
                             pinInfo.dir == NativeMethods_DirectShow.PIN_DIRECTION.Output ?
                                 pin : null).
                         SelectMany(pin =>
-                            pin.EnumerateFormats().
-                            Collect(format =>
-                            {
-                                var vfc = format.CreateVideoCharacteristics();
-                                return characteristics.Equals(vfc) ?
-                                    new { pin, format, vfc } : null;
-                            })).
-                        FirstOrDefault() is { } entry)
+                            pin.EnumerateFormats(captureSource).
+                            SelectMany(format => format.EnumerateVideoCharacteristics().
+                                Collect(vfc =>
+                                    characteristics.Equals(vfc.Value) ?
+                                        new { pin, format, interval = vfc.Key, vfc = vfc.Value } : null))).
+                        FirstOrDefault() is { } entry &&
+                        entry.pin.SetFormat(entry.format, entry.interval))
                     {
                         this.Characteristics = entry.vfc;
-                        entry.pin.SetFormat(entry.format);
                     }
                     else
                     {
@@ -218,12 +220,25 @@ public sealed class DirectShowDevice :
                         throw new ArgumentException(
                             $"FlashCap: Couldn't get grabbing media type: DevicePath={devicePath}");
                     }
+
+                    // Camera controls are queried from the capture source.
+                    this.captureSource = captureSource;
+                    var pointer = Marshal.GetIUnknownForObject(captureSource);
+                    try
+                    {
+                        this.extendedControls = new KernelStreamingControls(pointer);
+                    }
+                    finally
+                    {
+                        Marshal.Release(pointer);
+                    }
                 }
                 catch
                 {
                     if (this.graphBuilder != null)
                     {
                         Marshal.ReleaseComObject(this.graphBuilder);
+                        this.graphBuilder = null;
                     }
                     throw;
                 }
@@ -247,7 +262,8 @@ public sealed class DirectShowDevice :
 
     protected override async Task OnDisposeAsync()
     {
-        if (this.graphBuilder != null)
+        // Initialization can fail before a graph is created, but the workers already exist.
+        if (this.workingContext is { } workingContext)
         {
             await this.frameProcessor.DisposeAsync().
                 ConfigureAwait(false);
@@ -255,16 +271,22 @@ public sealed class DirectShowDevice :
             await this.OnStopAsync(default).
                 ConfigureAwait(false);
 
-            await this.workingContext!.InvokeAsync(() =>
+            await workingContext.InvokeAsync(() =>
             {
-                Marshal.ReleaseComObject(this.graphBuilder);
-                this.graphBuilder = null!;
+                this.extendedControls?.Dispose();
+                this.extendedControls = null;
+                if (this.graphBuilder != null)
+                {
+                    Marshal.ReleaseComObject(this.graphBuilder);
+                    this.graphBuilder = null;
+                }
+                this.captureSource = null;
                 this.sampleGrabberSink = null!;
                 NativeMethods.FreeMemory(this.pBih);
                 this.pBih = IntPtr.Zero;
             }, default);
 
-            this.workingContext.Dispose();
+            workingContext.Dispose();
             this.workingContext = null;
         }
     }
@@ -372,4 +394,141 @@ public sealed class DirectShowDevice :
 
             return false;
         }, ct);
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////
+
+    // Camera controls implementation.
+    // https://learn.microsoft.com/en-us/windows/win32/directshow/configuring-the-video-quality
+
+    private static readonly Dictionary<CaptureDeviceControlTypes, NativeMethods_DirectShow.VideoProcAmpProperty> videoProcAmpProperties = new()
+    {
+        { CaptureDeviceControlTypes.Brightness, NativeMethods_DirectShow.VideoProcAmpProperty.Brightness },
+        { CaptureDeviceControlTypes.Contrast, NativeMethods_DirectShow.VideoProcAmpProperty.Contrast },
+        { CaptureDeviceControlTypes.Hue, NativeMethods_DirectShow.VideoProcAmpProperty.Hue },
+        { CaptureDeviceControlTypes.Saturation, NativeMethods_DirectShow.VideoProcAmpProperty.Saturation },
+        { CaptureDeviceControlTypes.Sharpness, NativeMethods_DirectShow.VideoProcAmpProperty.Sharpness },
+        { CaptureDeviceControlTypes.Gamma, NativeMethods_DirectShow.VideoProcAmpProperty.Gamma },
+        { CaptureDeviceControlTypes.ColorEnable, NativeMethods_DirectShow.VideoProcAmpProperty.ColorEnable },
+        { CaptureDeviceControlTypes.WhiteBalance, NativeMethods_DirectShow.VideoProcAmpProperty.WhiteBalance },
+        { CaptureDeviceControlTypes.BacklightCompensation, NativeMethods_DirectShow.VideoProcAmpProperty.BacklightCompensation },
+        { CaptureDeviceControlTypes.Gain, NativeMethods_DirectShow.VideoProcAmpProperty.Gain },
+    };
+
+    private static readonly Dictionary<CaptureDeviceControlTypes, NativeMethods_DirectShow.CameraControlProperty> cameraControlProperties = new()
+    {
+        { CaptureDeviceControlTypes.Pan, NativeMethods_DirectShow.CameraControlProperty.Pan },
+        { CaptureDeviceControlTypes.Tilt, NativeMethods_DirectShow.CameraControlProperty.Tilt },
+        { CaptureDeviceControlTypes.Roll, NativeMethods_DirectShow.CameraControlProperty.Roll },
+        { CaptureDeviceControlTypes.Zoom, NativeMethods_DirectShow.CameraControlProperty.Zoom },
+        { CaptureDeviceControlTypes.Exposure, NativeMethods_DirectShow.CameraControlProperty.Exposure },
+        { CaptureDeviceControlTypes.Iris, NativeMethods_DirectShow.CameraControlProperty.Iris },
+        { CaptureDeviceControlTypes.Focus, NativeMethods_DirectShow.CameraControlProperty.Focus },
+    };
+
+    protected override Task<CaptureDeviceControl[]> OnGetControlsAsync(
+        CancellationToken ct) =>
+        this.workingContext!.InvokeAsync(() =>
+        {
+            var controls = new List<CaptureDeviceControl>();
+            foreach (var type in videoProcAmpProperties.Keys.Concat(cameraControlProperties.Keys))
+            {
+                if (this.GetControlRange(type, out var min, out var max, out var step, out var defaultValue, out var caps) == 0 &&
+                    max >= min)
+                {
+                    var supportsAuto =
+                        (caps & NativeMethods_DirectShow.ControlFlags.Auto) != 0 &&
+                        (caps & NativeMethods_DirectShow.ControlFlags.Manual) != 0;
+                    controls.Add(new CaptureDeviceControl(type, min, max, step, defaultValue, supportsAuto));
+                }
+            }
+            if (this.extendedControls is { } extended) controls.AddRange(extended.GetControls());
+            return controls.ToArray();
+        }, ct);
+
+    protected override Task<CaptureDeviceControlValue?> OnGetControlValueAsync(
+        CaptureDeviceControlTypes type, CancellationToken ct) =>
+        this.workingContext!.InvokeAsync(() =>
+            type is CaptureDeviceControlTypes.PowerLineFrequency or CaptureDeviceControlTypes.AutoExposurePriority ?
+                this.extendedControls?.GetValue(type) :
+            this.GetControl(type, out var value, out var flags) == 0 ?
+                new CaptureDeviceControlValue(value, (flags & NativeMethods_DirectShow.ControlFlags.Auto) != 0) :
+                null, ct);
+
+    protected override Task<bool> OnSetControlValueAsync(
+        CaptureDeviceControlTypes type, int value, bool isAuto, CancellationToken ct) =>
+        this.workingContext!.InvokeAsync(() =>
+        {
+            if (type is CaptureDeviceControlTypes.PowerLineFrequency or CaptureDeviceControlTypes.AutoExposurePriority)
+                return this.extendedControls?.SetValue(type, value, isAuto) ?? false;
+            if (isAuto)
+            {
+                // The value is kept, the device changes it itself.
+                if (this.GetControl(type, out value, out _) != 0)
+                {
+                    return false;
+                }
+            }
+            return this.SetControl(
+                type, value,
+                isAuto ? NativeMethods_DirectShow.ControlFlags.Auto : NativeMethods_DirectShow.ControlFlags.Manual) == 0;
+        }, ct);
+
+    private int GetControlRange(
+        CaptureDeviceControlTypes type,
+        out int min, out int max, out int step, out int defaultValue,
+        out NativeMethods_DirectShow.ControlFlags caps)
+    {
+        if (videoProcAmpProperties.TryGetValue(type, out var videoProcAmpProperty) &&
+            this.captureSource is NativeMethods_DirectShow.IAMVideoProcAmp videoProcAmp)
+        {
+            return videoProcAmp.GetRange(videoProcAmpProperty, out min, out max, out step, out defaultValue, out caps);
+        }
+        if (cameraControlProperties.TryGetValue(type, out var cameraControlProperty) &&
+            this.captureSource is NativeMethods_DirectShow.IAMCameraControl cameraControl)
+        {
+            return cameraControl.GetRange(cameraControlProperty, out min, out max, out step, out defaultValue, out caps);
+        }
+
+        min = max = step = defaultValue = 0;
+        caps = 0;
+        return E_NOTIMPL;
+    }
+
+    private int GetControl(
+        CaptureDeviceControlTypes type, out int value, out NativeMethods_DirectShow.ControlFlags flags)
+    {
+        if (videoProcAmpProperties.TryGetValue(type, out var videoProcAmpProperty) &&
+            this.captureSource is NativeMethods_DirectShow.IAMVideoProcAmp videoProcAmp)
+        {
+            return videoProcAmp.Get(videoProcAmpProperty, out value, out flags);
+        }
+        if (cameraControlProperties.TryGetValue(type, out var cameraControlProperty) &&
+            this.captureSource is NativeMethods_DirectShow.IAMCameraControl cameraControl)
+        {
+            return cameraControl.Get(cameraControlProperty, out value, out flags);
+        }
+
+        value = 0;
+        flags = 0;
+        return E_NOTIMPL;
+    }
+
+    private int SetControl(
+        CaptureDeviceControlTypes type, int value, NativeMethods_DirectShow.ControlFlags flags)
+    {
+        if (videoProcAmpProperties.TryGetValue(type, out var videoProcAmpProperty) &&
+            this.captureSource is NativeMethods_DirectShow.IAMVideoProcAmp videoProcAmp)
+        {
+            return videoProcAmp.Set(videoProcAmpProperty, value, flags);
+        }
+        if (cameraControlProperties.TryGetValue(type, out var cameraControlProperty) &&
+            this.captureSource is NativeMethods_DirectShow.IAMCameraControl cameraControl)
+        {
+            return cameraControl.Set(cameraControlProperty, value, flags);
+        }
+
+        return E_NOTIMPL;
+    }
+
+    private const int E_NOTIMPL = unchecked((int)0x80004001);
 }

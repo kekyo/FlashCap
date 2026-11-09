@@ -8,10 +8,14 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using System;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using FlashCap;
 using FlashCap.Devices;
 using FlashCap.Internal;
+using FlashCap.Internal.MediaFoundation;
 
 namespace FlashCap.Core.AotSmoke;
 
@@ -22,6 +26,21 @@ internal static partial class Program
 
     private static int Main()
     {
+        if (OperatingSystem.IsMacOS())
+        {
+            var devices = new AVFoundationDevices();
+            _ = devices.EnumerateDescriptors().ToArray();
+            _ = devices.GetDescriptors();
+            return 0;
+        }
+
+        if (OperatingSystem.IsLinux())
+        {
+            var devices = new V4L2Devices();
+            _ = devices.EnumerateDescriptors().ToArray();
+            _ = devices.GetDescriptors();
+        }
+
         try
         {
 #pragma warning disable CA1416
@@ -95,7 +114,7 @@ internal static partial class Program
                 return 4;
             }
 
-            return 0;
+            return VerifyCameraControls() ? 0 : 6;
         }
         catch (Exception exception)
         {
@@ -118,6 +137,85 @@ internal static partial class Program
 #pragma warning restore CA1416
             }
         }
+    }
+
+    // Exercise the native control ABI in the published AOT executable without camera hardware.
+    // This catches accidental introduction of runtime-generated COM wrappers into this path.
+#pragma warning disable CA1416
+    private static unsafe bool VerifyCameraControls()
+    {
+        void** vtable = stackalloc void*[6];
+        vtable[0] = (void*)(delegate* unmanaged[Stdcall]<Control*, Guid*, void**, int>)&QueryControl;
+        vtable[2] = (void*)(delegate* unmanaged[Stdcall]<Control*, uint>)&ReleaseControl;
+        vtable[3] = (void*)(delegate* unmanaged[Stdcall]<Control*, int, int*, int*, int*, int*, int*, int>)&GetControlRange;
+        vtable[4] = (void*)(delegate* unmanaged[Stdcall]<Control*, int, int, int, int>)&SetControl;
+        vtable[5] = (void*)(delegate* unmanaged[Stdcall]<Control*, int, int*, int*, int>)&GetControl;
+        var native = new Control { Vtable = vtable, Value = 32, Flags = 2 };
+        using (var controls = new CameraControls((NativeMethods_MediaFoundation.IUnknown*)&native))
+        {
+            var ranges = controls.GetControls();
+            if (ranges.Length != 1 || ranges[0].Type != CaptureDeviceControlTypes.Brightness ||
+                !ranges[0].SupportsAuto || controls.GetValue(CaptureDeviceControlTypes.Brightness)?.Value != 32 ||
+                !controls.SetValue(CaptureDeviceControlTypes.Brightness, 64, false) ||
+                !controls.SetValue(CaptureDeviceControlTypes.Brightness, int.MaxValue, true) ||
+                controls.GetValue(CaptureDeviceControlTypes.Brightness)?.IsAuto != true || native.Value != 64)
+            {
+                return false;
+            }
+        }
+        return native.References == 0;
+    }
+#pragma warning restore CA1416
+
+    private unsafe struct Control
+    {
+        internal void** Vtable;
+        internal int References;
+        internal int Value;
+        internal int Flags;
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+    private static unsafe int QueryControl(Control* self, Guid* iid, void** value)
+    {
+        *value = null;
+        if (*iid != new Guid("C6E13360-30AC-11D0-A18C-00A0C9118956"))
+        {
+            return unchecked((int)0x80004002);
+        }
+        self->References++;
+        *value = self;
+        return 0;
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+    private static unsafe uint ReleaseControl(Control* self) => (uint)--self->References;
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+    private static unsafe int GetControlRange(Control* self, int property, int* min, int* max, int* step, int* defaultValue, int* caps)
+    {
+        *min = 0;
+        *max = 255;
+        *step = 1;
+        *defaultValue = 128;
+        *caps = 3;
+        return property == 0 ? 0 : unchecked((int)0x80070490);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+    private static unsafe int SetControl(Control* self, int property, int value, int flags)
+    {
+        self->Value = value;
+        self->Flags = flags;
+        return property == 0 ? 0 : unchecked((int)0x80070490);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+    private static unsafe int GetControl(Control* self, int property, int* value, int* flags)
+    {
+        *value = self->Value;
+        *flags = self->Flags;
+        return property == 0 ? 0 : unchecked((int)0x80070490);
     }
 
     [GeneratedComClass]

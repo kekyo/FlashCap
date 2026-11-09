@@ -10,6 +10,7 @@
     x:Class="FlashCap.Avalonia.Views.MainWindow"
     x:DataType="viewmodels:MainWindowViewModel"
     Title="FlashCap.Avalonia" Height="450" Width="800"
+    RequestedThemeVariant="Dark"
     TransparencyBackgroundFallback="Black"
     epoxy:Anchor.Pile="{Binding WindowPile}">
 
@@ -49,6 +50,10 @@
                         IsEnabled="{Binding IsEnabledShowPropertyPage}"
                         Content="Show property page"
                         Command="{Binding ShowPropertyPage}" />
+                <Button BorderBrush="White" BorderThickness="1"
+                        IsEnabled="{Binding IsEnabledShowControls}"
+                        Content="Camera controls"
+                        Command="{Binding ShowControls}" />
             </StackPanel>
             <TextBlock Foreground="Yellow"
                        Text="{Binding Statistics1}" />

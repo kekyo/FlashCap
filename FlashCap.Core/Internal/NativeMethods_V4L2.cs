@@ -98,7 +98,103 @@ internal static class NativeMethods_V4L2
         pixelFormats.ContainsKey(pix_fmt);
 
     public const int EINTR = 4;
+    public const int ENODEV = 19;
     public const int EINVAL = 22;
+
+    ///////////////////////////////////////////////////////////
+
+    // Video standards of v4l2_std_id in videodev2.h, analog video grabbers follow them.
+
+    // PAL, PAL-N, PAL-Nc and SECAM: 25 frames per second.
+    public const ulong V4L2_STD_625_50 = 0x000000ff | 0x00000200 | 0x00000400 | 0x00ff0000;
+    // NTSC, PAL-M and PAL-60: 30000/1001 frames per second.
+    public const ulong V4L2_STD_525_60 = 0x00000100 | 0x00000800 | 0x00001000 | 0x00002000 | 0x00004000 | 0x00008000;
+
+    // struct v4l2_streamparm, the same layout on all architectures:
+    //   __u32 type; union { struct v4l2_captureparm capture; __u8 raw_data[200]; } parm;
+    // struct v4l2_captureparm starts with:
+    //   __u32 capability; __u32 capturemode; struct v4l2_fract timeperframe;
+    public const int sizeof_v4l2_streamparm = 204;
+    public const int offsetof_v4l2_streamparm_type = 0;
+    public const int offsetof_v4l2_streamparm_timeperframe_numerator = 12;
+    public const int offsetof_v4l2_streamparm_timeperframe_denominator = 16;
+
+    ///////////////////////////////////////////////////////////
+
+    // Camera controls of videodev2.h and v4l2-controls.h.
+    // struct v4l2_queryctrl and v4l2_control have the same layout on all architectures,
+    // only the ioctl numbers come from the generated interop.
+
+    public const uint V4L2_CTRL_FLAG_DISABLED = 0x0001;
+
+    public const uint V4L2_CID_BASE = 0x00980900;
+    public const uint V4L2_CID_BRIGHTNESS = V4L2_CID_BASE + 0;
+    public const uint V4L2_CID_CONTRAST = V4L2_CID_BASE + 1;
+    public const uint V4L2_CID_SATURATION = V4L2_CID_BASE + 2;
+    public const uint V4L2_CID_HUE = V4L2_CID_BASE + 3;
+    public const uint V4L2_CID_AUTO_WHITE_BALANCE = V4L2_CID_BASE + 12;
+    public const uint V4L2_CID_GAMMA = V4L2_CID_BASE + 16;
+    public const uint V4L2_CID_AUTOGAIN = V4L2_CID_BASE + 18;
+    public const uint V4L2_CID_GAIN = V4L2_CID_BASE + 19;
+    public const uint V4L2_CID_POWER_LINE_FREQUENCY = V4L2_CID_BASE + 24;
+    public const uint V4L2_CID_HUE_AUTO = V4L2_CID_BASE + 25;
+    public const uint V4L2_CID_WHITE_BALANCE_TEMPERATURE = V4L2_CID_BASE + 26;
+    public const uint V4L2_CID_SHARPNESS = V4L2_CID_BASE + 27;
+    public const uint V4L2_CID_BACKLIGHT_COMPENSATION = V4L2_CID_BASE + 28;
+    public const uint V4L2_CID_COLORFX = V4L2_CID_BASE + 31;
+
+    public const uint V4L2_CID_CAMERA_CLASS_BASE = 0x009a0900;
+    public const uint V4L2_CID_EXPOSURE_AUTO = V4L2_CID_CAMERA_CLASS_BASE + 1;
+    public const uint V4L2_CID_EXPOSURE_ABSOLUTE = V4L2_CID_CAMERA_CLASS_BASE + 2;
+    public const uint V4L2_CID_EXPOSURE_AUTO_PRIORITY = V4L2_CID_CAMERA_CLASS_BASE + 3;
+    public const uint V4L2_CID_PAN_ABSOLUTE = V4L2_CID_CAMERA_CLASS_BASE + 8;
+    public const uint V4L2_CID_TILT_ABSOLUTE = V4L2_CID_CAMERA_CLASS_BASE + 9;
+    public const uint V4L2_CID_FOCUS_ABSOLUTE = V4L2_CID_CAMERA_CLASS_BASE + 10;
+    public const uint V4L2_CID_FOCUS_AUTO = V4L2_CID_CAMERA_CLASS_BASE + 12;
+    public const uint V4L2_CID_ZOOM_ABSOLUTE = V4L2_CID_CAMERA_CLASS_BASE + 13;
+    public const uint V4L2_CID_IRIS_ABSOLUTE = V4L2_CID_CAMERA_CLASS_BASE + 17;
+
+    // enum v4l2_exposure_auto_type
+    public const int V4L2_EXPOSURE_AUTO = 0;
+    public const int V4L2_EXPOSURE_MANUAL = 1;
+    public const int V4L2_EXPOSURE_SHUTTER_PRIORITY = 2;
+    public const int V4L2_EXPOSURE_APERTURE_PRIORITY = 3;
+
+    public const int V4L2_COLORFX_NONE = 0;
+    public const int V4L2_COLORFX_BW = 1;
+
+    // videodev2.h packs v4l2_querymenu to 44 bytes, including its 32-byte union.
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public sealed class v4l2_querymenu
+    {
+        public uint id;
+        public uint index;
+        public uint name0, name1, name2, name3, name4, name5, name6, name7;
+        public uint reserved;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public sealed class v4l2_queryctrl
+    {
+        public uint id;
+        public uint type;
+        // __u8 name[32], kept blittable for pinning.
+        public uint name0, name1, name2, name3, name4, name5, name6, name7;
+        public int minimum;
+        public int maximum;
+        public int step;
+        public int default_value;
+        public uint flags;
+        public uint reserved0;
+        public uint reserved1;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public sealed class v4l2_control
+    {
+        public uint id;
+        public int value;
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     public struct timeval
