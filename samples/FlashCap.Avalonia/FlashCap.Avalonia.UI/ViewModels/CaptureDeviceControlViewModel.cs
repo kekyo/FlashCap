@@ -45,14 +45,22 @@ public sealed class CaptureDeviceControlViewModel
 
     private readonly CaptureDevice captureDevice;
     private readonly CaptureDeviceControlTypes type;
+    private readonly Func<Task> refreshControls;
     private bool isUpdating;
 
+    /// <summary>Creates an editor for a device control.</summary>
+    /// <param name="captureDevice">Opened capture device.</param>
+    /// <param name="control">Supported range and automatic-mode capability.</param>
+    /// <param name="value">Current value, or null when unavailable.</param>
+    /// <param name="refreshControls">Refreshes related editors after a setting changes.</param>
     public CaptureDeviceControlViewModel(
         CaptureDevice captureDevice,
         CaptureDeviceControl control,
-        CaptureDeviceControlValue? value)
+        CaptureDeviceControlValue? value,
+        Func<Task> refreshControls)
     {
         this.captureDevice = captureDevice;
+        this.refreshControls = refreshControls;
         this.type = control.Type;
 
         this.Name = control.Type.ToString();
@@ -119,6 +127,12 @@ public sealed class CaptureDeviceControlViewModel
         // Setting a value turns the automatic mode off.
         await this.captureDevice.SetControlValueAsync(this.type, value, isAuto);
 
+        // Exposure and iris may share an automatic mode, so refresh every row.
+        await this.refreshControls();
+    }
+
+    internal async Task RefreshAsync()
+    {
         // Show the value the device really has.
         if (await this.captureDevice.GetControlValueAsync(this.type) is { } current &&
             await UIThread.TryBind())
@@ -136,7 +150,7 @@ public sealed class CaptureDeviceControlViewModel
             this.IsOn = value.Value != 0;
             this.Choice = this.Choices.FirstOrDefault(c => c.Value == value.Value);
             this.IsAuto = value.IsAuto;
-            this.IsManual = !value.IsAuto;
+            this.IsManual = !value.IsAuto && this.Minimum < this.Maximum;
         }
         finally
         {

@@ -142,17 +142,29 @@ internal sealed class CameraControlsTests
             await device.StartAsync();
             await SaveFramesAsync("restarted");
             Assert.That((await device.GetControlValueAsync(brightness.Type))!.Value == changedBrightness, "Restart lost the stopped value.");
-            await device.StopAsync();
         }
         finally
         {
             try
             {
+                // Some cameras acknowledge writes while stopped without applying them.
+                // Restore during capture and verify the device's values, not just HRESULTs.
+                if (originals.Count != 0 && !device.IsRunning)
+                {
+                    await device.StartAsync();
+                    await SaveFramesAsync("restore-ready");
+                }
+                var failures = new List<string>();
                 foreach (var original in originals)
                 {
-                    Assert.That(await device.SetControlValueAsync(original.Key, original.Value.Value, original.Value.IsAuto),
-                        $"Cannot restore {original.Key}.");
+                    var accepted = await device.SetControlValueAsync(original.Key, original.Value.Value, original.Value.IsAuto);
+                    var actual = await device.GetControlValueAsync(original.Key);
+                    Console.WriteLine($"RESTORE: {original.Key}: expected={original.Value}, accepted={accepted}, actual={actual}");
+                    if (!accepted || actual is null || actual.IsAuto != original.Value.IsAuto ||
+                        (!original.Value.IsAuto && actual.Value != original.Value.Value))
+                        failures.Add($"Cannot restore {original.Key}: expected={original.Value}, actual={actual}");
                 }
+                Assert.That(failures, Is.Empty);
             }
             finally
             {

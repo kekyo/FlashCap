@@ -272,7 +272,7 @@ public sealed class MainWindowViewModel
                 foreach (var control in await this.captureDevice.GetControlsAsync())
                 {
                     var value = await this.captureDevice.GetControlValueAsync(control.Type);
-                    this.Controls.Add(new CaptureDeviceControlViewModel(this.captureDevice, control, value));
+                    this.Controls.Add(new CaptureDeviceControlViewModel(this.captureDevice, control, value, this.RefreshControlsAsync));
                 }
 
                 this.UpdateCurrentState(States.Ready);
@@ -284,6 +284,12 @@ public sealed class MainWindowViewModel
 
             Debug.WriteLine($"OnCharacteristicsChangedAsync: Leave: {characteristics?.ToString() ?? "(null)"}");
         }
+    }
+
+    private async Task RefreshControlsAsync()
+    {
+        foreach (var control in this.Controls.ToArray())
+            await control.RefreshAsync();
     }
 
     private async Task OnPixelBufferArrivedAsync(PixelBufferScope bufferScope)
