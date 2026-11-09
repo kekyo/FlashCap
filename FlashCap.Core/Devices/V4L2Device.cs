@@ -152,12 +152,16 @@ public sealed class V4L2Device : CaptureDevice
 
     protected override async Task OnDisposeAsync()
     {
-        if (this.IsRunning)
+        try
         {
-            await this.frameProcessor.DisposeAsync().
+            // DisposeAsync already holds the device lock.
+            await this.OnStopAsync(default).
                 ConfigureAwait(false);
-
-            await this.InternalStopAsync(default).
+        }
+        finally
+        {
+            // The frame processor also needs releasing after an explicit StopAsync.
+            await this.frameProcessor.DisposeAsync().
                 ConfigureAwait(false);
         }
     }
@@ -302,16 +306,14 @@ public sealed class V4L2Device : CaptureDevice
     {
         if (this.IsRunning)
         {
-            if (ioctl(
-                this.fd, Interop.VIDIOC_STREAMOFF,
-                (int)v4l2_buf_type.VIDEO_CAPTURE) < 0)
-            {
-                var code = Marshal.GetLastWin32Error();
-                throw new ArgumentException(
-                    $"FlashCap: Couldn't stop capture: Code={code}, DevicePath={this.devicePath}");
-            }
-                
+            // STREAMOFF also wakes poll with POLLERR, so signal normal shutdown first.
             write(this.abortwfd, new byte[] { 0x01 }, 1);
+
+            // Release the device even when it couldn't stop, such as when it was unplugged.
+            var code = ioctl(
+                this.fd, Interop.VIDIOC_STREAMOFF,
+                (int)v4l2_buf_type.VIDEO_CAPTURE) < 0 ?
+                Marshal.GetLastWin32Error() : 0;
 
             var task = Interlocked.Exchange(ref this.task, null!);
             await task.ConfigureAwait(false);
@@ -337,6 +339,13 @@ public sealed class V4L2Device : CaptureDevice
             this.fd = -1;
 
             this.IsRunning = false;
+
+            // An unplugged device has stopped by itself.
+            if (code != 0 && code != ENODEV)
+            {
+                throw new ArgumentException(
+                    $"FlashCap: Couldn't stop capture: Code={code}, DevicePath={this.devicePath}");
+            }
         }
     }
 
@@ -394,6 +403,15 @@ public sealed class V4L2Device : CaptureDevice
                         (fds[0].revents & POLLBITS.POLLRDHUP) == POLLBITS.POLLRDHUP ||
                         (fds[0].revents & POLLBITS.POLLERR) == POLLBITS.POLLERR)
                     {
+                        break;
+                    }
+                    // The device reports errors and hang ups without asking, such as when it was unplugged.
+                    if ((fds[1].revents & POLLBITS.POLLERR) == POLLBITS.POLLERR ||
+                        (fds[1].revents & POLLBITS.POLLHUP) == POLLBITS.POLLHUP ||
+                        (fds[1].revents & POLLBITS.POLLNVAL) == POLLBITS.POLLNVAL)
+                    {
+                        Trace.WriteLine(
+                            $"FlashCap: Capture device was lost: Events={fds[1].revents}, DevicePath={this.devicePath}");
                         break;
                     }
                     if ((fds[1].revents & POLLBITS.POLLIN) == POLLBITS.POLLIN)
