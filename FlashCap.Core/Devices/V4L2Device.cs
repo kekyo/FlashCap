@@ -305,13 +305,14 @@ public sealed class V4L2Device : CaptureDevice
     {
         if (this.IsRunning)
         {
+            // STREAMOFF also wakes poll with POLLERR, so signal normal shutdown first.
+            write(this.abortwfd, new byte[] { 0x01 }, 1);
+
             // Release the device even when it couldn't stop, such as when it was unplugged.
             var code = ioctl(
                 this.fd, Interop.VIDIOC_STREAMOFF,
                 (int)v4l2_buf_type.VIDEO_CAPTURE) < 0 ?
                 Marshal.GetLastWin32Error() : 0;
-                
-            write(this.abortwfd, new byte[] { 0x01 }, 1);
 
             var task = Interlocked.Exchange(ref this.task, null!);
             await task.ConfigureAwait(false);
