@@ -129,10 +129,10 @@ public sealed class DirectShowDevice :
                                 Collect(vfc =>
                                     characteristics.Equals(vfc.Value) ?
                                         new { pin, format, interval = vfc.Key, vfc = vfc.Value } : null))).
-                        FirstOrDefault() is { } entry)
+                        FirstOrDefault() is { } entry &&
+                        entry.pin.SetFormat(entry.format, entry.interval))
                     {
                         this.Characteristics = entry.vfc;
-                        entry.pin.SetFormat(entry.format, entry.interval);
                     }
                     else
                     {
@@ -228,6 +228,7 @@ public sealed class DirectShowDevice :
                     if (this.graphBuilder != null)
                     {
                         Marshal.ReleaseComObject(this.graphBuilder);
+                        this.graphBuilder = null;
                     }
                     throw;
                 }
@@ -251,7 +252,8 @@ public sealed class DirectShowDevice :
 
     protected override async Task OnDisposeAsync()
     {
-        if (this.graphBuilder != null)
+        // Initialization can fail before a graph is created, but the workers already exist.
+        if (this.workingContext is { } workingContext)
         {
             await this.frameProcessor.DisposeAsync().
                 ConfigureAwait(false);
@@ -259,17 +261,20 @@ public sealed class DirectShowDevice :
             await this.OnStopAsync(default).
                 ConfigureAwait(false);
 
-            await this.workingContext!.InvokeAsync(() =>
+            await workingContext.InvokeAsync(() =>
             {
-                Marshal.ReleaseComObject(this.graphBuilder);
-                this.graphBuilder = null!;
+                if (this.graphBuilder != null)
+                {
+                    Marshal.ReleaseComObject(this.graphBuilder);
+                    this.graphBuilder = null;
+                }
                 this.captureSource = null;
                 this.sampleGrabberSink = null!;
                 NativeMethods.FreeMemory(this.pBih);
                 this.pBih = IntPtr.Zero;
             }, default);
 
-            this.workingContext.Dispose();
+            workingContext.Dispose();
             this.workingContext = null;
         }
     }
