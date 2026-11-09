@@ -35,7 +35,7 @@ public enum CaptureDeviceControlTypes
     Zoom,
     /// <summary>
     /// Exposure time in the native unit of the device:
-    /// the binary logarithm of seconds on DirectShow, 100 µs on V4L2.
+    /// the binary logarithm of seconds on DirectShow and Media Foundation, 100 µs on V4L2.
     /// </summary>
     Exposure,
     Focus,

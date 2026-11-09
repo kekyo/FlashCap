@@ -8,6 +8,8 @@
 ////////////////////////////////////////////////////////////////////////////
 
 using FlashCap.Devices;
+using NUnit.Framework;
+using NUnitLite;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -24,37 +26,33 @@ namespace FlashCap.MediaFoundation.Smoke;
 #endif
 internal static class Program
 {
-    private static async Task<int> Main(string[] args)
+    private static int Main(string[] args)
     {
         Trace.Listeners.Add(new ConsoleTraceListener());
-        var output = args.Length == 0 ? "camera-controls-results" : args[0];
-        Directory.CreateDirectory(output);
-        var descriptors = new MediaFoundationDevices().GetDescriptors();
-        Console.WriteLine($"Cameras: {descriptors.Length}");
-        if (descriptors.Length < 2)
-        {
-            Console.Error.WriteLine("This hardware test requires two cameras.");
-            return 1;
-        }
-        var failures = 0;
-        foreach (var descriptor in descriptors)
-        {
-            try
-            {
-                await VerifyAsync(descriptor, output);
-                Console.WriteLine($"PASS: {descriptor.Name}");
-            }
-            catch (Exception exception)
-            {
-                failures++;
-                Console.Error.WriteLine($"FAIL: {descriptor.Name}: {exception}");
-            }
-        }
-        return failures == 0 ? 0 : 1;
+        return new AutoRun().Execute(args);
     }
+}
 
-    private static async Task VerifyAsync(CaptureDeviceDescriptor descriptor, string output)
+#if NET5_0_OR_GREATER
+[SupportedOSPlatform("windows6.1")]
+#endif
+[TestFixture]
+internal sealed class CameraControlsTests
+{
+    private static readonly CaptureDeviceDescriptor[] descriptors = new MediaFoundationDevices().GetDescriptors();
+
+    private static IEnumerable<TestCaseData> Cameras => descriptors.Select(descriptor =>
+        new TestCaseData(descriptor).SetName($"Camera controls: {descriptor.Name}"));
+
+    [Test]
+    public void DetectsTwoCameras() =>
+        Assert.That(descriptors.Length, Is.GreaterThanOrEqualTo(2), "This hardware test requires two cameras.");
+
+    [TestCaseSource(nameof(Cameras))]
+    public async Task VerifyAsync(CaptureDeviceDescriptor descriptor)
     {
+        var output = TestContext.CurrentContext.WorkDirectory;
+        Directory.CreateDirectory(output);
         var format = descriptor.Characteristics
             .Where(format => format.PixelFormat == PixelFormats.JPEG)
             .OrderBy(format => Math.Abs(format.Width - 640) + Math.Abs(format.Height - 480))
@@ -81,16 +79,16 @@ internal static class Program
         try
         {
             var controls = await device.GetControlsAsync();
-            Require(controls.Length > 0, "No controls were exposed before StartAsync.");
+            Assert.That(controls.Length > 0, "No controls were exposed before StartAsync.");
             foreach (var control in controls)
             {
                 var value = await device.GetControlValueAsync(control.Type);
-                Require(value is not null, $"Cannot read {control.Type}.");
+                Assert.That(value is not null, $"Cannot read {control.Type}.");
                 originals.Add(control.Type, value!);
                 Console.WriteLine($"CONTROL: {control}: current={value}");
             }
-            Require(await device.GetControlValueAsync((CaptureDeviceControlTypes)999) is null, "Unknown control must return null.");
-            Require(!await device.SetControlValueAsync((CaptureDeviceControlTypes)999, 0), "Unknown control must return false.");
+            Assert.That(await device.GetControlValueAsync((CaptureDeviceControlTypes)999) is null, "Unknown control must return null.");
+            Assert.That(!await device.SetControlValueAsync((CaptureDeviceControlTypes)999, 0), "Unknown control must return false.");
             var brightness = controls.First(control => control.Type == CaptureDeviceControlTypes.Brightness && control.Maximum > control.Minimum);
             var originalBrightness = originals[brightness.Type].Value;
             var step = Math.Max(1, brightness.Step);
@@ -99,7 +97,7 @@ internal static class Program
             await SetAndReadAsync(device, brightness.Type, changedBrightness, false, "before-start");
             await device.StartAsync();
             await SaveFramesAsync("started");
-            Require((await device.GetControlValueAsync(brightness.Type))!.Value == changedBrightness, "StartAsync lost the pre-start value.");
+            Assert.That((await device.GetControlValueAsync(brightness.Type))!.Value == changedBrightness, "StartAsync lost the pre-start value.");
             await SetAndReadAsync(device, brightness.Type, originalBrightness, false, "running");
 
             foreach (var control in controls.Where(control => control.SupportsAuto))
@@ -117,12 +115,12 @@ internal static class Program
             var reads = Enumerable.Range(0, 8).Select(_ => device.GetControlValueAsync(brightness.Type)).ToArray();
             await device.StopAsync();
             await Task.WhenAll(reads);
-            Require(!device.IsRunning, "StopAsync did not stop the device.");
-            Require((await device.GetControlsAsync()).Length == controls.Length, "StopAsync lost the controls.");
+            Assert.That(!device.IsRunning, "StopAsync did not stop the device.");
+            Assert.That((await device.GetControlsAsync()).Length == controls.Length, "StopAsync lost the controls.");
             await SetAndReadAsync(device, brightness.Type, changedBrightness, false, "stopped");
             await device.StartAsync();
             await SaveFramesAsync("restarted");
-            Require((await device.GetControlValueAsync(brightness.Type))!.Value == changedBrightness, "Restart lost the stopped value.");
+            Assert.That((await device.GetControlValueAsync(brightness.Type))!.Value == changedBrightness, "Restart lost the stopped value.");
             await device.StopAsync();
         }
         finally
@@ -131,7 +129,7 @@ internal static class Program
             {
                 foreach (var original in originals)
                 {
-                    Require(await device.SetControlValueAsync(original.Key, original.Value.Value, original.Value.IsAuto),
+                    Assert.That(await device.SetControlValueAsync(original.Key, original.Value.Value, original.Value.IsAuto),
                         $"Cannot restore {original.Key}.");
                 }
             }
@@ -152,7 +150,7 @@ internal static class Program
             }
             using var timeout = new CancellationTokenSource();
             var deadline = Task.Delay(TimeSpan.FromSeconds(30), timeout.Token);
-            Require(await Task.WhenAny(frames, deadline) == frames, $"No frames arrived during {stage}.");
+            Assert.That(await Task.WhenAny(frames, deadline) == frames, $"No frames arrived during {stage}.");
             timeout.Cancel();
             var image = await frames;
             var name = string.Concat(descriptor.Name.Select(character => Path.GetInvalidFileNameChars().Contains(character) ? '_' : character));
@@ -163,18 +161,10 @@ internal static class Program
 
     private static async Task SetAndReadAsync(CaptureDevice device, CaptureDeviceControlTypes type, int value, bool isAuto, string stage)
     {
-        Require(await device.SetControlValueAsync(type, value, isAuto), $"{stage}: Set {type} was refused.");
+        Assert.That(await device.SetControlValueAsync(type, value, isAuto), $"{stage}: Set {type} was refused.");
         var actual = await device.GetControlValueAsync(type);
-        Require(actual is not null && actual.IsAuto == isAuto && (isAuto || actual.Value == value),
+        Assert.That(actual is not null && actual.IsAuto == isAuto && (isAuto || actual.Value == value),
             $"{stage}: {type}: expected {value}, auto={isAuto}; actual {actual}.");
         Console.WriteLine($"SET/GET: {stage}: {type}: {actual}");
-    }
-
-    private static void Require(bool condition, string message)
-    {
-        if (!condition)
-        {
-            throw new InvalidOperationException(message);
-        }
     }
 }

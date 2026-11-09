@@ -269,6 +269,45 @@ if (device.HasPropertyPage)
 
 完全な実装は、[Avaloniaサンプルコード](samples/FlashCap.Avalonia/)や、[WPFサンプルコード](samples/FlashCap.Wpf/)を参照して下さい。
 
+### カメラコントロール
+
+明るさ、ズーム、露出などの設定を読み書きできます。
+DirectShow、Media Foundation、V4L2に対応しており、操作できる項目と値の範囲はカメラによって異なります。
+`GetControlsAsync()`で対応項目を取得してから操作してください。
+対応項目がない場合は空の配列を返します。
+
+```csharp
+var device = await descriptor.OpenAsync(characteristics, bufferScope =>
+{
+    // 映像を処理します。
+});
+try
+{
+    foreach (var control in await device.GetControlsAsync())
+    {
+        var value = await device.GetControlValueAsync(control.Type);
+        Console.WriteLine($"{control}: {value}");
+
+        if (control.Type == CaptureDeviceControlTypes.Exposure && control.SupportsAuto)
+        {
+            await device.SetControlValueAsync(control.Type, 0, isAuto: true);
+        }
+    }
+}
+finally
+{
+    await device.DisposeAsync();
+}
+```
+
+設定を変更できるのは、撮影開始前、撮影中、停止後です。
+Media Foundationでは、`DisposeAsync()`を呼び出すまでカメラへの接続を保持します。
+非対応項目の読み出しは`null`を返し、非対応項目への設定やカメラが拒否した設定は`false`を返します。
+
+設定値はデバイスのネイティブ単位です。
+露出はDirectShowとMedia Foundationでは秒数の底2対数、V4L2では100 µs単位です。
+`PowerLineFrequency`によるフリッカー抑制の設定はV4L2のみ対応しています。
+
 
 ----
 
