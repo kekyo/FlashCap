@@ -56,6 +56,9 @@ public sealed unsafe class MediaFoundationCameraControlsTests
     [TestCase(CaptureDeviceControlTypes.Zoom, true, 3)]
     [TestCase(CaptureDeviceControlTypes.Exposure, true, 4)]
     [TestCase(CaptureDeviceControlTypes.Focus, true, 6)]
+    [TestCase(CaptureDeviceControlTypes.Roll, true, 2)]
+    [TestCase(CaptureDeviceControlTypes.Iris, true, 5)]
+    [TestCase(CaptureDeviceControlTypes.ColorEnable, false, 6)]
     public void ExposesAndChangesTheSupportedNativeProperty(CaptureDeviceControlTypes type, bool camera, int property)
     {
         void** sourceVtable = stackalloc void*[3];

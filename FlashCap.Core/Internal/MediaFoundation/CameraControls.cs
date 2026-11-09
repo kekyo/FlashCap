@@ -31,6 +31,7 @@ internal sealed unsafe class CameraControls : IDisposable
         new(CaptureDeviceControlTypes.Saturation, 3),
         new(CaptureDeviceControlTypes.Sharpness, 4),
         new(CaptureDeviceControlTypes.Gamma, 5),
+        new(CaptureDeviceControlTypes.ColorEnable, 6),
         new(CaptureDeviceControlTypes.WhiteBalance, 7),
         new(CaptureDeviceControlTypes.BacklightCompensation, 8),
         new(CaptureDeviceControlTypes.Gain, 9),
@@ -40,13 +41,16 @@ internal sealed unsafe class CameraControls : IDisposable
     [
         new(CaptureDeviceControlTypes.Pan, 0),
         new(CaptureDeviceControlTypes.Tilt, 1),
+        new(CaptureDeviceControlTypes.Roll, 2),
         new(CaptureDeviceControlTypes.Zoom, 3),
         new(CaptureDeviceControlTypes.Exposure, 4),
+        new(CaptureDeviceControlTypes.Iris, 5),
         new(CaptureDeviceControlTypes.Focus, 6),
     ];
 
     private CameraControlInterface* videoProcAmp;
     private CameraControlInterface* cameraControl;
+    private KernelStreamingControls? extendedControls;
 
     internal CameraControls(IUnknown* source)
     {
@@ -54,6 +58,7 @@ internal sealed unsafe class CameraControls : IDisposable
         {
             this.videoProcAmp = Query(source, in IID_IAMVideoProcAmp);
             this.cameraControl = Query(source, in IID_IAMCameraControl);
+            this.extendedControls = new KernelStreamingControls((IntPtr)source);
         }
         catch
         {
@@ -78,6 +83,7 @@ internal sealed unsafe class CameraControls : IDisposable
         var controls = new List<CaptureDeviceControl>();
         AddRanges(controls, this.videoProcAmp, videoProperties);
         AddRanges(controls, this.cameraControl, cameraProperties);
+        if (this.extendedControls is { } extended) controls.AddRange(extended.GetControls());
         return controls.ToArray();
     }
 
@@ -103,6 +109,8 @@ internal sealed unsafe class CameraControls : IDisposable
 
     internal CaptureDeviceControlValue? GetValue(CaptureDeviceControlTypes type)
     {
+        if (type is CaptureDeviceControlTypes.PowerLineFrequency or CaptureDeviceControlTypes.AutoExposurePriority)
+            return this.extendedControls?.GetValue(type);
         var native = this.Find(type, out var property);
         return native is not null && native->Get(property, out var value, out var flags) >= 0 ?
             new CaptureDeviceControlValue(value, (flags & Auto) != 0) : null;
@@ -110,6 +118,8 @@ internal sealed unsafe class CameraControls : IDisposable
 
     internal bool SetValue(CaptureDeviceControlTypes type, int value, bool isAuto)
     {
+        if (type is CaptureDeviceControlTypes.PowerLineFrequency or CaptureDeviceControlTypes.AutoExposurePriority)
+            return this.extendedControls?.SetValue(type, value, isAuto) ?? false;
         var native = this.Find(type, out var property);
         if (native is null)
         {
@@ -147,6 +157,8 @@ internal sealed unsafe class CameraControls : IDisposable
 
     public void Dispose()
     {
+        this.extendedControls?.Dispose();
+        this.extendedControls = null;
         Release(this.videoProcAmp);
         this.videoProcAmp = null;
         Release(this.cameraControl);

@@ -39,14 +39,18 @@ internal static class Program
 [TestFixture]
 internal sealed class CameraControlsTests
 {
-    private static readonly CaptureDeviceDescriptor[] descriptors = new MediaFoundationDevices().GetDescriptors();
+    private static readonly CaptureDeviceDescriptor[] descriptors = new MediaFoundationDevices().GetDescriptors()
+        .Concat(new DirectShowDevices().GetDescriptors()).ToArray();
 
     private static IEnumerable<TestCaseData> Cameras => descriptors.Select(descriptor =>
-        new TestCaseData(descriptor).SetName($"Camera controls: {descriptor.Name}"));
+        new TestCaseData(descriptor).SetName($"Camera controls: {descriptor.DeviceType}: {descriptor.Name}"));
 
     [Test]
-    public void DetectsTwoCameras() =>
-        Assert.That(descriptors.Length, Is.GreaterThanOrEqualTo(2), "This hardware test requires two cameras.");
+    public void DetectsThreeCamerasOnBothBackends()
+    {
+        Assert.That(descriptors.Count(descriptor => descriptor.DeviceType == DeviceTypes.MediaFoundation), Is.GreaterThanOrEqualTo(3));
+        Assert.That(descriptors.Count(descriptor => descriptor.DeviceType == DeviceTypes.DirectShow), Is.GreaterThanOrEqualTo(3));
+    }
 
     [TestCaseSource(nameof(Cameras))]
     public async Task VerifyAsync(CaptureDeviceDescriptor descriptor)
@@ -58,7 +62,7 @@ internal sealed class CameraControlsTests
             .OrderBy(format => Math.Abs(format.Width - 640) + Math.Abs(format.Height - 480))
             .ThenBy(format => Math.Abs((double)format.FramesPerSecond - 30))
             .First();
-        Console.WriteLine($"OPEN: {descriptor.Name}: {format}");
+        Console.WriteLine($"OPEN: {descriptor.DeviceType}: {descriptor.Name}: {format}");
         var sync = new object();
         var frameCount = 0;
         var targetFrames = int.MaxValue;
@@ -99,6 +103,14 @@ internal sealed class CameraControlsTests
             await SaveFramesAsync("started");
             Assert.That((await device.GetControlValueAsync(brightness.Type))!.Value == changedBrightness, "StartAsync lost the pre-start value.");
             await SetAndReadAsync(device, brightness.Type, originalBrightness, false, "running");
+
+            foreach (var control in controls.Where(control => control.Minimum < control.Maximum))
+            {
+                var original = originals[control.Type].Value;
+                var increment = Math.Max(1, control.Step);
+                var changed = original + (long)increment <= control.Maximum ? original + increment : original - increment;
+                await SetAndReadAsync(device, control.Type, changed, false, "manual-adjustment");
+            }
 
             foreach (var control in controls.Where(control => control.SupportsAuto))
             {
@@ -154,7 +166,7 @@ internal sealed class CameraControlsTests
             timeout.Cancel();
             var image = await frames;
             var name = string.Concat(descriptor.Name.Select(character => Path.GetInvalidFileNameChars().Contains(character) ? '_' : character));
-            File.WriteAllBytes(Path.Combine(output, $"{name}-{stage}.jpg"), image);
+            File.WriteAllBytes(Path.Combine(output, $"{descriptor.DeviceType}-{name}-{stage}.jpg"), image);
             Console.WriteLine($"FRAMES: {stage}: count={frameCount}, image={image.Length} bytes");
         }
     }
