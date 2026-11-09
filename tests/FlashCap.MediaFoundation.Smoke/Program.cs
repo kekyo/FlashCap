@@ -33,21 +33,30 @@ internal static class Program
     }
 }
 
-#if NET5_0_OR_GREATER
-[SupportedOSPlatform("windows6.1")]
-#endif
 [TestFixture]
 internal sealed class CameraControlsTests
 {
-    private static readonly CaptureDeviceDescriptor[] descriptors = new MediaFoundationDevices().GetDescriptors()
-        .Concat(new DirectShowDevices().GetDescriptors()).ToArray();
+    private static readonly CaptureDeviceDescriptor[] descriptors = GetDescriptors();
+
+    private static CaptureDeviceDescriptor[] GetDescriptors()
+    {
+#if NET5_0_OR_GREATER
+        if (OperatingSystem.IsLinux())
+            return new V4L2Devices().GetDescriptors().Where(descriptor =>
+                descriptor.Name.Contains("C930e") && descriptor.Characteristics.Length != 0).ToArray();
+        if (!OperatingSystem.IsWindowsVersionAtLeast(6, 1)) return Array.Empty<CaptureDeviceDescriptor>();
+#endif
+        return new MediaFoundationDevices().GetDescriptors().Concat(new DirectShowDevices().GetDescriptors()).ToArray();
+    }
 
     private static IEnumerable<TestCaseData> Cameras => descriptors.Select(descriptor =>
         new TestCaseData(descriptor).SetName($"Camera controls: {descriptor.DeviceType}: {descriptor.Name}"));
 
     [Test]
-    public void DetectsThreeCamerasOnBothBackends()
+    public void DetectsExpectedHardware()
     {
+        Assert.That(descriptors, Is.Not.Empty);
+        if (descriptors.All(descriptor => descriptor.DeviceType == DeviceTypes.V4L2)) return;
         Assert.That(descriptors.Count(descriptor => descriptor.DeviceType == DeviceTypes.MediaFoundation), Is.GreaterThanOrEqualTo(3));
         Assert.That(descriptors.Count(descriptor => descriptor.DeviceType == DeviceTypes.DirectShow), Is.GreaterThanOrEqualTo(3));
     }

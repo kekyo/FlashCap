@@ -141,20 +141,37 @@ internal static class NativeMethods_V4L2
     public const uint V4L2_CID_WHITE_BALANCE_TEMPERATURE = V4L2_CID_BASE + 26;
     public const uint V4L2_CID_SHARPNESS = V4L2_CID_BASE + 27;
     public const uint V4L2_CID_BACKLIGHT_COMPENSATION = V4L2_CID_BASE + 28;
+    public const uint V4L2_CID_COLORFX = V4L2_CID_BASE + 31;
 
     public const uint V4L2_CID_CAMERA_CLASS_BASE = 0x009a0900;
     public const uint V4L2_CID_EXPOSURE_AUTO = V4L2_CID_CAMERA_CLASS_BASE + 1;
     public const uint V4L2_CID_EXPOSURE_ABSOLUTE = V4L2_CID_CAMERA_CLASS_BASE + 2;
+    public const uint V4L2_CID_EXPOSURE_AUTO_PRIORITY = V4L2_CID_CAMERA_CLASS_BASE + 3;
     public const uint V4L2_CID_PAN_ABSOLUTE = V4L2_CID_CAMERA_CLASS_BASE + 8;
     public const uint V4L2_CID_TILT_ABSOLUTE = V4L2_CID_CAMERA_CLASS_BASE + 9;
     public const uint V4L2_CID_FOCUS_ABSOLUTE = V4L2_CID_CAMERA_CLASS_BASE + 10;
     public const uint V4L2_CID_FOCUS_AUTO = V4L2_CID_CAMERA_CLASS_BASE + 12;
     public const uint V4L2_CID_ZOOM_ABSOLUTE = V4L2_CID_CAMERA_CLASS_BASE + 13;
+    public const uint V4L2_CID_IRIS_ABSOLUTE = V4L2_CID_CAMERA_CLASS_BASE + 17;
 
     // enum v4l2_exposure_auto_type
     public const int V4L2_EXPOSURE_AUTO = 0;
     public const int V4L2_EXPOSURE_MANUAL = 1;
+    public const int V4L2_EXPOSURE_SHUTTER_PRIORITY = 2;
     public const int V4L2_EXPOSURE_APERTURE_PRIORITY = 3;
+
+    public const int V4L2_COLORFX_NONE = 0;
+    public const int V4L2_COLORFX_BW = 1;
+
+    // videodev2.h packs v4l2_querymenu to 44 bytes, including its 32-byte union.
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public sealed class v4l2_querymenu
+    {
+        public uint id;
+        public uint index;
+        public uint name0, name1, name2, name3, name4, name5, name6, name7;
+        public uint reserved;
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     public sealed class v4l2_queryctrl
