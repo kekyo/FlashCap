@@ -24,8 +24,6 @@ namespace FlashCap.Internal.MediaFoundation;
 [SupportedOSPlatform("windows6.1")]
 internal sealed unsafe partial class CaptureSession : IDisposable
 {
-    private IMFActivate* activate;
-    private IMFMediaSource* mediaSource;
     private IMFSourceReader* reader;
     private int? defaultStride;
     private FrameHandler? frameHandler;
@@ -41,20 +39,19 @@ internal sealed unsafe partial class CaptureSession : IDisposable
     internal Task Completion => this.state?.Completion ?? TaskCompat.CompletedTask;
     internal Task StopRequested => this.state?.StopRequested ?? TaskCompat.CompletedTask;
     internal Exception? FlushFailure => this.state?.FlushFailure;
+    internal bool IsRunning => this.state?.IsRunning ?? false;
 
-    internal static CaptureSession Open(string symbolicLink, FormatKey formatKey, FrameHandler frameHandler)
+    internal static CaptureSession Open(IMFMediaSource* mediaSource, FormatKey formatKey, FrameHandler frameHandler)
     {
         var session = new CaptureSession();
         try
         {
             session.frameHandler = frameHandler;
             session.callback = new SourceReaderCallback(session);
-            session.activate = FindActivate(symbolicLink);
-            session.mediaSource = ActivateMediaSource(session.activate);
             var callbackPointer = NativeMethods_MediaFoundation.GetComInterfaceForObject(session.callback);
             try
             {
-                session.reader = CreateSourceReader(session.mediaSource, (IUnknown*)callbackPointer);
+                session.reader = CreateSourceReader(mediaSource, (IUnknown*)callbackPointer, true);
             }
             finally
             {
@@ -255,46 +252,8 @@ internal sealed unsafe partial class CaptureSession : IDisposable
         this.callback = null;
         this.state = null;
         this.frameHandler = null;
-        if (this.reader is null && this.mediaSource is not null)
-        {
-            _ = this.mediaSource->Shutdown();
-        }
         Release(this.reader);
         this.reader = null;
-        if (this.activate is not null)
-        {
-            _ = this.activate->ShutdownObject();
-        }
-        Release(this.mediaSource);
-        this.mediaSource = null;
-        Release(this.activate);
-        this.activate = null;
-    }
-
-    internal static IMFActivate* FindActivate(string symbolicLink)
-    {
-        IMFActivate** devices = null;
-        uint count = 0;
-        try
-        {
-            devices = EnumerateDeviceSources(out count);
-            for (uint index = 0; index < count; index++)
-            {
-                var activate = devices[index];
-                if (activate is not null && string.Equals(
-                        GetAllocatedString(activate, in MF_DEVSOURCE_ATTRIBUTE_SOURCE_TYPE_VIDCAP_SYMBOLIC_LINK).Trim(),
-                        symbolicLink, StringComparison.OrdinalIgnoreCase))
-                {
-                    devices[index] = null;
-                    return activate;
-                }
-            }
-        }
-        finally
-        {
-            FreeActivateArray(devices, count);
-        }
-        throw new InvalidOperationException("FlashCap: The Media Foundation device is no longer available.");
     }
 
 #if NET8_0_OR_GREATER

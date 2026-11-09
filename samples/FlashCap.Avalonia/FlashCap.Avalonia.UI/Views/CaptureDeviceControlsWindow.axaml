@@ -30,17 +30,17 @@
                                 Minimum="{Binding Minimum}"
                                 Maximum="{Binding Maximum}"
                                 SmallChange="{Binding Step}"
-                                IsEnabled="{Binding !IsAuto}"
+                                IsEnabled="{Binding IsManual}"
                                 Value="{Binding Value, Mode=TwoWay}" />
                         <!-- A check box for a control which is on or off. -->
                         <CheckBox IsVisible="{Binding IsSwitch}"
                                   Content="On"
-                                  IsEnabled="{Binding !IsAuto}"
+                                  IsEnabled="{Binding IsManual}"
                                   IsChecked="{Binding IsOn, Mode=TwoWay}" />
                         <!-- A choice for named values. -->
                         <ComboBox IsVisible="{Binding IsChoice}"
                                   HorizontalAlignment="Stretch"
-                                  IsEnabled="{Binding !IsAuto}"
+                                  IsEnabled="{Binding IsManual}"
                                   ItemsSource="{Binding Choices}"
                                   SelectedItem="{Binding Choice, Mode=TwoWay}" />
                     </StackPanel>

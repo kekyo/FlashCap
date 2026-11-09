@@ -27,7 +27,8 @@ public enum CaptureDeviceControlTypes
     BacklightCompensation,
     Gain,
     /// <summary>
-    /// Anti flicker filter: 0 disabled, 1 50 Hz, 2 60 Hz, 3 auto (V4L2 only).
+    /// Anti flicker filter: 0 disabled, 1 50 Hz, 2 60 Hz, 3 auto.
+    /// The available values depend on the device.
     /// </summary>
     PowerLineFrequency,
     Pan,
@@ -35,10 +36,28 @@ public enum CaptureDeviceControlTypes
     Zoom,
     /// <summary>
     /// Exposure time in the native unit of the device:
-    /// the binary logarithm of seconds on DirectShow, 100 µs on V4L2.
+    /// the binary logarithm of seconds on DirectShow and Media Foundation, 100 µs on V4L2.
     /// </summary>
     Exposure,
     Focus,
+    /// <summary>
+    /// Camera rotation about its viewing axis, in degrees (DirectShow and Media Foundation).
+    /// This does not rotate or resize the captured image in software.
+    /// </summary>
+    Roll,
+    /// <summary>
+    /// Iris aperture in the device's native unit. Automatic iris and exposure modes may be coupled.
+    /// </summary>
+    Iris,
+    /// <summary>
+    /// Color output: 0 black and white, 1 color. On V4L2 this selects the black-and-white or no color effect.
+    /// </summary>
+    ColorEnable,
+    /// <summary>
+    /// Allows automatic exposure to reduce the frame rate in low light: 0 fixed frame rate, 1 variable frame rate.
+    /// This is effective when exposure is automatic; it does not enable automatic exposure itself.
+    /// </summary>
+    AutoExposurePriority,
 }
 
 /// <summary>
@@ -46,11 +65,17 @@ public enum CaptureDeviceControlTypes
 /// </summary>
 public sealed class CaptureDeviceControl
 {
+    /// <summary>The control exposed by the device through the selected backend.</summary>
     public readonly CaptureDeviceControlTypes Type;
+    /// <summary>The inclusive lower bound.</summary>
     public readonly int Minimum;
+    /// <summary>The inclusive upper bound. Equal bounds represent a fixed value.</summary>
     public readonly int Maximum;
+    /// <summary>The native increment between values.</summary>
     public readonly int Step;
+    /// <summary>The device default, or the minimum when the driver does not report a usable default.</summary>
     public readonly int DefaultValue;
+    /// <summary>Whether the backend reports that automatic and manual operation can be selected.</summary>
     public readonly bool SupportsAuto;
 
     public CaptureDeviceControl(

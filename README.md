@@ -274,32 +274,63 @@ See [Avalonia sample code](samples/FlashCap.Avalonia/) and [WPF sample code](sam
 ### Camera controls
 
 Camera controls such as the brightness, the zoom or the exposure can be read and set.
+DirectShow, Media Foundation and V4L2 are supported. Available controls and ranges depend on the camera.
+Call `GetControlsAsync()` to discover supported controls; it returns an empty array when none are available.
+Each entry describes a control the camera exposes through the selected backend.
+`SupportsAuto` indicates whether automatic and manual operation can be selected.
+Equal `Minimum` and `Maximum` values indicate a fixed value.
 The values are in the native unit of the device, see `CaptureDeviceControlTypes`.
 
 ```csharp
-using var device = await descriptor.OpenAsync(
-    characteristics,
-    async bufferScope =>
-    {
-        // ...
-    });
-
-// Controls the device offers, with their ranges
-foreach (var control in await device.GetControlsAsync())
+var device = await descriptor.OpenAsync(characteristics, bufferScope =>
 {
-    var value = await device.GetControlValueAsync(control.Type);
-    Console.WriteLine($"{control}: {value}");
+    // Process the captured image.
+});
+try
+{
+    // Controls the device offers, with their ranges
+    foreach (var control in await device.GetControlsAsync())
+    {
+        var value = await device.GetControlValueAsync(control.Type);
+        Console.WriteLine($"{control}: {value}");
+
+        // Let the device set the exposure itself when supported.
+        if (control.Type == CaptureDeviceControlTypes.Exposure && control.SupportsAuto)
+        {
+            await device.SetControlValueAsync(control.Type, 0, isAuto: true);
+        }
+    }
 }
-
-// Set the zoom
-await device.SetControlValueAsync(CaptureDeviceControlTypes.Zoom, 200);
-
-// Let the device set the exposure itself
-await device.SetControlValueAsync(CaptureDeviceControlTypes.Exposure, 0, isAuto: true);
+finally
+{
+    await device.DisposeAsync();
+}
 ```
 
-Currently, camera controls are supported when the target is a DirectShow or a V4L2 device.
-The exposure is the binary logarithm of seconds on DirectShow and the time in 100 µs units on V4L2.
+Controls can be changed before capture starts, during capture and after capture stops.
+Media Foundation keeps the camera connection open until `DisposeAsync()` is called.
+Reading an unsupported or unavailable value returns `null`.
+Setting an unsupported control or a value refused by the camera returns `false`.
+These results do not distinguish unsupported hardware, an unsupported backend and communication failures.
+A successful set means the driver accepted the request. Read the value again with `GetControlValueAsync()` to verify what the device applied.
+
+The exposure is the binary logarithm of seconds on DirectShow and Media Foundation and the time in 100 µs units on V4L2.
+The following controls are also available on cameras that support them.
+
+| Control | Meaning | DirectShow / Media Foundation | V4L2 |
+|:---|:---|:---|:---|
+| `PowerLineFrequency` | Anti-flicker: 0 disabled, 1 for 50 Hz, 2 for 60 Hz, 3 automatic | Supported | Supported |
+| `AutoExposurePriority` | Frame rate during auto exposure: 0 fixed, 1 allows a reduction | Supported | Supported |
+| `Roll` | Camera rotation about its viewing axis | Supported | Not supported |
+| `Iris` | Iris aperture | Supported | Supported |
+| `ColorEnable` | 0 black and white, 1 color | Supported | Requires both corresponding modes |
+
+The table describes backend support. Use `GetControlsAsync()` to discover the controls and ranges available on your camera.
+Setting `AutoExposurePriority` to 1 does not enable automatic exposure.
+V4L2 may change automatic exposure and iris together; read both values again after changing either.
+They share the [V4L2 exposure mode](https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/ext-ctrls-camera.html).
+V4L2 `ColorEnable` selects the no-effect or black-and-white [color effect](https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/control.html).
+The current value is `null` when another effect is active.
 
 
 ----

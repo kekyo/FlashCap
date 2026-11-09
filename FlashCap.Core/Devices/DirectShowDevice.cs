@@ -81,6 +81,7 @@ public sealed class DirectShowDevice :
     private NativeMethods_DirectShow.IGraphBuilder? graphBuilder;
     // COM object of the capture source, its control interfaces are queried at runtime.
     private object? captureSource;
+    private KernelStreamingControls? extendedControls;
     private SampleGrabberSink? sampleGrabberSink;
     private IntPtr pBih;
 
@@ -222,6 +223,15 @@ public sealed class DirectShowDevice :
 
                     // Camera controls are queried from the capture source.
                     this.captureSource = captureSource;
+                    var pointer = Marshal.GetIUnknownForObject(captureSource);
+                    try
+                    {
+                        this.extendedControls = new KernelStreamingControls(pointer);
+                    }
+                    finally
+                    {
+                        Marshal.Release(pointer);
+                    }
                 }
                 catch
                 {
@@ -263,6 +273,8 @@ public sealed class DirectShowDevice :
 
             await workingContext.InvokeAsync(() =>
             {
+                this.extendedControls?.Dispose();
+                this.extendedControls = null;
                 if (this.graphBuilder != null)
                 {
                     Marshal.ReleaseComObject(this.graphBuilder);
@@ -396,6 +408,7 @@ public sealed class DirectShowDevice :
         { CaptureDeviceControlTypes.Saturation, NativeMethods_DirectShow.VideoProcAmpProperty.Saturation },
         { CaptureDeviceControlTypes.Sharpness, NativeMethods_DirectShow.VideoProcAmpProperty.Sharpness },
         { CaptureDeviceControlTypes.Gamma, NativeMethods_DirectShow.VideoProcAmpProperty.Gamma },
+        { CaptureDeviceControlTypes.ColorEnable, NativeMethods_DirectShow.VideoProcAmpProperty.ColorEnable },
         { CaptureDeviceControlTypes.WhiteBalance, NativeMethods_DirectShow.VideoProcAmpProperty.WhiteBalance },
         { CaptureDeviceControlTypes.BacklightCompensation, NativeMethods_DirectShow.VideoProcAmpProperty.BacklightCompensation },
         { CaptureDeviceControlTypes.Gain, NativeMethods_DirectShow.VideoProcAmpProperty.Gain },
@@ -405,8 +418,10 @@ public sealed class DirectShowDevice :
     {
         { CaptureDeviceControlTypes.Pan, NativeMethods_DirectShow.CameraControlProperty.Pan },
         { CaptureDeviceControlTypes.Tilt, NativeMethods_DirectShow.CameraControlProperty.Tilt },
+        { CaptureDeviceControlTypes.Roll, NativeMethods_DirectShow.CameraControlProperty.Roll },
         { CaptureDeviceControlTypes.Zoom, NativeMethods_DirectShow.CameraControlProperty.Zoom },
         { CaptureDeviceControlTypes.Exposure, NativeMethods_DirectShow.CameraControlProperty.Exposure },
+        { CaptureDeviceControlTypes.Iris, NativeMethods_DirectShow.CameraControlProperty.Iris },
         { CaptureDeviceControlTypes.Focus, NativeMethods_DirectShow.CameraControlProperty.Focus },
     };
 
@@ -426,12 +441,15 @@ public sealed class DirectShowDevice :
                     controls.Add(new CaptureDeviceControl(type, min, max, step, defaultValue, supportsAuto));
                 }
             }
+            if (this.extendedControls is { } extended) controls.AddRange(extended.GetControls());
             return controls.ToArray();
         }, ct);
 
     protected override Task<CaptureDeviceControlValue?> OnGetControlValueAsync(
         CaptureDeviceControlTypes type, CancellationToken ct) =>
         this.workingContext!.InvokeAsync(() =>
+            type is CaptureDeviceControlTypes.PowerLineFrequency or CaptureDeviceControlTypes.AutoExposurePriority ?
+                this.extendedControls?.GetValue(type) :
             this.GetControl(type, out var value, out var flags) == 0 ?
                 new CaptureDeviceControlValue(value, (flags & NativeMethods_DirectShow.ControlFlags.Auto) != 0) :
                 null, ct);
@@ -440,6 +458,8 @@ public sealed class DirectShowDevice :
         CaptureDeviceControlTypes type, int value, bool isAuto, CancellationToken ct) =>
         this.workingContext!.InvokeAsync(() =>
         {
+            if (type is CaptureDeviceControlTypes.PowerLineFrequency or CaptureDeviceControlTypes.AutoExposurePriority)
+                return this.extendedControls?.SetValue(type, value, isAuto) ?? false;
             if (isAuto)
             {
                 // The value is kept, the device changes it itself.

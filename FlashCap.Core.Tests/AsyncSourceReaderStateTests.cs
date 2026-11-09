@@ -18,6 +18,35 @@ namespace FlashCap.Core.Tests;
 public sealed class AsyncSourceReaderStateTests
 {
     [Test]
+    public void AStoppingSessionIsNotRunningWhileItsLastCallbackDrains()
+    {
+        var state = new AsyncSourceReaderState(() => { }, () => { });
+        Assert.That(state.IsRunning, Is.False);
+        Assert.That(state.Start(), Is.True);
+        Assert.That(state.IsRunning, Is.True);
+        Assert.That(state.EnterCallback(out _), Is.True);
+        state.Stop();
+        Assert.That(state.IsRunning, Is.False);
+        Assert.That(state.Completion.IsCompleted, Is.False);
+        state.OnFlushed();
+        state.ExitCallback(null, requestNextSample: false);
+        Assert.That(state.Completion.IsCompletedSuccessfully, Is.True);
+        Assert.That(state.IsRunning, Is.False);
+    }
+
+    [Test]
+    public void AReadFailureMarksTheSessionAsStoppingBeforeCleanup()
+    {
+        var state = new AsyncSourceReaderState(() => { }, () => { });
+        state.Start();
+        state.EnterCallback(out _);
+        state.ExitCallback(new InvalidOperationException("device lost"), requestNextSample: true);
+        Assert.That(state.StopRequested.IsCompleted, Is.True);
+        Assert.That(state.IsRunning, Is.False);
+        Assert.That(state.Completion.IsCompleted, Is.False);
+    }
+
+    [Test]
     public void StartRequestsFirstSampleOnlyOnce()
     {
         var requests = 0;

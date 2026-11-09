@@ -9,7 +9,6 @@
 
 using FlashCap.Internal;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -482,109 +481,26 @@ public sealed class V4L2Device : CaptureDevice
 
     /////////////////////////////////////////////////////////////////////////////////////////////////
 
-    // Camera controls implementation.
-    // https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/control.html
-
-    private sealed class ControlMapping
-    {
-        public readonly uint Id;
-        // Control switching the automatic mode, 0 without it.
-        public readonly uint AutoId;
-        // Values of the automatic control, the first one accepted turns the automatic mode on.
-        public readonly int[] AutoOn;
-        public readonly int AutoOff;
-
-        public ControlMapping(uint id, uint autoId = 0, int[]? autoOn = null, int autoOff = 0)
-        {
-            this.Id = id;
-            this.AutoId = autoId;
-            this.AutoOn = autoOn ?? new[] { 1 };
-            this.AutoOff = autoOff;
-        }
-    }
-
-    private static readonly Dictionary<CaptureDeviceControlTypes, ControlMapping> controlMappings = new()
-    {
-        { CaptureDeviceControlTypes.Brightness, new(V4L2_CID_BRIGHTNESS) },
-        { CaptureDeviceControlTypes.Contrast, new(V4L2_CID_CONTRAST) },
-        { CaptureDeviceControlTypes.Hue, new(V4L2_CID_HUE, V4L2_CID_HUE_AUTO) },
-        { CaptureDeviceControlTypes.Saturation, new(V4L2_CID_SATURATION) },
-        { CaptureDeviceControlTypes.Sharpness, new(V4L2_CID_SHARPNESS) },
-        { CaptureDeviceControlTypes.Gamma, new(V4L2_CID_GAMMA) },
-        { CaptureDeviceControlTypes.WhiteBalance, new(V4L2_CID_WHITE_BALANCE_TEMPERATURE, V4L2_CID_AUTO_WHITE_BALANCE) },
-        { CaptureDeviceControlTypes.BacklightCompensation, new(V4L2_CID_BACKLIGHT_COMPENSATION) },
-        { CaptureDeviceControlTypes.Gain, new(V4L2_CID_GAIN, V4L2_CID_AUTOGAIN) },
-        { CaptureDeviceControlTypes.PowerLineFrequency, new(V4L2_CID_POWER_LINE_FREQUENCY) },
-        { CaptureDeviceControlTypes.Pan, new(V4L2_CID_PAN_ABSOLUTE) },
-        { CaptureDeviceControlTypes.Tilt, new(V4L2_CID_TILT_ABSOLUTE) },
-        { CaptureDeviceControlTypes.Zoom, new(V4L2_CID_ZOOM_ABSOLUTE) },
-        // Many webcams offer only the aperture priority mode, others only the full automatic mode.
-        { CaptureDeviceControlTypes.Exposure, new(V4L2_CID_EXPOSURE_ABSOLUTE, V4L2_CID_EXPOSURE_AUTO,
-            new[] { V4L2_EXPOSURE_APERTURE_PRIORITY, V4L2_EXPOSURE_AUTO }, V4L2_EXPOSURE_MANUAL) },
-        { CaptureDeviceControlTypes.Focus, new(V4L2_CID_FOCUS_ABSOLUTE, V4L2_CID_FOCUS_AUTO) },
-    };
-
     protected override Task<CaptureDeviceControl[]> OnGetControlsAsync(
         CancellationToken ct) =>
         TaskCompat.FromResult(this.UseControlDevice(fd =>
-        {
-            var controls = new List<CaptureDeviceControl>();
-            foreach (var entry in controlMappings)
-            {
-                if (QueryControl(fd, entry.Value.Id) is { } query)
-                {
-                    controls.Add(new CaptureDeviceControl(
-                        entry.Key, query.minimum, query.maximum, query.step, query.default_value,
-                        entry.Value.AutoId != 0 && QueryControl(fd, entry.Value.AutoId) != null));
-                }
-            }
-            return controls.ToArray();
-        }, ArrayEx.Empty<CaptureDeviceControl>()));
+            CreateControls(fd).GetControls(), ArrayEx.Empty<CaptureDeviceControl>()));
 
     protected override Task<CaptureDeviceControlValue?> OnGetControlValueAsync(
         CaptureDeviceControlTypes type, CancellationToken ct) =>
         TaskCompat.FromResult(this.UseControlDevice(fd =>
-        {
-            if (!controlMappings.TryGetValue(type, out var mapping) ||
-                GetControl(fd, mapping.Id) is not { } value)
-            {
-                return null;
-            }
-            var isAuto = mapping.AutoId != 0 &&
-                GetControl(fd, mapping.AutoId) is { } autoValue &&
-                autoValue != mapping.AutoOff;
-            return new CaptureDeviceControlValue(value, isAuto);
-        }, default(CaptureDeviceControlValue?)));
+            CreateControls(fd).GetValue(type), default(CaptureDeviceControlValue?)));
 
     protected override Task<bool> OnSetControlValueAsync(
         CaptureDeviceControlTypes type, int value, bool isAuto, CancellationToken ct) =>
         TaskCompat.FromResult(this.UseControlDevice(fd =>
-        {
-            if (!controlMappings.TryGetValue(type, out var mapping))
-            {
-                return false;
-            }
-            if (isAuto)
-            {
-                foreach (var autoOn in mapping.AutoOn)
-                {
-                    if (mapping.AutoId != 0 && SetControl(fd, mapping.AutoId, autoOn))
-                    {
-                        return true;
-                    }
-                }
-                return false;
-            }
+            CreateControls(fd).SetValue(type, value, isAuto), false));
 
-            // The device ignores a manual value while its automatic mode is on.
-            if (mapping.AutoId != 0 &&
-                GetControl(fd, mapping.AutoId) is { } autoValue &&
-                autoValue != mapping.AutoOff)
-            {
-                SetControl(fd, mapping.AutoId, mapping.AutoOff);
-            }
-            return SetControl(fd, mapping.Id, value);
-        }, false));
+    private static V4L2CameraControls CreateControls(int fd) => new(
+        id => QueryControl(fd, id), id => GetControl(fd, id),
+        (id, value) => SetControl(fd, id, value),
+        (id, value) => ioctl(fd, Interop.VIDIOC_QUERYMENU,
+            new v4l2_querymenu { id = id, index = (uint)value }) == 0);
 
     private T UseControlDevice<T>(Func<int, T> action, T fallback)
     {
