@@ -29,6 +29,10 @@ internal static unsafe partial class NativeMethods_MediaFoundation
 
     public static readonly Guid IID_IUnknown =
         new("00000000-0000-0000-C000-000000000046");
+    public static readonly Guid IID_IAMVideoProcAmp =
+        new("C6E13360-30AC-11D0-A18C-00A0C9118956");
+    public static readonly Guid IID_IAMCameraControl =
+        new("C6E13370-30AC-11D0-A18C-00A0C9118956");
     public static readonly Guid IID_IMFAttributes =
         new("2CD2D921-C447-44A7-A13C-4ADABFC247E3");
     public static readonly Guid IID_IMFActivate =
@@ -113,11 +117,67 @@ internal static unsafe partial class NativeMethods_MediaFoundation
     {
         private void** lpVtbl;
 
+        public int QueryInterface(in Guid iid, out void* value)
+        {
+            fixed (IUnknown* self = &this)
+            fixed (Guid* iidLocal = &iid)
+            fixed (void** valueLocal = &value)
+            {
+                return ((delegate* unmanaged[Stdcall]<IUnknown*, Guid*, void**, int>)this.lpVtbl[0])(
+                    self, iidLocal, valueLocal);
+            }
+        }
+
         public uint Release()
         {
             fixed (IUnknown* self = &this)
             {
                 return ((delegate* unmanaged[Stdcall]<IUnknown*, uint>)this.lpVtbl[2])(self);
+            }
+        }
+    }
+
+    // IAMVideoProcAmp and IAMCameraControl have the same ABI (strmif.h):
+    // IUnknown followed by GetRange, Set and Get, all with 32-bit LONG parameters.
+    // Query each IID separately; using raw pointers preserves Native AOT support.
+    // https://learn.microsoft.com/en-us/windows/win32/api/strmif/nn-strmif-iamcameracontrol
+    // https://learn.microsoft.com/en-us/windows/win32/api/strmif/nn-strmif-iamvideoprocamp
+    [StructLayout(LayoutKind.Sequential)]
+    public struct CameraControlInterface
+    {
+        private void** lpVtbl;
+
+        public int GetRange(int property, out int minimum, out int maximum, out int step, out int defaultValue, out int caps)
+        {
+            fixed (CameraControlInterface* self = &this)
+            fixed (int* minimumLocal = &minimum)
+            fixed (int* maximumLocal = &maximum)
+            fixed (int* stepLocal = &step)
+            fixed (int* defaultValueLocal = &defaultValue)
+            fixed (int* capsLocal = &caps)
+            {
+                return ((delegate* unmanaged[Stdcall]<CameraControlInterface*, int, int*, int*, int*, int*, int*, int>)this.lpVtbl[3])(
+                    self, property, minimumLocal, maximumLocal, stepLocal, defaultValueLocal, capsLocal);
+            }
+        }
+
+        public int Set(int property, int value, int flags)
+        {
+            fixed (CameraControlInterface* self = &this)
+            {
+                return ((delegate* unmanaged[Stdcall]<CameraControlInterface*, int, int, int, int>)this.lpVtbl[4])(
+                    self, property, value, flags);
+            }
+        }
+
+        public int Get(int property, out int value, out int flags)
+        {
+            fixed (CameraControlInterface* self = &this)
+            fixed (int* valueLocal = &value)
+            fixed (int* flagsLocal = &flags)
+            {
+                return ((delegate* unmanaged[Stdcall]<CameraControlInterface*, int, int*, int*, int>)this.lpVtbl[5])(
+                    self, property, valueLocal, flagsLocal);
             }
         }
     }
