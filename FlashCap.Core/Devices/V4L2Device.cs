@@ -151,12 +151,16 @@ public sealed class V4L2Device : CaptureDevice
 
     protected override async Task OnDisposeAsync()
     {
-        if (this.IsRunning)
+        try
         {
-            await this.frameProcessor.DisposeAsync().
+            // DisposeAsync already holds the device lock.
+            await this.OnStopAsync(default).
                 ConfigureAwait(false);
-
-            await this.InternalStopAsync(default).
+        }
+        finally
+        {
+            // The frame processor also needs releasing after an explicit StopAsync.
+            await this.frameProcessor.DisposeAsync().
                 ConfigureAwait(false);
         }
     }
