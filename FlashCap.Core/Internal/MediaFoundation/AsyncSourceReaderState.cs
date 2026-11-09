@@ -50,6 +50,17 @@ internal sealed class AsyncSourceReaderState
     internal Task Completion => this.completion.Task;
     internal Task StopRequested => this.stopRequested.Task;
 
+    internal bool IsRunning
+    {
+        get
+        {
+            lock (this.sync)
+            {
+                return this.lifecycle == Lifecycle.Running;
+            }
+        }
+    }
+
     internal Exception? FlushFailure
     {
         get

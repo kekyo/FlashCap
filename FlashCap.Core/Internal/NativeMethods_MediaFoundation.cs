@@ -68,6 +68,8 @@ internal static unsafe partial class NativeMethods_MediaFoundation
         new(0xf7e34c9a, 0x42e8, 0x4714, 0xb7, 0x4b, 0xcb, 0x29, 0xd7, 0x2c, 0x35, 0xe5);
     public static readonly Guid MF_SOURCE_READER_ASYNC_CALLBACK =
         new(0x1e3dbeac, 0xbb43, 0x4c35, 0xb5, 0x07, 0xcd, 0x64, 0x44, 0x64, 0xc9, 0x65);
+    public static readonly Guid MF_SOURCE_READER_DISCONNECT_MEDIASOURCE_ON_SHUTDOWN =
+        new("56B67165-219E-456D-A22E-2D3004C7FE56");
     public static readonly Guid MFMediaType_Video =
         new(0x73646976, 0x0000, 0x0010, 0x80, 0x00, 0x00, 0xaa, 0x00, 0x38, 0x9b, 0x71);
     public static readonly Guid MFVideoFormat_ARGB32 =
@@ -239,6 +241,16 @@ internal static unsafe partial class NativeMethods_MediaFoundation
                     guidKeyLocal,
                     valueLocal,
                     lengthLocal);
+            }
+        }
+
+        public int SetUINT32(in Guid guidKey, uint value)
+        {
+            fixed (IMFAttributes* self = &this)
+            fixed (Guid* guidKeyLocal = &guidKey)
+            {
+                return ((delegate* unmanaged[Stdcall]<IMFAttributes*, Guid*, uint, int>)this.lpVtbl[21])(
+                    self, guidKeyLocal, value);
             }
         }
 
