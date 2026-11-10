@@ -272,8 +272,8 @@ internal sealed class PipeWireConnection : IDisposable
         try
         {
             this.ThrowIfFailed();
-            if (!this.nodes.Values.Any(node => node.Camera.Serial == camera.Serial && node.Camera.NodeName == camera.NodeName))
-                throw new IOException("The PipeWire camera is no longer available.");
+            // Resolve target.object through the session manager. Camera visibility
+            // on a new portal remote can lag behind its initial registry snapshot.
             this.streamReady = completion;
             this.targetSerial = camera.Serial;
             this.capture = capture;

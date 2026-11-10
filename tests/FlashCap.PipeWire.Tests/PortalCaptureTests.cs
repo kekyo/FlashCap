@@ -27,6 +27,7 @@ public sealed class PortalCaptureTests
 {
     [TestCase("allow")]
     [TestCase("duplicate")]
+    [TestCase("delayed")]
     [TestCase("deny")]
     [TestCase("cancel")]
     [TestCase("wait")]

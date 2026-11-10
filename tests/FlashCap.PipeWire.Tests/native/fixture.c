@@ -27,6 +27,7 @@ static size_t link_count;
 static uint32_t output_port = SPA_ID_INVALID;
 static bool camera_ready;
 static unsigned frame_number;
+static unsigned client_number;
 static GMainLoop *main_loop;
 static const char *mode;
 static GDBusNodeInfo *request_info;
@@ -100,6 +101,20 @@ static void global_added(void *data, uint32_t id, uint32_t permissions,
     const char *type, uint32_t version, const struct spa_dict *props)
 {
     (void)data; (void)permissions; (void)version;
+    if (strcmp(mode, "delayed") == 0 && strcmp(type, PW_TYPE_INTERFACE_Node) == 0 && props != NULL) {
+        const char *media_class = spa_dict_lookup(props, PW_KEY_MEDIA_CLASS);
+        const char *client_id = spa_dict_lookup(props, PW_KEY_CLIENT_ID);
+        if (media_class != NULL && strcmp(media_class, "Stream/Input/Video") == 0 && client_id != NULL) {
+            // A session manager grants access after discovering the capture stream.
+            // The opening connection has already received its registry snapshot.
+            struct pw_client *client = pw_registry_bind(registry, (uint32_t)strtoul(client_id, NULL, 10),
+                PW_TYPE_INTERFACE_Client, PW_VERSION_CLIENT, 0);
+            if (client == NULL) fatal("bind capture client");
+            struct pw_permission permission = PW_PERMISSION_INIT(pw_stream_get_node_id(camera), PW_PERM_ALL);
+            if (pw_client_update_permissions(client, 1, &permission) < 0) fatal("grant camera access");
+            pw_proxy_destroy((struct pw_proxy *)client);
+        }
+    }
     if (strcmp(type, PW_TYPE_INTERFACE_Port) != 0 || props == NULL) return;
     const char *direction = spa_dict_lookup(props, PW_KEY_PORT_DIRECTION);
     const char *node = spa_dict_lookup(props, PW_KEY_NODE_ID);
@@ -155,7 +170,14 @@ static void client_destroyed(void *data)
 static void check_access(void *data, struct pw_impl_client *client)
 {
     (void)data;
-    if (!camera_ready || strcmp(mode, "duplicate") != 0) return;
+    if (!camera_ready || (strcmp(mode, "duplicate") != 0 && strcmp(mode, "delayed") != 0)) return;
+    // Enumeration and opening use separate remotes. Delay the camera's
+    // visibility on each opening connection, without a timing-dependent sleep.
+    if (strcmp(mode, "delayed") == 0 && (++client_number % 2) == 0) {
+        struct pw_permission permission = PW_PERMISSION_INIT(pw_stream_get_node_id(camera), 0);
+        if (pw_impl_client_update_permissions(client, 1, &permission) < 0) fatal("hide camera");
+    }
+    if (strcmp(mode, "delayed") == 0) return;
     struct spa_hook *hook = calloc(1, sizeof(*hook));
     if (hook == NULL) fatal("allocate client listener");
     static const struct pw_impl_client_events events = {
