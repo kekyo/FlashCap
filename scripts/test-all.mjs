@@ -284,6 +284,7 @@ try {
     isolatedEnvironment,
   );
 
+  const pipeWireAotBinaries = [];
   for (const framework of ["net8.0", "net10.0"]) {
     const outputDirectory = join(temporaryRoot, "aot", framework);
     run("dotnet", [
@@ -305,7 +306,13 @@ try {
       outputDirectory,
     ], isolatedEnvironment);
     run(join(outputDirectory, "FlashCap.Core.Tests"), []);
+    pipeWireAotBinaries.push(join(outputDirectory, "FlashCap.Core.Tests"));
   }
+
+  run("bash", ["scripts/test-pipewire.sh"], {
+    ...process.env,
+    FLASHCAP_PIPEWIRE_AOT_BINARIES: pipeWireAotBinaries.join(":"),
+  });
 
   // Build the macOS consumers with AOT analysis; native linking requires macOS.
   for (const runtime of ["osx-x64", "osx-arm64"]) {

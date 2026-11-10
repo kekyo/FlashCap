@@ -44,7 +44,7 @@ jobs:
     - name: Setup native build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install --yes clang mono-runtime zlib1g-dev
+        sudo apt-get install --yes clang mono-runtime zlib1g-dev gcc make pkg-config dbus-daemon libpipewire-0.3-dev libpipewire-0.3-modules libglib2.0-dev
 
     - name: Setup NuGet package reference
       run: |

@@ -26,6 +26,15 @@ namespace FlashCap.PackageConsumer
             typeof(MediaFoundationDevice),
         };
 
+#if !(NET35 || NET40 || NET45 || NETSTANDARD1_3)
+        public static readonly Type[] PipeWireTypes =
+        {
+            typeof(PipeWireDevices),
+            typeof(PipeWireDeviceDescriptor),
+            typeof(PipeWireCaptureDevice),
+        };
+#endif
+
 #if NETFRAMEWORK
         public static int Main()
         {
@@ -34,8 +43,17 @@ namespace FlashCap.PackageConsumer
                 "OnEnumerateDescriptorsAsync", BindingFlags.Instance | BindingFlags.NonPublic) != null;
 #if NET35 || NET40 || NET45
             if (hasAsyncEnumeration) return 1;
+            if (typeof(CaptureDevices).Assembly.GetType("FlashCap.Devices.PipeWireDevices") != null) return 1;
 #else
             if (!hasAsyncEnumeration) return 1;
+            if (PipeWireTypes.Length != 3) return 1;
+            try
+            {
+                typeof(CaptureDevices).GetMethod("OnEnumerateDescriptors",
+                    BindingFlags.Instance | BindingFlags.NonPublic).Invoke(new PipeWireDevices(), new object[0]);
+                return 1;
+            }
+            catch (TargetInvocationException exception) when (exception.InnerException is NotSupportedException) { }
             var enumerator = new EmptyDevices().GetDescriptorsAsync().GetAsyncEnumerator();
             try
             {

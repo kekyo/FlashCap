@@ -276,6 +276,14 @@ internal static class Program
             .Any(method => metadata.GetString(method.Name) == "OnEnumerateDescriptorsAsync");
         if (hasAsyncEnumeration != supportsAsyncEnumeration)
             failures.Add($"lib/{framework}/FlashCap.Core.dll has an incorrect async enumeration API surface.");
+        foreach (var type in new[]
+        {
+            "FlashCap.Devices.PipeWireDevices",
+            "FlashCap.Devices.PipeWireDeviceDescriptor",
+            "FlashCap.Devices.PipeWireCaptureDevice",
+        })
+            if (publicTypes.Contains(type) != supportsAsyncEnumeration)
+                failures.Add($"lib/{framework}/FlashCap.Core.dll has an incorrect PipeWire API surface: {type}.");
     }
 
     private static void VerifyAssemblyReferences(

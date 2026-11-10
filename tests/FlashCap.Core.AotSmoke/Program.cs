@@ -12,6 +12,8 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
+using System.Threading;
+using System.Threading.Tasks;
 using FlashCap;
 using FlashCap.Devices;
 using FlashCap.Internal;
@@ -24,8 +26,10 @@ internal static partial class Program
     private static readonly Guid CallbackInterfaceId =
         new("DEEC8D99-FA1D-4D82-84C2-2C8969944867");
 
-    private static int Main()
+    private static int Main(string[] args)
     {
+        if (args.Contains("--pipewire") && OperatingSystem.IsLinux())
+            return CapturePipeWireAsync().GetAwaiter().GetResult();
         if (OperatingSystem.IsMacOS())
         {
             var devices = new AVFoundationDevices();
@@ -39,6 +43,14 @@ internal static partial class Program
             var devices = new V4L2Devices();
             _ = devices.EnumerateDescriptors().ToArray();
             _ = devices.GetDescriptors();
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            try
+            {
+                new PipeWireDevices().GetDescriptorsAsync(cancellation.Token).GetAwaiter().GetResult();
+                return 7;
+            }
+            catch (OperationCanceledException) { }
         }
 
         try
@@ -137,6 +149,20 @@ internal static partial class Program
 #pragma warning restore CA1416
             }
         }
+    }
+
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    private static async Task<int> CapturePipeWireAsync()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        var devices = await new PipeWireDevices().GetDescriptorsAsync(timeout.Token);
+        var camera = devices.Single();
+        var frame = await camera.TakeOneShotAsync(camera.Characteristics.Single(),
+            TranscodeFormats.DoNotTranscode, timeout.Token);
+        if (frame.Length != 66 || !frame.Skip(54).SequenceEqual(Enumerable.Range(1, 12).Select(value => (byte)value)))
+            return 8;
+        Console.WriteLine("PipeWire AOT capture passed.");
+        return 0;
     }
 
     // Exercise the native control ABI in the published AOT executable without camera hardware.

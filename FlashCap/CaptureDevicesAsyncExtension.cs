@@ -20,6 +20,28 @@ namespace FlashCap;
 
 public static partial class CaptureDevicesExtension
 {
+    /// <summary>Requests camera permission and enumerates cameras using PipeWire.</summary>
+    /// <param name="captureDevices">The device enumerator.</param>
+    /// <param name="ct">Cancels the permission request or enumeration.</param>
+    /// <returns>A finite sequence of available descriptors.</returns>
+#if NET6_0_OR_GREATER
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "PipeWire does not require unreferenced code.")]
+#endif
+    public static IAsyncEnumerable<CaptureDeviceDescriptor> EnumerateDescriptorsAsync(
+        this PipeWireDevices captureDevices, CancellationToken ct = default) =>
+        captureDevices.InternalEnumerateDescriptorsAsync(ct);
+
+    /// <summary>Requests camera permission and gets all available PipeWire cameras.</summary>
+    /// <param name="captureDevices">The device enumerator.</param>
+    /// <param name="ct">Cancels the permission request or enumeration.</param>
+    /// <returns>The available camera descriptors.</returns>
+#if NET6_0_OR_GREATER
+    [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "PipeWire does not require unreferenced code.")]
+#endif
+    public static Task<CaptureDeviceDescriptor[]> GetDescriptorsAsync(
+        this PipeWireDevices captureDevices, CancellationToken ct = default) =>
+        CollectDescriptorsAsync(captureDevices.InternalEnumerateDescriptorsAsync(ct));
+
     /// <summary>Enumerates available capture devices asynchronously.</summary>
     /// <param name="captureDevices">The device enumerator.</param>
     /// <param name="ct">Cancels enumeration.</param>
