@@ -26,6 +26,7 @@ namespace FlashCap.PipeWire.Tests;
 public sealed class PortalCaptureTests
 {
     [TestCase("allow")]
+    [TestCase("duplicate")]
     [TestCase("deny")]
     [TestCase("cancel")]
     [TestCase("wait")]

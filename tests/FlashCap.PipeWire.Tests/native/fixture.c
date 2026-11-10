@@ -11,6 +11,7 @@
 #include <gio/gunixfdlist.h>
 #include <glib-unix.h>
 #include <pipewire/pipewire.h>
+#include <pipewire/impl-client.h>
 #include <spa/param/video/format-utils.h>
 
 static struct pw_thread_loop *thread_loop;
@@ -18,7 +19,7 @@ static struct pw_context *context;
 static struct pw_core *core;
 static struct pw_registry *registry;
 static struct pw_stream *camera;
-static struct spa_hook registry_hook, stream_hook;
+static struct spa_hook registry_hook, stream_hook, context_hook;
 static struct spa_source *timer;
 static struct pw_proxy *links[64];
 static uint32_t input_ports[64];
@@ -131,6 +132,38 @@ static void global_removed(void *data, uint32_t id)
     }
 }
 
+static void resource_added(void *data, struct pw_resource *resource)
+{
+    (void)data;
+    if (strcmp(pw_resource_get_type(resource, NULL), PW_TYPE_INTERFACE_Registry) != 0) return;
+    // Send the camera once before the server's normal initial registry snapshot.
+    // This reproduces duplicate globals observed with the desktop camera portal.
+    struct pw_global *global = pw_context_find_global(context, pw_stream_get_node_id(camera));
+    if (global == NULL) fatal("find camera global");
+    pw_resource_call(resource, struct pw_registry_events, global, 0,
+        pw_global_get_id(global), pw_global_get_permissions(global, pw_resource_get_client(resource)),
+        pw_global_get_type(global), pw_global_get_version(global), &pw_global_get_properties(global)->dict);
+}
+
+static void client_destroyed(void *data)
+{
+    struct spa_hook *hook = data;
+    spa_hook_remove(hook);
+    free(hook);
+}
+
+static void check_access(void *data, struct pw_impl_client *client)
+{
+    (void)data;
+    if (!camera_ready || strcmp(mode, "duplicate") != 0) return;
+    struct spa_hook *hook = calloc(1, sizeof(*hook));
+    if (hook == NULL) fatal("allocate client listener");
+    static const struct pw_impl_client_events events = {
+        PW_VERSION_IMPL_CLIENT_EVENTS, .destroy = client_destroyed, .resource_added = resource_added
+    };
+    pw_impl_client_add_listener(client, hook, &events, hook);
+}
+
 static void start_camera(const char *config)
 {
     pw_init(NULL, NULL);
@@ -139,6 +172,10 @@ static void start_camera(const char *config)
     context = pw_context_new(loop, pw_properties_new(
         PW_KEY_CONFIG_NAME, config, PW_KEY_CORE_DAEMON, "true", PW_KEY_CORE_NAME, "flashcap-test", NULL), 0);
     if (context == NULL) fatal("create server");
+    static const struct pw_context_events context_events = {
+        PW_VERSION_CONTEXT_EVENTS, .check_access = check_access
+    };
+    pw_context_add_listener(context, &context_hook, &context_events, NULL);
     core = pw_context_connect(context, pw_properties_new(PW_KEY_REMOTE_NAME, "flashcap-test", NULL), 0);
     if (core == NULL) fatal("connect server");
     registry = pw_core_get_registry(core, PW_VERSION_REGISTRY, 0);

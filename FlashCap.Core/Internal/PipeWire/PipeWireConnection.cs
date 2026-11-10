@@ -179,6 +179,9 @@ internal sealed class PipeWireConnection : IDisposable
     private void AddNode(uint id, IntPtr type, uint version, IntPtr properties)
     {
         if (Marshal.PtrToStringAnsi(type) != "PipeWire:Interface:Node") return;
+        // A portal remote can announce the same global more than once. Keep the
+        // existing binding until global_remove releases it, including its formats.
+        if (this.nodes.ContainsKey(id)) return;
         var values = PipeWireNative.ReadDictionary(properties);
         if (!values.TryGetValue("media.class", out var mediaClass) || mediaClass != "Video/Source" ||
             !values.TryGetValue("object.serial", out var serial) ||
