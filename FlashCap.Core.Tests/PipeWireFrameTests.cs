@@ -39,6 +39,24 @@ public sealed class PipeWireFrameTests
     }
 
     [Test]
+    public unsafe void MatchingContiguousNv12PlanesPreserveOriginalPayload()
+    {
+        var source = new byte[12];
+        byte[]? scratch = null;
+        fixed (byte* data = source)
+        {
+            var frame = PipeWireFrames.Normalize(PixelFormats.NV12, 4, 2, new[]
+            {
+                new PipeWirePlane((IntPtr)data, 8, 4),
+                new PipeWirePlane((IntPtr)(data + 8), 4, 4),
+            }, false, ref scratch);
+            Assert.That(frame.Pointer, Is.EqualTo((IntPtr)data));
+            Assert.That(frame.Length, Is.EqualTo(12));
+            Assert.That(scratch, Is.Null);
+        }
+    }
+
+    [Test]
     public unsafe void PaddedNv12PreservesPixelsAndRemovesRowPadding()
     {
         var source = new byte[] { 1, 2, 3, 4, 99, 99, 5, 6, 7, 8, 99, 99, 9, 10, 11, 12, 99, 99 };

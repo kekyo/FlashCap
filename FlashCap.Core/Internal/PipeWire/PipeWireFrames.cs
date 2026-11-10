@@ -89,8 +89,11 @@ internal static class PipeWireFrames
 
         // Layout is a property of each received buffer, not only of its negotiated pixel format.
         // DoNotTranscode also uses this check: it preserves pixels but still requires a valid FlashCap layout.
-        if (planes.Length == 1 && first.Stride == targetStride &&
-            first.Length >= targetLength && (!rgb || rgbBottomUp || height == 1))
+        var contiguous = planes.Length == 1 ? first.Length >= targetLength :
+            first.Length >= targetStride * height && chroma.Stride == targetStride &&
+            chroma.Length >= targetStride * chromaRows &&
+            chroma.Pointer == IntPtr.Add(first.Pointer, targetStride * height);
+        if (contiguous && first.Stride == targetStride && (!rgb || rgbBottomUp || height == 1))
             return new PipeWireFrame(first.Pointer, targetLength);
 
         if (scratch is null || scratch.Length < targetLength)
