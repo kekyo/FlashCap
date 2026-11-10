@@ -7,7 +7,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-using FlashCap.Devices;
 using NUnit.Framework;
 using NUnitLite;
 using System;
@@ -37,44 +36,51 @@ internal static class Program
 #endif
 internal sealed class C930eCaptureTests
 {
-    private CaptureDeviceDescriptor camera = null!;
+    private CaptureDeviceDescriptor[] cameras = null!;
 
-    /// <summary>Finds the host C930e through the camera portal.</summary>
+    /// <summary>Finds the host C930e through both default Linux backends.</summary>
     [OneTimeSetUp]
     public async Task EnumerateCameraAsync()
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
-        TestContext.Progress.WriteLine("Enumerating cameras through the desktop camera portal...");
-        var descriptors = await new PipeWireDevices().GetDescriptorsAsync(timeout.Token);
+        TestContext.Progress.WriteLine("Enumerating cameras through the default Linux backends...");
+        var descriptors = await new CaptureDevices().GetDescriptorsAsync(timeout.Token);
         foreach (var descriptor in descriptors)
-            TestContext.Progress.WriteLine($"DEVICE: {descriptor.Name}, {descriptor.Identity}, formats={descriptor.Characteristics.Length}");
-        this.camera = descriptors.Single(descriptor => descriptor.Name.IndexOf("C930e", StringComparison.OrdinalIgnoreCase) >= 0);
-        Assert.That(this.camera.DeviceType, Is.EqualTo(DeviceTypes.PipeWire));
-        foreach (var group in this.camera.Characteristics.GroupBy(format => format.PixelFormat))
-            TestContext.Progress.WriteLine($"FORMATS: {group.Key}, count={group.Count()}");
+            TestContext.Progress.WriteLine($"DEVICE: {descriptor.DeviceType}, {descriptor.Name}, {descriptor.Identity}, formats={descriptor.Characteristics.Length}");
+        this.cameras = descriptors.Where(descriptor => descriptor.Characteristics.Length != 0 &&
+            descriptor.Name.IndexOf("C930e", StringComparison.OrdinalIgnoreCase) >= 0).ToArray();
+        Assert.That(this.cameras.Select(camera => camera.DeviceType), Is.EquivalentTo(new[] { DeviceTypes.V4L2, DeviceTypes.PipeWire }));
+        foreach (var camera in this.cameras)
+            foreach (var group in camera.Characteristics.GroupBy(format => format.PixelFormat))
+                TestContext.Progress.WriteLine($"FORMATS: {camera.DeviceType}, {group.Key}, count={group.Count()}");
     }
 
     /// <summary>Checks captured images, timestamps, and restarting the same camera.</summary>
+    /// <param name="deviceType">The capture backend.</param>
     /// <param name="pixelFormat">The camera's pixel format.</param>
     /// <param name="width">The capture width in pixels.</param>
     /// <param name="height">The capture height in pixels.</param>
     /// <param name="transcode">The requested output conversion.</param>
-    [TestCase(PixelFormats.YUYV, 640, 480, TranscodeFormats.DoNotTranscode)]
-    [TestCase(PixelFormats.YUYV, 640, 480, TranscodeFormats.Auto)]
-    [TestCase(PixelFormats.JPEG, 1920, 1080, TranscodeFormats.DoNotTranscode)]
-    public async Task CaptureAndRestartAsync(PixelFormats pixelFormat, int width, int height, TranscodeFormats transcode)
+    [TestCase(DeviceTypes.V4L2, PixelFormats.YUYV, 640, 480, TranscodeFormats.DoNotTranscode)]
+    [TestCase(DeviceTypes.V4L2, PixelFormats.YUYV, 640, 480, TranscodeFormats.Auto)]
+    [TestCase(DeviceTypes.V4L2, PixelFormats.JPEG, 1920, 1080, TranscodeFormats.DoNotTranscode)]
+    [TestCase(DeviceTypes.PipeWire, PixelFormats.YUYV, 640, 480, TranscodeFormats.DoNotTranscode)]
+    [TestCase(DeviceTypes.PipeWire, PixelFormats.YUYV, 640, 480, TranscodeFormats.Auto)]
+    [TestCase(DeviceTypes.PipeWire, PixelFormats.JPEG, 1920, 1080, TranscodeFormats.DoNotTranscode)]
+    public async Task CaptureAndRestartAsync(DeviceTypes deviceType, PixelFormats pixelFormat, int width, int height, TranscodeFormats transcode)
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
-        var format = this.camera.Characteristics.Single(candidate =>
+        var camera = this.cameras.Single(candidate => candidate.DeviceType == deviceType);
+        var format = camera.Characteristics.Single(candidate =>
             candidate.PixelFormat == pixelFormat && candidate.Width == width && candidate.Height == height &&
             candidate.FramesPerSecond.Numerator == 30 * candidate.FramesPerSecond.Denominator);
-        TestContext.Progress.WriteLine($"OPEN: {this.camera.Name}, {format}, {transcode}");
+        TestContext.Progress.WriteLine($"OPEN: {deviceType}, {camera.Name}, {format}, {transcode}");
         var sync = new object();
         var timestamps = new List<TimeSpan>();
         var indices = new List<long>();
         var completed = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
         var accepting = true;
-        var device = await this.camera.OpenAsync(format, transcode, scope =>
+        var device = await camera.OpenAsync(format, transcode, scope =>
         {
             lock (sync)
             {
@@ -122,7 +128,7 @@ internal sealed class C930eCaptureTests
                     Assert.That(BitConverter.ToInt16(image, 28), Is.EqualTo(transcode == TranscodeFormats.DoNotTranscode ? 16 : 24));
                     Assert.That(image.Length, Is.EqualTo(54 + width * height * (transcode == TranscodeFormats.DoNotTranscode ? 2 : 3)));
                 }
-                var name = $"c930e-{pixelFormat}-{width}x{height}-{transcode}-run{run}" +
+                var name = $"c930e-{deviceType}-{pixelFormat}-{width}x{height}-{transcode}-run{run}" +
                     (pixelFormat == PixelFormats.JPEG ? ".jpg" : ".bmp");
                 var path = Path.Combine(TestContext.CurrentContext.WorkDirectory, name);
                 File.WriteAllBytes(path, image);

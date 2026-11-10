@@ -67,6 +67,9 @@ public sealed class MainWindowViewModel
 
     public ObservableCollection<CaptureDeviceControlViewModel> Controls { get; } = new();
 
+    /// <summary>Gets the error reported by device enumeration, if any.</summary>
+    public string? EnumerationError { get; private set; }
+
     public string? Statistics1 { get; private set; }
     public string? Statistics2 { get; private set; }
     public string? Statistics3 { get; private set; }
@@ -76,7 +79,7 @@ public sealed class MainWindowViewModel
         this.UpdateCurrentState(States.NotShown);
 
         // Window shown:
-        this.Opened = Command.Factory.Create(() =>
+        this.Opened = Command.Factory.Create(async () =>
         {
             ////////////////////////////////////////////////
             // Initialize and start capture device
@@ -87,19 +90,26 @@ public sealed class MainWindowViewModel
             // Store device list into the combo box.
             this.DeviceList.Clear();
 
-            foreach (var descriptor in devices.EnumerateDescriptors().
-                // You could filter by device type and characteristics.
-                //Where(d => d.DeviceType == DeviceTypes.DirectShow).  // Only DirectShow device.
-                Where(d => d.Characteristics.Length >= 1))             // One or more valid video characteristics.
+            try
             {
-                this.DeviceList.Add(descriptor);
+                await foreach (var descriptor in devices.EnumerateDescriptorsAsync())
+                {
+                    // You could filter by device type and characteristics.
+                    //if (descriptor.DeviceType != DeviceTypes.DirectShow) continue; // Only DirectShow device.
+                    if (descriptor.Characteristics.Length >= 1) // One or more valid video characteristics.
+                        this.DeviceList.Add(descriptor);
+                }
+            }
+            catch (Exception exception)
+            {
+                // Keep devices already enumerated if an optional backend is unavailable
+                // or camera portal access is denied.
+                Trace.WriteLine(exception);
+                this.EnumerationError = exception.Message;
             }
 
             this.Device = this.DeviceList.FirstOrDefault();
-
             this.IsEnabled = true;
-
-            return default;
         });
 
         // Clicked start capture button.
