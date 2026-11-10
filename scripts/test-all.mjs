@@ -103,12 +103,19 @@ const verifyCoreRestoreGraph = () => {
   const assets = JSON.parse(readFileSync(assetsPath, "utf8"));
   const failures = [];
   for (const [targetName, target] of Object.entries(assets.targets ?? {})) {
+    // The async-enumerable backport uses Tasks.Extensions and its Unsafe dependency.
+    const hasAsyncBackport = Object.keys(target).some((name) =>
+      name.toLowerCase().startsWith("microsoft.bcl.asyncinterfaces/"),
+    );
     for (const libraryName of Object.keys(target)) {
       const separator = libraryName.lastIndexOf("/");
       const packageId = (
         separator < 0 ? libraryName : libraryName.slice(0, separator)
       ).toLowerCase();
       if (forbiddenPackageIds.has(packageId)) {
+        if (packageId === "system.runtime.compilerservices.unsafe" && hasAsyncBackport) {
+          continue;
+        }
         failures.push(`${targetName}: ${packageId}`);
       }
     }

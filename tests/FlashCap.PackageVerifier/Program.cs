@@ -266,6 +266,16 @@ internal static class Program
                 failures.Add($"lib/{framework}/FlashCap.Core.dll is missing public type {requiredType}.");
             }
         }
+
+        var supportsAsyncEnumeration = framework is not ("net35" or "net40" or "net45" or "netstandard1.3");
+        var hasAsyncEnumeration = metadata.TypeDefinitions
+            .Select(metadata.GetTypeDefinition)
+            .Where(type => metadata.GetString(type.Name) == "CaptureDevices")
+            .SelectMany(type => type.GetMethods())
+            .Select(metadata.GetMethodDefinition)
+            .Any(method => metadata.GetString(method.Name) == "OnEnumerateDescriptorsAsync");
+        if (hasAsyncEnumeration != supportsAsyncEnumeration)
+            failures.Add($"lib/{framework}/FlashCap.Core.dll has an incorrect async enumeration API surface.");
     }
 
     private static void VerifyAssemblyReferences(
@@ -340,6 +350,8 @@ internal static class Program
             }
 
             var hasFlashCapCore = false;
+            var hasAsyncBackport = target.Value.EnumerateObject().Any(library =>
+                GetPackageId(library.Name).Equals("Microsoft.Bcl.AsyncInterfaces", StringComparison.OrdinalIgnoreCase));
             foreach (var library in target.Value.EnumerateObject())
             {
                 var packageId = GetPackageId(library.Name);
@@ -357,6 +369,10 @@ internal static class Program
                 }
                 if (ForbiddenPackageIds.Contains(packageId))
                 {
+                    // Only the async-enumerable compatibility package may bring this transitive dependency.
+                    if (packageId.Equals("System.Runtime.CompilerServices.Unsafe", StringComparison.OrdinalIgnoreCase) &&
+                        hasAsyncBackport)
+                        continue;
                     failures.Add(
                         $"Consumer target {target.Name} contains the forbidden package {packageId}.");
                 }

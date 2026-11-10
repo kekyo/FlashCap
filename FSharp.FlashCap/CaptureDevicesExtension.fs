@@ -9,6 +9,8 @@
 
 namespace FlashCap
 
+open System.Threading
+
 [<AutoOpen>]
 module public CaptureDevicesExtension =
 
@@ -19,3 +21,7 @@ module public CaptureDevicesExtension =
 
         member self.getDescriptors() =
             self.InternalEnumerateDescriptors() |> Seq.toArray
+
+        /// Enumerates available descriptors asynchronously; ct cancels enumeration.
+        member self.enumerateDescriptorsAsync(?ct: CancellationToken) =
+            self.InternalEnumerateDescriptorsAsync(asCT ct)

@@ -17,6 +17,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
+using System.Threading;
 
 namespace FlashCap;
 
@@ -71,4 +72,19 @@ public class CaptureDevices
     [RequiresUnreferencedCode("OnEnumerateDescriptors adds DirectShow which requires unreferenced code. Use platform-specific Devices directly.")]
     internal IEnumerable<CaptureDeviceDescriptor> InternalEnumerateDescriptors() =>
         this.OnEnumerateDescriptors();
+
+#if !(NET35 || NET40 || NET45 || NETSTANDARD1_3)
+    /// <summary>
+    /// Enumerates devices asynchronously. Synchronous backends complete each move synchronously.
+    /// </summary>
+    /// <param name="ct">Cancels enumeration.</param>
+    /// <returns>A finite sequence of available device descriptors.</returns>
+    [RequiresUnreferencedCode("Default enumeration includes DirectShow. Use platform-specific Devices directly.")]
+    protected virtual IAsyncEnumerable<CaptureDeviceDescriptor> OnEnumerateDescriptorsAsync(CancellationToken ct) =>
+        new SynchronousAsyncEnumerable<CaptureDeviceDescriptor>(this.OnEnumerateDescriptors, ct);
+
+    [RequiresUnreferencedCode("Default enumeration includes DirectShow. Use platform-specific Devices directly.")]
+    internal IAsyncEnumerable<CaptureDeviceDescriptor> InternalEnumerateDescriptorsAsync(CancellationToken ct) =>
+        this.OnEnumerateDescriptorsAsync(ct);
+#endif
 }
