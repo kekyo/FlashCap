@@ -888,6 +888,7 @@ FlashCapへの大きな貢献をして頂いた方のリストです。ありが
 * Yoh Deadfall ([@YohDeadfall](https://github.com/YohDeadfall)) : Mac OSX AVFoundation APIへの移植
 * Felipe Ferreira Quintella ([@ffquintella](https://github.com/ffquintella)) : Mac OSX AVFoundation APIへの移植
 * Ole Ross ([@OleRoss](https://github.com/OleRoss)) : Windows Media Foundation APIへの移植
+* Roman Ondráček ([@Roman3349](https://github.com/Roman3349)) : デバイス制御APIの追加
 
 ## License
 
@@ -898,6 +899,12 @@ Apache-v2.
 
 ## 履歴
 
+* 1.13.0:
+  * デバイス制御APIを追加 [#185](https://github.com/kekyo/FlashCap/pull/185)
+  * V4L2デバイス（アナログビデオキャプチャ）のフォーマットが正しく取得できない場合がある問題を修正 [#187](https://github.com/kekyo/FlashCap/pull/187)
+  * V4L2デバイス喪失時にスレッドが高負荷となる問題を修正 [#188](https://github.com/kekyo/FlashCap/pull/188)
+  * DirectShowデバイス特性の列挙が正しく行われない場合があったのを修正 [#189](https://github.com/kekyo/FlashCap/pull/189)
+  * AOTビルドで発生するIL2026の問題を修正 [#183](https://github.com/kekyo/FlashCap/issues/183)
 * 1.12.0:
   * Windowsにおいて、Media Foundation APIに対応しました [#180](https://github.com/kekyo/FlashCap/pull/180) .
   * .NET 10.0アセンブリを追加。

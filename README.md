@@ -957,6 +957,7 @@ Here is a list of people who have made major contributions to FlashCap. Thank yo
 * Yoh Deadfall ([@YohDeadfall](https://github.com/YohDeadfall)) : Port to Mac OSX AVFoundation API
 * Felipe Ferreira Quintella ([@ffquintella](https://github.com/ffquintella)) : Port to Mac OSX AVFoundation API
 * Ole Ross ([@OleRoss](https://github.com/OleRoss)) : Port to Windows Media Foundation API
+* Roman Ondráček ([@Roman3349](https://github.com/Roman3349)) : Addition of a Device Control API
 
 ## License
 
@@ -967,6 +968,12 @@ Apache-v2.
 
 ## History
 
+* 1.13.0:
+  * Added device control API [#185](https://github.com/kekyo/FlashCap/pull/185)
+  * Fixed an issue where the format of V4L2 devices (analog video capture) might not be retrieved correctly [#187](https://github.com/kekyo/FlashCap/pull/187)
+  * Fixed an issue where threads experienced high load when a V4L2 device was lost [#188](https://github.com/kekyo/FlashCap/pull/188)
+  * Fixed an issue where DirectShow device properties were not enumerated correctly in some cases [#189](https://github.com/kekyo/FlashCap/pull/189)
+  * Fixed an IL2026 issue occurring during AOT builds [#183](https://github.com/kekyo/FlashCap/issues/183)
 * 1.12.0:
   * Media Foundation API in Windows platform is now supported [#180](https://github.com/kekyo/FlashCap/pull/180) .
   * Added .NET 10.0 tfm assembly.
