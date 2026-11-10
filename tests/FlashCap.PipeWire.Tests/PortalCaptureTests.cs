@@ -26,6 +26,7 @@ namespace FlashCap.PipeWire.Tests;
 public sealed class PortalCaptureTests
 {
     [TestCase("allow")]
+    [TestCase("aggregate")]
     [TestCase("duplicate")]
     [TestCase("delayed")]
     [TestCase("deny")]
@@ -57,7 +58,7 @@ public sealed class PortalCaptureTests
             Assert.That(await fixture.StandardOutput.ReadLineAsync(timeout.Token), Is.EqualTo("READY"));
             TestContext.Out.WriteLine("The synthetic camera and portal are ready.");
             using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token);
-            var devices = new PipeWireDevices();
+            CaptureDevices devices = mode == "aggregate" ? new CaptureDevices() : new PipeWireDevices();
             var enumeration = devices.GetDescriptorsAsync(cancellation.Token);
             if (mode == "wait")
             {
@@ -76,8 +77,21 @@ public sealed class PortalCaptureTests
             {
                 var descriptors = await enumeration;
                 TestContext.Out.WriteLine("Camera enumeration completed.");
-                Assert.That(descriptors, Has.Length.EqualTo(1));
-                var descriptor = descriptors[0];
+                if (mode == "aggregate")
+                {
+                    var v4l2 = new V4L2Devices();
+                    var synchronous = v4l2.GetDescriptors().Select(descriptor => descriptor.Identity).ToArray();
+                    var asynchronous = await v4l2.GetDescriptorsAsync(timeout.Token);
+                    Assert.That(asynchronous.Select(descriptor => descriptor.DeviceType), Has.All.EqualTo(DeviceTypes.V4L2));
+                    Assert.That(asynchronous.Select(descriptor => descriptor.Identity), Is.EquivalentTo(synchronous));
+                    Assert.That(descriptors.Where(descriptor => descriptor.DeviceType == DeviceTypes.V4L2)
+                        .Select(descriptor => descriptor.Identity), Is.EquivalentTo(synchronous));
+                }
+                else
+                    Assert.That(descriptors, Has.Length.EqualTo(1));
+                var pipeWireDescriptors = descriptors.Where(descriptor => descriptor.DeviceType == DeviceTypes.PipeWire).ToArray();
+                Assert.That(pipeWireDescriptors, Has.Length.EqualTo(1));
+                var descriptor = pipeWireDescriptors[0];
                 Assert.That(descriptor.DeviceType, Is.EqualTo(DeviceTypes.PipeWire));
                 Assert.That(descriptor.Characteristics, Has.Length.EqualTo(1));
                 var format = descriptor.Characteristics.Single();
