@@ -119,11 +119,13 @@ public class CaptureDevices
             this.pipeWire = new PipeWireDevices(bufferPool);
         }
 
+        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "The sealed V4L2 backend does not enumerate DirectShow devices.")]
         public IEnumerator<CaptureDeviceDescriptor> GetEnumerator() =>
             this.v4l2.OnEnumerateDescriptors().GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
+        [UnconditionalSuppressMessage("Trimming", "IL2026", Justification = "The sealed Linux backends do not enumerate DirectShow devices.")]
         public async IAsyncEnumerator<CaptureDeviceDescriptor> GetAsyncEnumerator(CancellationToken ct = default)
         {
             ct.ThrowIfCancellationRequested();

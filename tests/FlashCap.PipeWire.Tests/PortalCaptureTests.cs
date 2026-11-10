@@ -81,6 +81,9 @@ public sealed class PortalCaptureTests
                 {
                     var v4l2 = new V4L2Devices();
                     var synchronous = v4l2.GetDescriptors().Select(descriptor => descriptor.Identity).ToArray();
+                    var defaultSynchronous = devices.GetDescriptors();
+                    Assert.That(defaultSynchronous.Select(descriptor => descriptor.DeviceType), Has.All.EqualTo(DeviceTypes.V4L2));
+                    Assert.That(defaultSynchronous.Select(descriptor => descriptor.Identity), Is.EquivalentTo(synchronous));
                     var asynchronous = await v4l2.GetDescriptorsAsync(timeout.Token);
                     Assert.That(asynchronous.Select(descriptor => descriptor.DeviceType), Has.All.EqualTo(DeviceTypes.V4L2));
                     Assert.That(asynchronous.Select(descriptor => descriptor.Identity), Is.EquivalentTo(synchronous));
