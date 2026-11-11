@@ -12,7 +12,9 @@
 using FlashCap.Internal.PipeWire;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
 using System.Threading;
@@ -47,13 +49,27 @@ public sealed class PipeWireDevices : CaptureDevices
 
     /// <summary>Requests camera access and enumerates the available cameras.</summary>
     /// <param name="ct">Cancels the permission request or enumeration.</param>
-    /// <returns>A finite sequence of camera descriptors.</returns>
+    /// <returns>A finite sequence of accessible cameras, or an empty sequence if the backend is unavailable.</returns>
     [UnconditionalSuppressMessage("Trimming", "IL2046", Justification = "This backend does not enumerate DirectShow devices.")]
     protected override async IAsyncEnumerable<CaptureDeviceDescriptor> OnEnumerateDescriptorsAsync(
         [EnumeratorCancellation] CancellationToken ct)
     {
-        using var connection = await PipeWireConnection.OpenAsync(ct).ConfigureAwait(false);
-        foreach (var camera in connection.GetCameras())
+        PipeWireCamera[] cameras;
+        try
+        {
+            using var connection = await PipeWireConnection.OpenAsync(ct).ConfigureAwait(false);
+            cameras = connection.GetCameras();
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or
+            DllNotFoundException or EntryPointNotFoundException or BadImageFormatException or OperationCanceledException)
+        {
+            // A portal dismissal is not cancellation of the caller's enumeration.
+            ct.ThrowIfCancellationRequested();
+            Trace.WriteLine($"FlashCap: PipeWire enumeration unavailable: {exception}");
+            cameras = ArrayEx.Empty<PipeWireCamera>();
+        }
+        ct.ThrowIfCancellationRequested();
+        foreach (var camera in cameras)
         {
             ct.ThrowIfCancellationRequested();
             yield return new PipeWireDeviceDescriptor(camera, this.DefaultBufferPool);

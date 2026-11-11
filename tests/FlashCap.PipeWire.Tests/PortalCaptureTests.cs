@@ -25,15 +25,20 @@ namespace FlashCap.PipeWire.Tests;
 [SupportedOSPlatform("linux")]
 public sealed class PortalCaptureTests
 {
-    [TestCase("allow")]
-    [TestCase("aggregate")]
-    [TestCase("duplicate")]
-    [TestCase("delayed")]
-    [TestCase("deny")]
-    [TestCase("cancel")]
-    [TestCase("wait")]
-    [TestCase("vanish")]
-    public async Task CameraPortalAndNativeCapture(string mode)
+    [TestCase("allow", false)]
+    [TestCase("allow", true)]
+    [TestCase("duplicate", false)]
+    [TestCase("delayed", false)]
+    [TestCase("deny", false)]
+    [TestCase("deny", true)]
+    [TestCase("cancel", false)]
+    [TestCase("cancel", true)]
+    [TestCase("wait", false)]
+    [TestCase("vanish", false)]
+    [TestCase("vanish", true)]
+    [TestCase("absent", false)]
+    [TestCase("absent", true)]
+    public async Task CameraPortalAndNativeCapture(string mode, bool aggregate)
     {
         var nativeDirectory = Environment.GetEnvironmentVariable("FLASHCAP_PIPEWIRE_NATIVE_DIRECTORY");
         Assert.That(nativeDirectory, Is.Not.Null, "Run these integration tests with bash scripts/test-pipewire.sh.");
@@ -58,7 +63,7 @@ public sealed class PortalCaptureTests
             Assert.That(await fixture.StandardOutput.ReadLineAsync(timeout.Token), Is.EqualTo("READY"));
             TestContext.Out.WriteLine("The synthetic camera and portal are ready.");
             using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token);
-            CaptureDevices devices = mode == "aggregate" ? new CaptureDevices() : new PipeWireDevices();
+            CaptureDevices devices = aggregate ? new CaptureDevices() : new PipeWireDevices();
             var enumeration = devices.GetDescriptorsAsync(cancellation.Token);
             if (mode == "wait")
             {
@@ -67,17 +72,21 @@ public sealed class PortalCaptureTests
                 Assert.CatchAsync<OperationCanceledException>(async () => await enumeration);
                 Assert.That(await fixture.StandardOutput.ReadLineAsync(timeout.Token), Is.EqualTo("CLOSED"));
             }
-            else if (mode == "deny")
-                Assert.ThrowsAsync<UnauthorizedAccessException>(async () => await enumeration);
-            else if (mode == "cancel")
-                Assert.ThrowsAsync<OperationCanceledException>(async () => await enumeration);
-            else if (mode == "vanish")
-                Assert.ThrowsAsync<IOException>(async () => await enumeration);
+            else if (mode is "deny" or "cancel" or "vanish" or "absent")
+            {
+                var expected = aggregate ? new V4L2Devices().GetDescriptors() : Array.Empty<CaptureDeviceDescriptor>();
+                Assert.That((await enumeration).Select(device => device.Identity),
+                    Is.EquivalentTo(expected.Select(device => device.Identity)));
+                var streamed = new List<CaptureDeviceDescriptor>();
+                await foreach (var device in devices.EnumerateDescriptorsAsync(timeout.Token)) streamed.Add(device);
+                Assert.That(streamed.Select(device => device.Identity),
+                    Is.EquivalentTo(expected.Select(device => device.Identity)));
+            }
             else
             {
                 var descriptors = await enumeration;
                 TestContext.Out.WriteLine("Camera enumeration completed.");
-                if (mode == "aggregate")
+                if (aggregate)
                 {
                     var v4l2 = new V4L2Devices();
                     var synchronous = v4l2.GetDescriptors().Select(descriptor => descriptor.Identity).ToArray();

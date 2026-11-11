@@ -11,6 +11,7 @@ using System;
 using FlashCap.Internal;
 using FlashCap.Utilities;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -30,9 +31,16 @@ public sealed class V4L2Devices : CaptureDevices
     {
     }
 
+    private readonly string deviceDirectory;
+
     public V4L2Devices(BufferPool defaultBufferPool) :
-        base(defaultBufferPool)
+        this(defaultBufferPool, "/dev")
     {
+    }
+
+    internal V4L2Devices(BufferPool defaultBufferPool, string deviceDirectory) : base(defaultBufferPool)
+    {
+        this.deviceDirectory = deviceDirectory;
     }
 
     private static IEnumerable<v4l2_fmtdesc> EnumerateFormatDesc(
@@ -272,7 +280,15 @@ public sealed class V4L2Devices : CaptureDevices
             throw new PlatformNotSupportedException("V4L2 capture requires Linux.");
         }
 
-        return Directory.GetFiles("/dev", "video*").
+        string[] devicePaths;
+        try { devicePaths = Directory.GetFiles(this.deviceDirectory, "video*"); }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            Trace.WriteLine($"FlashCap: V4L2 enumeration unavailable: {exception}");
+            return ArrayEx.Empty<CaptureDeviceDescriptor>();
+        }
+
+        return devicePaths.
         Collect(devicePath =>
         {
             if (open(devicePath, OPENBITS.O_RDWR) is { } fd && fd >= 0)

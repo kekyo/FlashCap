@@ -332,8 +332,12 @@ int main(int argc, char **argv)
     g_dbus_connection_register_object(bus, "/org/freedesktop/portal/desktop", info->interfaces[0],
         &camera_vtable, NULL, NULL, &error);
     if (error != NULL) fatal(error->message);
-    portal_owner = g_bus_own_name_on_connection(bus, "org.freedesktop.portal.Desktop",
-        G_BUS_NAME_OWNER_FLAGS_NONE, acquired, NULL, NULL, NULL);
+    if (strcmp(mode, "absent") == 0) {
+        puts("READY"); fflush(stdout);
+    } else {
+        portal_owner = g_bus_own_name_on_connection(bus, "org.freedesktop.portal.Desktop",
+            G_BUS_NAME_OWNER_FLAGS_NONE, acquired, NULL, NULL, NULL);
+    }
     g_unix_signal_add(SIGTERM, quit, NULL);
     g_unix_fd_add(STDIN_FILENO, G_IO_IN | G_IO_HUP, input_ready, NULL);
     g_main_loop_run(main_loop);
