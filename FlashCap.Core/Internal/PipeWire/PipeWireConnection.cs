@@ -53,7 +53,16 @@ internal sealed class PipeWireConnection : IDisposable
         internal readonly PipeWireCamera Camera;
         internal readonly List<PipeWireFormat> Formats = new();
         internal readonly IntPtr Proxy;
+        internal bool V4L2;
+        internal ControlReply? ControlReply;
         internal Node(PipeWireCamera camera, IntPtr proxy) { this.Camera = camera; this.Proxy = proxy; }
+    }
+
+    private sealed class ControlReply
+    {
+        internal int Sequence;
+        internal bool Failed;
+        internal readonly List<byte[]> Parameters = new();
     }
 
     private readonly Listeners listeners = new();
@@ -165,6 +174,15 @@ internal sealed class PipeWireConnection : IDisposable
             // Some servers do not allow querying the client's own permissions.
             // Keep its visible cameras and treat that connection as restricted.
             if (id == 1 && this.requestingPermissions && result is -1 or -13 or -95) return;
+            foreach (var node in this.nodes.Values)
+            {
+                if (PipeWireNative.pw_proxy_get_id(node.Proxy) != id) continue;
+                // A node can reject a parameter request without breaking the stream
+                // or the connection. Late errors after cancellation are nonfatal too.
+                if (node.ControlReply is { } reply) reply.Failed = true;
+                Trace.WriteLine($"FlashCap PipeWire node request failed: {Marshal.PtrToStringAnsi(message)} ({result}).");
+                return;
+            }
             this.Fail(new IOException("FlashCap PipeWire: " + Marshal.PtrToStringAnsi(message) + $" ({result})."));
         };
         PipeWireNative.AddListener(this.core, this.listeners.Hook(), this.listeners.Events(
@@ -212,6 +230,7 @@ internal sealed class PipeWireConnection : IDisposable
             if (this.nodes.TryGetValue(id, out var node))
             {
                 this.nodes.Remove(id);
+                if (node.ControlReply is { } reply) reply.Failed = true;
                 PipeWireNative.pw_proxy_destroy(node.Proxy);
                 node.Listeners.Dispose();
                 if (node.Camera.Serial == this.targetSerial)
@@ -242,10 +261,25 @@ internal sealed class PipeWireConnection : IDisposable
             values.TryGetValue("node.description", out var description) ? description : nodeName;
         var camera = new PipeWireCamera(serial, nodeName, name, nodeName, ArrayEx.Empty<PipeWireFormat>(), this.usePortal);
         var node = new Node(camera, PipeWireNative.BindNode(this.registry, id, version));
+        node.V4L2 = values.TryGetValue("object.path", out var path) && path.StartsWith("v4l2:", StringComparison.Ordinal);
         this.nodes.Add(id, node);
         PipeWireNative.ParamCallback parameter = (_, sequence, paramId, index, next, value) =>
         {
-            if (paramId != PipeWireFormats.EnumFormat || value == IntPtr.Zero) return;
+            if (value == IntPtr.Zero) return;
+            if (paramId is PipeWireControls.PropInfo or PipeWireControls.Props)
+            {
+                if (node.ControlReply is { } reply && reply.Sequence == sequence)
+                {
+                    try { reply.Parameters.Add(PipeWireFormats.ReadPod(value)); }
+                    catch (Exception exception)
+                    {
+                        reply.Failed = true;
+                        Trace.WriteLine("FlashCap PipeWire control response failed: " + exception);
+                    }
+                }
+                return;
+            }
+            if (paramId != PipeWireFormats.EnumFormat) return;
             try { node.Formats.AddRange(PipeWireFormats.Parse(PipeWireFormats.ReadPod(value))); }
             catch (Exception exception) { this.Fail(exception); }
         };
@@ -309,6 +343,97 @@ internal sealed class PipeWireConnection : IDisposable
                 .Where(camera => camera.Formats.Length != 0).ToArray();
         }
         finally { PipeWireNative.pw_thread_loop_unlock(this.loop); }
+    }
+
+    // CaptureDevice serializes these operations with stop/dispose. Native callbacks
+    // only copy PODs; parsing and caller continuations never unwind through native code.
+    private async Task<ControlReply?> RequestControlsAsync(PipeWireCamera camera, uint parameter,
+        byte[]? write, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (this.disposed) return null;
+        Node? node = null;
+        var reply = new ControlReply();
+        try
+        {
+            PipeWireNative.pw_thread_loop_lock(this.loop);
+            try
+            {
+                this.ThrowIfFailed();
+                node = this.nodes.Values.FirstOrDefault(candidate => candidate.Camera.Serial == camera.Serial);
+                if (node is null) return null;
+                node.ControlReply = reply;
+                // The native protocol replaces the caller's sequence; match its returned token.
+                if (write is null) reply.Sequence = PipeWireNative.EnumParams(node.Proxy, parameter);
+                else PipeWireNative.SetProps(node.Proxy, write);
+            }
+            finally { PipeWireNative.pw_thread_loop_unlock(this.loop); }
+            await this.SynchronizeAsync(ct).ConfigureAwait(false);
+            return reply.Failed ? null : reply;
+        }
+        catch (IOException exception)
+        {
+            Trace.WriteLine("FlashCap PipeWire control request failed: " + exception);
+            return null;
+        }
+        finally
+        {
+            PipeWireNative.pw_thread_loop_lock(this.loop);
+            try { if (node is not null) node.ControlReply = null; }
+            finally { PipeWireNative.pw_thread_loop_unlock(this.loop); }
+        }
+    }
+
+    internal async Task<PipeWireControls?> ReadControlsAsync(PipeWireCamera camera, CancellationToken ct)
+    {
+        var info = await this.RequestControlsAsync(camera, PipeWireControls.PropInfo, null, ct).ConfigureAwait(false);
+        if (info is null) return null;
+        var values = await this.RequestControlsAsync(camera, PipeWireControls.Props, null, ct).ConfigureAwait(false);
+        if (values is null) return null;
+        PipeWireNative.pw_thread_loop_lock(this.loop);
+        try
+        {
+            var node = this.nodes.Values.FirstOrDefault(candidate => candidate.Camera.Serial == camera.Serial);
+            if (node is null) return null;
+            var controls = new PipeWireControls(node.V4L2);
+            foreach (var pod in info.Parameters) controls.AddInfo(pod);
+            controls.SetValues(values.Parameters);
+            return controls;
+        }
+        catch (InvalidDataException exception)
+        {
+            Trace.WriteLine("FlashCap PipeWire control data unavailable: " + exception);
+            return null;
+        }
+        finally { PipeWireNative.pw_thread_loop_unlock(this.loop); }
+    }
+
+    internal async Task<bool> SetControlAsync(PipeWireCamera camera, CaptureDeviceControlTypes type,
+        int value, bool isAuto, CancellationToken ct)
+    {
+        var controls = await this.ReadControlsAsync(camera, ct).ConfigureAwait(false);
+        var writes = controls?.CreateWrites(type, value, isAuto);
+        if (writes is null) return false;
+        foreach (var write in writes)
+        {
+            if (await this.RequestControlsAsync(camera, PipeWireControls.Props, write, ct).ConfigureAwait(false) is null)
+                return false;
+            var result = await this.RequestControlsAsync(camera, PipeWireControls.Props, null, ct).ConfigureAwait(false);
+            if (result is null) return false;
+            try
+            {
+                // Some camera providers ignore a device's failed set operation.
+                // A successful IPC round trip alone is not evidence of a changed value.
+                controls!.SetValues(result.Parameters);
+                if (!controls.Matches(write)) return false;
+            }
+            catch (InvalidDataException exception)
+            {
+                Trace.WriteLine("FlashCap PipeWire control verification failed: " + exception);
+                return false;
+            }
+        }
+        return true;
     }
 
     internal async Task StartAsync(PipeWireCamera camera, PipeWireFormat format,

@@ -14,6 +14,7 @@
 #include <pipewire/impl-client.h>
 #include <pipewire/impl-node.h>
 #include <spa/param/video/format-utils.h>
+#include <spa/param/props.h>
 
 static struct pw_thread_loop *thread_loop;
 static struct pw_context *context;
@@ -37,6 +38,7 @@ static GMainLoop *main_loop;
 static const char *mode;
 static GDBusNodeInfo *request_info;
 static guint portal_owner;
+static int brightness = 128;
 
 static void fatal(const char *message)
 {
@@ -70,6 +72,17 @@ static void process_frame(void *data)
 static void format_changed(void *data, uint32_t id, const struct spa_pod *param)
 {
     struct pw_stream *source = data;
+    if (id == SPA_PARAM_Props && param != NULL) {
+        if (strcmp(mode, "controls-ignored") == 0) return;
+        if (spa_pod_parse_object(param, SPA_TYPE_OBJECT_Props, NULL,
+            SPA_PROP_brightness, SPA_POD_OPT_Int(&brightness)) < 0) fatal("parse camera controls");
+        unsigned char storage[128];
+        struct spa_pod_builder builder = SPA_POD_BUILDER_INIT(storage, sizeof(storage));
+        const struct spa_pod *props = spa_pod_builder_add_object(&builder,
+            SPA_TYPE_OBJECT_Props, SPA_PARAM_Props, SPA_PROP_brightness, SPA_POD_Int(brightness));
+        if (pw_stream_update_params(source, &props, 1) < 0) fatal("update camera controls");
+        return;
+    }
     if (id != SPA_PARAM_Format || param == NULL) return;
     unsigned char storage[512];
     struct spa_pod_builder builder = SPA_POD_BUILDER_INIT(storage, sizeof(storage));
@@ -192,6 +205,12 @@ static void client_destroyed(void *data)
 static void check_access(void *data, struct pw_impl_client *client)
 {
     (void)data;
+    if (camera_ready && strstr(mode, "controls-readonly") != NULL) {
+        struct pw_permission permission = PW_PERMISSION_INIT(
+            pw_stream_get_node_id(camera), PW_PERM_R | PW_PERM_X);
+        if (pw_impl_client_update_permissions(client, 1, &permission) < 0) fatal("make camera read-only");
+        return;
+    }
     if (camera_ready && (strncmp(mode, "partial", 7) == 0 || strcmp(mode, "readonly") == 0)) {
         bool portal = g_atomic_int_compare_and_exchange(&next_portal_connection, 1, 0);
         if (!portal) {
@@ -228,16 +247,21 @@ static struct pw_stream *create_camera(const char *name, const char *description
         .param_changed = format_changed, .process = process_frame
     };
     pw_stream_add_listener(source, hook, &events, source);
-    unsigned char storage[512];
+    unsigned char storage[1024];
     struct spa_pod_builder builder = SPA_POD_BUILDER_INIT(storage, sizeof(storage));
     const struct spa_pod *parameters[] = {
         spa_format_video_raw_build(&builder, SPA_PARAM_EnumFormat, &(struct spa_video_info_raw) {
             .format = SPA_VIDEO_FORMAT_NV12, .size = { 4, 2 }, .framerate = { 30, 1 }
-        })
+        }),
+        spa_pod_builder_add_object(&builder, SPA_TYPE_OBJECT_PropInfo, SPA_PARAM_PropInfo,
+            SPA_PROP_INFO_id, SPA_POD_Id(SPA_PROP_brightness),
+            SPA_PROP_INFO_type, SPA_POD_CHOICE_STEP_Int(128, 0, 255, 1)),
+        spa_pod_builder_add_object(&builder, SPA_TYPE_OBJECT_Props, SPA_PARAM_Props,
+            SPA_PROP_brightness, SPA_POD_Int(brightness))
     };
     if (pw_stream_connect(source, PW_DIRECTION_OUTPUT, PW_ID_ANY,
         PW_STREAM_FLAG_DRIVER | PW_STREAM_FLAG_MAP_BUFFERS,
-        parameters, 1) < 0) fatal("connect camera");
+        parameters, strcmp(mode, "controls-unavailable") == 0 ? 1 : SPA_N_ELEMENTS(parameters)) < 0) fatal("connect camera");
     return source;
 }
 

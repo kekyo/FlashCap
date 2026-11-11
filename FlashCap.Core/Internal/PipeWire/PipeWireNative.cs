@@ -90,6 +90,8 @@ internal static class PipeWireNative
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate int EnumParamsMethod(IntPtr data, int sequence, uint id, uint start, uint count, IntPtr filter);
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate int SetParamMethod(IntPtr data, uint id, uint flags, IntPtr parameter);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate int GetPermissionsMethod(IntPtr data, uint index, uint count);
 
     // PW_PERM_R | PW_PERM_X: discover a node and read its formats.
@@ -128,10 +130,23 @@ internal static class PipeWireNative
     }
 
     internal static void EnumFormats(IntPtr node)
+        => EnumParams(node, PipeWireFormats.EnumFormat);
+
+    internal static int EnumParams(IntPtr node, uint id)
     {
         var iface = Marshal.PtrToStructure<Interface>(node);
-        Check(Marshal.GetDelegateForFunctionPointer<EnumParamsMethod>(Method(iface, 2))
-            (iface.Data, 0, PipeWireFormats.EnumFormat, 0, uint.MaxValue, IntPtr.Zero), "enumerate formats");
+        var sequence = Marshal.GetDelegateForFunctionPointer<EnumParamsMethod>(Method(iface, 2))
+            (iface.Data, 0, id, 0, uint.MaxValue, IntPtr.Zero);
+        Check(sequence, "enumerate parameters");
+        return sequence;
+    }
+
+    internal static unsafe void SetProps(IntPtr node, byte[] pod)
+    {
+        var iface = Marshal.PtrToStructure<Interface>(node);
+        fixed (byte* pointer = pod)
+            Check(Marshal.GetDelegateForFunctionPointer<SetParamMethod>(Method(iface, 3))
+                (iface.Data, PipeWireControls.Props, 0, (IntPtr)pointer), "set camera control");
     }
 
     internal static void GetPermissions(IntPtr client)
@@ -198,6 +213,7 @@ internal static class PipeWireNative
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int pw_core_disconnect(IntPtr core);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern IntPtr pw_core_get_client(IntPtr core);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void pw_proxy_destroy(IntPtr proxy);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern uint pw_proxy_get_id(IntPtr proxy);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern IntPtr pw_properties_new(IntPtr firstKey);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void pw_properties_free(IntPtr properties);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int pw_properties_set(IntPtr properties, string key, string value);

@@ -23,6 +23,7 @@ namespace FlashCap.Devices;
 /// <remarks>
 /// Frames always conform to their advertised FlashCap pixel layout, including when
 /// color conversion is disabled. PipeWire buffers remain owned by PipeWire.
+/// Floating-point camera controls are exposed in thousandths of their native unit.
 /// </remarks>
 [SupportedOSPlatform("linux")]
 public sealed class PipeWireCaptureDevice : CaptureDevice
@@ -69,6 +70,32 @@ public sealed class PipeWireCaptureDevice : CaptureDevice
         }
         this.connection = await PipeWireConnection.OpenAsync(this.camera.UsePortal, ct).ConfigureAwait(false);
         this.connection.Disconnected += () => this.IsRunning = false;
+    }
+
+    /// <inheritdoc/>
+    protected override async Task<CaptureDeviceControl[]> OnGetControlsAsync(CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        var controls = this.connection is { } connection ?
+            await connection.ReadControlsAsync(this.camera, ct).ConfigureAwait(false) : null;
+        return controls?.GetControls() ?? ArrayEx.Empty<CaptureDeviceControl>();
+    }
+
+    /// <inheritdoc/>
+    protected override async Task<CaptureDeviceControlValue?> OnGetControlValueAsync(CaptureDeviceControlTypes type, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        var controls = this.connection is { } connection ?
+            await connection.ReadControlsAsync(this.camera, ct).ConfigureAwait(false) : null;
+        return controls?.GetValue(type);
+    }
+
+    /// <inheritdoc/>
+    protected override async Task<bool> OnSetControlValueAsync(CaptureDeviceControlTypes type, int value, bool isAuto, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        return this.connection is { } connection &&
+            await connection.SetControlAsync(this.camera, type, value, isAuto, ct).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>

@@ -159,8 +159,26 @@ internal static partial class Program
         if (devices.Length == 0) return 8;
         foreach (var camera in devices)
         {
-            var frame = await camera.TakeOneShotAsync(camera.Characteristics.Single(),
-                TranscodeFormats.DoNotTranscode, timeout.Token);
+            var received = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var device = await camera.OpenAsync(camera.Characteristics.Single(), TranscodeFormats.DoNotTranscode,
+                scope => received.TrySetResult(scope.Buffer.CopyImage()), timeout.Token);
+            byte[] frame;
+            try
+            {
+                await device.StartAsync(timeout.Token);
+                var controls = await device.GetControlsAsync(timeout.Token);
+                foreach (var control in controls)
+                {
+                    var value = await device.GetControlValueAsync(control.Type, timeout.Token);
+                    if (value is null) return 8;
+                    // Read-only fixtures reject this call; it must still exercise the
+                    // native set_param delegate and keep the capture connection alive.
+                    await device.SetControlValueAsync(control.Type, value.Value, value.IsAuto, timeout.Token);
+                }
+                frame = await received.Task.WaitAsync(timeout.Token);
+                if (!device.IsRunning) return 8;
+            }
+            finally { await device.DisposeAsync(); }
             var first = camera.Name.EndsWith(" extra", StringComparison.Ordinal) ? 101 : 1;
             if (frame.Length != 66 || !frame.Skip(54).SequenceEqual(Enumerable.Range(first, 12).Select(value => (byte)value)))
                 return 8;

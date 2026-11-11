@@ -29,6 +29,10 @@ public sealed class PortalCaptureTests
     [TestCase("allow", true)]
     [TestCase("direct", false)]
     [TestCase("direct", true)]
+    [TestCase("controls-readonly", false)]
+    [TestCase("direct-controls-readonly", false)]
+    [TestCase("controls-ignored", false)]
+    [TestCase("controls-unavailable", false)]
     [TestCase("direct-empty", false)]
     [TestCase("partial", false)]
     [TestCase("partial", true)]
@@ -139,6 +143,36 @@ public sealed class PortalCaptureTests
                         await device.StartAsync(timeout.Token);
                         TestContext.Out.WriteLine("Capture started.");
                         Assert.That(device.IsRunning, Is.True);
+                        var controls = await device.GetControlsAsync(timeout.Token);
+                        if (mode == "controls-unavailable")
+                        {
+                            Assert.That(controls, Is.Empty);
+                            Assert.That(await device.GetControlValueAsync(CaptureDeviceControlTypes.Brightness, timeout.Token), Is.Null);
+                            Assert.That(await device.SetControlValueAsync(CaptureDeviceControlTypes.Brightness, 128, false, timeout.Token), Is.False);
+                        }
+                        else
+                        {
+                            var brightness = controls.Single(control => control.Type == CaptureDeviceControlTypes.Brightness);
+                            Assert.That(brightness.Minimum, Is.Zero);
+                            Assert.That(brightness.Maximum, Is.EqualTo(255));
+                            Assert.That(brightness.DefaultValue, Is.EqualTo(128));
+                            var original = await device.GetControlValueAsync(brightness.Type, timeout.Token);
+                            Assert.That(original, Is.Not.Null);
+                            var writable = !mode.Contains("controls-readonly", StringComparison.Ordinal) && mode != "controls-ignored";
+                            Assert.That(await device.SetControlValueAsync(brightness.Type, 140 + run, false, timeout.Token), Is.EqualTo(writable));
+                            Assert.That((await device.GetControlValueAsync(brightness.Type, timeout.Token))!.Value,
+                                Is.EqualTo(writable ? 140 + run : original!.Value));
+                            Assert.That(await device.SetControlValueAsync(brightness.Type, 256, false, timeout.Token), Is.False);
+                            Assert.That(await device.SetControlValueAsync(brightness.Type, 128, true, timeout.Token), Is.False);
+                        }
+                        Assert.That(await device.SetControlValueAsync(CaptureDeviceControlTypes.Roll, 1, false, timeout.Token), Is.False);
+                        Assert.That(await device.GetControlValueAsync(CaptureDeviceControlTypes.Roll, timeout.Token), Is.Null);
+                        // Count frames arriving after the rejected operations, not frames already buffered.
+                        lock (frames)
+                        {
+                            frames.Clear();
+                            received = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                        }
                         await received.Task.WaitAsync(timeout.Token);
                         await device.StopAsync(timeout.Token);
                         Assert.That(device.IsRunning, Is.False);
@@ -156,6 +190,8 @@ public sealed class PortalCaptureTests
                     }
                 }
                 finally { await device.DisposeAsync(); }
+                Assert.That(await device.GetControlsAsync(timeout.Token), Is.Empty);
+                Assert.That(await device.SetControlValueAsync(CaptureDeviceControlTypes.Brightness, 128, false, timeout.Token), Is.False);
                 foreach (var executable in (Environment.GetEnvironmentVariable("FLASHCAP_PIPEWIRE_AOT_BINARIES") ?? "")
                     .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
                 {
