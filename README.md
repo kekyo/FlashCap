@@ -309,6 +309,7 @@ finally
 ```
 
 Controls can be changed before capture starts, during capture and after capture stops.
+If PipeWire returns an empty control list before capture starts, query it again after starting capture.
 Media Foundation keeps the camera connection open until `DisposeAsync()` is called.
 Reading an unsupported or unavailable value returns `null`.
 Setting an unsupported control or a value refused by the camera returns `false`.

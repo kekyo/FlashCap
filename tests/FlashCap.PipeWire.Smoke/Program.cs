@@ -94,6 +94,14 @@ internal sealed class C930eCaptureTests
         try
         {
             var controls = await device.GetControlsAsync(timeout.Token);
+            var availableBeforeCapture = controls.Length != 0;
+            if (controls.Length == 0 && deviceType == DeviceTypes.PipeWire)
+            {
+                // A portal/session manager may expose the source node only once
+                // the capture stream is created. Missing controls must be harmless.
+                await device.StartAsync(timeout.Token);
+                controls = await device.GetControlsAsync(timeout.Token);
+            }
             foreach (var control in controls)
                 TestContext.Progress.WriteLine($"CONTROL: {deviceType}, {control}, current={await device.GetControlValueAsync(control.Type, timeout.Token)}");
             var brightness = controls.Single(control => control.Type == CaptureDeviceControlTypes.Brightness);
@@ -129,7 +137,7 @@ internal sealed class C930eCaptureTests
             Assert.That(device.IsRunning, Is.True);
             await device.StopAsync(timeout.Token);
             Assert.That(await device.SetControlValueAsync(brightness.Type, changed, false, timeout.Token), Is.EqualTo(writable));
-            TestContext.Progress.WriteLine($"CONTROLS PASSED: {deviceType}, writable={writable}, before/during/after capture, rejected requests");
+            TestContext.Progress.WriteLine($"CONTROLS PASSED: {deviceType}, writable={writable}, availableBeforeCapture={availableBeforeCapture}, capture survives rejected requests");
         }
         finally
         {

@@ -138,6 +138,12 @@ public sealed class PortalCaptureTests
                 TestContext.Out.WriteLine("Camera opened.");
                 try
                 {
+                    if (mode == "delayed")
+                    {
+                        Assert.That(await device.GetControlsAsync(timeout.Token), Is.Empty);
+                        Assert.That(await device.GetControlValueAsync(CaptureDeviceControlTypes.Brightness, timeout.Token), Is.Null);
+                        Assert.That(await device.SetControlValueAsync(CaptureDeviceControlTypes.Brightness, 128, false, timeout.Token), Is.False);
+                    }
                     for (var run = 0; run < 2; run++)
                     {
                         await device.StartAsync(timeout.Token);
