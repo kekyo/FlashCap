@@ -70,6 +70,79 @@ internal sealed class C930eCaptureTests
             Is.EquivalentTo(this.expectedBackends.Where(backend => backend == DeviceTypes.V4L2)));
     }
 
+    /// <summary>Changes and restores C930e controls while verifying capture survives rejected requests.</summary>
+    /// <param name="deviceType">The capture backend.</param>
+    [TestCase(DeviceTypes.V4L2)]
+    [TestCase(DeviceTypes.PipeWire)]
+    public async Task ControlsAndCaptureAsync(DeviceTypes deviceType)
+    {
+        if (!this.expectedBackends.Contains(deviceType))
+            Assert.Ignore($"{deviceType} is intentionally unavailable in this permission scenario.");
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
+        var camera = this.cameras.Single(candidate => candidate.DeviceType == deviceType);
+        var format = camera.Characteristics.First(candidate => candidate.PixelFormat == PixelFormats.YUYV &&
+            candidate.Width == 640 && candidate.Height == 480);
+        var received = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var frames = 0;
+        var device = await camera.OpenAsync(format, TranscodeFormats.DoNotTranscode, _ =>
+        {
+            if (Interlocked.Increment(ref frames) >= 10) received.TrySetResult(true);
+        }, timeout.Token);
+        CaptureDeviceControlValue? originalBrightness = null;
+        CaptureDeviceControlValue? originalFocus = null;
+        try
+        {
+            var controls = await device.GetControlsAsync(timeout.Token);
+            foreach (var control in controls)
+                TestContext.Progress.WriteLine($"CONTROL: {deviceType}, {control}, current={await device.GetControlValueAsync(control.Type, timeout.Token)}");
+            var brightness = controls.Single(control => control.Type == CaptureDeviceControlTypes.Brightness);
+            originalBrightness = await device.GetControlValueAsync(brightness.Type, timeout.Token);
+            Assert.That(originalBrightness, Is.Not.Null);
+            var changed = originalBrightness!.Value < brightness.Maximum ?
+                originalBrightness.Value + brightness.Step : originalBrightness.Value - brightness.Step;
+            Assert.That(await device.SetControlValueAsync(brightness.Type, changed, false, timeout.Token), Is.True);
+            Assert.That((await device.GetControlValueAsync(brightness.Type, timeout.Token))!.Value, Is.EqualTo(changed));
+            await device.StartAsync(timeout.Token);
+            Assert.That(await device.SetControlValueAsync(brightness.Type, originalBrightness.Value, false, timeout.Token), Is.True);
+            var focus = controls.Single(control => control.Type == CaptureDeviceControlTypes.Focus);
+            Assert.That(focus.SupportsAuto, Is.True);
+            originalFocus = await device.GetControlValueAsync(focus.Type, timeout.Token);
+            Assert.That(originalFocus, Is.Not.Null);
+            Assert.That(await device.SetControlValueAsync(focus.Type, originalFocus!.Value, !originalFocus.IsAuto, timeout.Token), Is.True);
+            Assert.That((await device.GetControlValueAsync(focus.Type, timeout.Token))!.IsAuto, Is.EqualTo(!originalFocus.IsAuto));
+            // Invalid values are rejected by the PipeWire adapter before reaching the camera.
+            if (deviceType == DeviceTypes.PipeWire)
+                Assert.That(await device.SetControlValueAsync(brightness.Type, brightness.Maximum + 1, false, timeout.Token), Is.False);
+            Assert.That(await device.SetControlValueAsync(CaptureDeviceControlTypes.Roll, 1, false, timeout.Token), Is.False);
+            Interlocked.Exchange(ref frames, 0);
+            received = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            using (timeout.Token.Register(() => received.TrySetCanceled())) await received.Task;
+            Assert.That(device.IsRunning, Is.True);
+            await device.StopAsync(timeout.Token);
+            Assert.That(await device.SetControlValueAsync(brightness.Type, changed, false, timeout.Token), Is.True);
+            TestContext.Progress.WriteLine($"CONTROLS PASSED: {deviceType}, before/during/after capture, rejected requests, autofocus switch");
+        }
+        finally
+        {
+            try
+            {
+                // Restore settings even if an assertion fails or the main timeout expires.
+                using var cleanup = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                try
+                {
+                    if (originalFocus is not null)
+                        Assert.That(await device.SetControlValueAsync(CaptureDeviceControlTypes.Focus, originalFocus.Value, originalFocus.IsAuto, cleanup.Token), Is.True);
+                }
+                finally
+                {
+                    if (originalBrightness is not null)
+                        Assert.That(await device.SetControlValueAsync(CaptureDeviceControlTypes.Brightness, originalBrightness.Value, originalBrightness.IsAuto, cleanup.Token), Is.True);
+                }
+            }
+            finally { await device.DisposeAsync(); }
+        }
+    }
+
     /// <summary>Checks captured images, timestamps, and restarting the same camera.</summary>
     /// <param name="deviceType">The capture backend.</param>
     /// <param name="pixelFormat">The camera's pixel format.</param>
