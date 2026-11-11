@@ -170,6 +170,21 @@ public sealed class PortalCaptureTests
                                 Is.EqualTo(writable ? 140 + run : original!.Value));
                             Assert.That(await device.SetControlValueAsync(brightness.Type, 256, false, timeout.Token), Is.False);
                             Assert.That(await device.SetControlValueAsync(brightness.Type, 128, true, timeout.Token), Is.False);
+                            if (run == 0)
+                            {
+                                // Slider changes and refreshes overlap in the UI. Exercise the
+                                // same asynchronous reads/writes while frames keep arriving.
+                                await Task.WhenAll(Enumerable.Range(0, 4).Select(async worker =>
+                                {
+                                    for (var change = 0; change < 25; change++)
+                                    {
+                                        Assert.That(await device.SetControlValueAsync(brightness.Type,
+                                            180 + (worker + change) % 20, false, timeout.Token), Is.EqualTo(writable));
+                                        Assert.That(await device.GetControlValueAsync(brightness.Type, timeout.Token), Is.Not.Null);
+                                        Assert.That(await device.GetControlsAsync(timeout.Token), Is.Not.Empty);
+                                    }
+                                }));
+                            }
                         }
                         Assert.That(await device.SetControlValueAsync(CaptureDeviceControlTypes.Roll, 1, false, timeout.Token), Is.False);
                         Assert.That(await device.GetControlValueAsync(CaptureDeviceControlTypes.Roll, timeout.Token), Is.Null);
