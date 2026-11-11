@@ -24,18 +24,20 @@ internal sealed class PipeWireCamera
 {
     internal readonly string Serial, NodeName, Name, Description;
     internal readonly PipeWireFormat[] Formats;
+    internal readonly bool UsePortal;
 
-    internal PipeWireCamera(string serial, string nodeName, string name, string description, PipeWireFormat[] formats)
+    internal PipeWireCamera(string serial, string nodeName, string name, string description, PipeWireFormat[] formats, bool usePortal)
     {
         this.Serial = serial;
         this.NodeName = nodeName;
         this.Name = name;
         this.Description = description;
         this.Formats = formats;
+        this.UsePortal = usePortal;
     }
 }
 
-// Owns one portal remote and all its native objects. All graph access is serialized
+// Owns one PipeWire connection and all its native objects. All graph access is serialized
 // by pw_thread_loop's recursive lock; native callbacks already hold that lock.
 internal sealed class PipeWireConnection : IDisposable
 {
@@ -55,6 +57,7 @@ internal sealed class PipeWireConnection : IDisposable
     }
 
     private readonly Listeners listeners = new();
+    private readonly bool usePortal;
     private Listeners? streamListeners;
     private readonly Dictionary<uint, Node> nodes = new();
     private readonly Dictionary<int, TaskCompletionSource<bool>> pending = new();
@@ -68,14 +71,14 @@ internal sealed class PipeWireConnection : IDisposable
     private PipeWirePlane[] planes = new PipeWirePlane[1];
     internal event Action? Disconnected;
 
-    private PipeWireConnection() { }
+    private PipeWireConnection(bool usePortal) => this.usePortal = usePortal;
 
-    internal static async Task<PipeWireConnection> OpenAsync(CancellationToken ct)
+    internal static async Task<PipeWireConnection> OpenAsync(bool usePortal, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();
         if (!NativeMethods.IsLinux()) throw new PlatformNotSupportedException("PipeWire camera capture requires Linux.");
-        var descriptor = await CameraPortal.OpenRemoteAsync(ct).ConfigureAwait(false);
-        var connection = new PipeWireConnection();
+        var descriptor = usePortal ? await CameraPortal.OpenRemoteAsync(ct).ConfigureAwait(false) : -1;
+        var connection = new PipeWireConnection(usePortal);
         try
         {
             ct.ThrowIfCancellationRequested();
@@ -139,10 +142,16 @@ internal sealed class PipeWireConnection : IDisposable
         this.loop = PipeWireNative.Require(PipeWireNative.pw_thread_loop_new("FlashCap camera", IntPtr.Zero), "create loop");
         this.context = PipeWireNative.Require(PipeWireNative.pw_context_new(
             PipeWireNative.pw_thread_loop_get_loop(this.loop), IntPtr.Zero, UIntPtr.Zero), "create context");
-        var ownedDescriptor = descriptor;
-        descriptor = -1; // connect_fd consumes the descriptor even if it fails.
-        this.core = PipeWireNative.Require(PipeWireNative.pw_context_connect_fd(
-            this.context, ownedDescriptor, IntPtr.Zero, UIntPtr.Zero), "connect portal remote");
+        if (this.usePortal)
+        {
+            var ownedDescriptor = descriptor;
+            descriptor = -1; // connect_fd consumes the descriptor even if it fails.
+            this.core = PipeWireNative.Require(PipeWireNative.pw_context_connect_fd(
+                this.context, ownedDescriptor, IntPtr.Zero, UIntPtr.Zero), "connect portal remote");
+        }
+        else
+            this.core = PipeWireNative.Require(PipeWireNative.pw_context_connect(
+                this.context, IntPtr.Zero, UIntPtr.Zero), "connect local remote");
         PipeWireNative.DoneCallback done = (_, id, sequence) =>
         {
             if (id == 0 && this.pending.TryGetValue(sequence, out var completion))
@@ -192,7 +201,7 @@ internal sealed class PipeWireConnection : IDisposable
         if (values.TryGetValue("media.role", out var role) && role != "Camera") return;
         var name = values.TryGetValue("node.nick", out var nick) ? nick :
             values.TryGetValue("node.description", out var description) ? description : nodeName;
-        var camera = new PipeWireCamera(serial, nodeName, name, nodeName, ArrayEx.Empty<PipeWireFormat>());
+        var camera = new PipeWireCamera(serial, nodeName, name, nodeName, ArrayEx.Empty<PipeWireFormat>(), this.usePortal);
         var node = new Node(camera, PipeWireNative.BindNode(this.registry, id, version));
         this.nodes.Add(id, node);
         PipeWireNative.ParamCallback parameter = (_, sequence, paramId, index, next, value) =>
@@ -257,7 +266,7 @@ internal sealed class PipeWireConnection : IDisposable
             this.ThrowIfFailed();
             return this.nodes.Values.Select(node => new PipeWireCamera(
                 node.Camera.Serial, node.Camera.NodeName, node.Camera.Name, node.Camera.Description,
-                node.Formats.GroupBy(format => format.Characteristics).Select(group => group.First()).ToArray()))
+                node.Formats.GroupBy(format => format.Characteristics).Select(group => group.First()).ToArray(), this.usePortal))
                 .Where(camera => camera.Formats.Length != 0).ToArray();
         }
         finally { PipeWireNative.pw_thread_loop_unlock(this.loop); }

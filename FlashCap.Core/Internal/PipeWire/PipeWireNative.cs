@@ -179,6 +179,7 @@ internal static class PipeWireNative
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void pw_thread_loop_unlock(IntPtr loop);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern IntPtr pw_context_new(IntPtr loop, IntPtr properties, UIntPtr userSize);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void pw_context_destroy(IntPtr context);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern IntPtr pw_context_connect(IntPtr context, IntPtr properties, UIntPtr userSize);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern IntPtr pw_context_connect_fd(IntPtr context, int fd, IntPtr properties, UIntPtr userSize);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int pw_core_disconnect(IntPtr core);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void pw_proxy_destroy(IntPtr proxy);

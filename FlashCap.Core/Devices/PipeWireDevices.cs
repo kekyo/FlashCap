@@ -18,14 +18,15 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace FlashCap.Devices;
 
-/// <summary>Enumerates Linux cameras through the desktop camera portal and PipeWire.</summary>
+/// <summary>Enumerates accessible Linux cameras through PipeWire.</summary>
 /// <remarks>
 /// Enumeration may display a permission dialog and requires asynchronous enumeration.
 /// Synchronous enumeration always throws <see cref="NotSupportedException"/>.
-/// Requires libpipewire-0.3, GLib/GIO and a desktop camera portal.
+/// Requires libpipewire-0.3. Portal connections also require GLib/GIO and a desktop camera portal.
 /// Captures CPU-readable RGB24, RGB32, ARGB32, YUYV, UYVY, NV12 and JPEG formats;
 /// DMA-BUF formats are not advertised.
 /// </remarks>
@@ -54,10 +55,22 @@ public sealed class PipeWireDevices : CaptureDevices
     protected override async IAsyncEnumerable<CaptureDeviceDescriptor> OnEnumerateDescriptorsAsync(
         [EnumeratorCancellation] CancellationToken ct)
     {
+        var cameras = await GetCamerasAsync(false, ct).ConfigureAwait(false);
+        if (cameras.Length == 0)
+            cameras = await GetCamerasAsync(true, ct).ConfigureAwait(false);
+        foreach (var camera in cameras)
+        {
+            ct.ThrowIfCancellationRequested();
+            yield return new PipeWireDeviceDescriptor(camera, this.DefaultBufferPool);
+        }
+    }
+
+    private static async Task<PipeWireCamera[]> GetCamerasAsync(bool usePortal, CancellationToken ct)
+    {
         PipeWireCamera[] cameras;
         try
         {
-            using var connection = await PipeWireConnection.OpenAsync(ct).ConfigureAwait(false);
+            using var connection = await PipeWireConnection.OpenAsync(usePortal, ct).ConfigureAwait(false);
             cameras = connection.GetCameras();
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or
@@ -65,15 +78,11 @@ public sealed class PipeWireDevices : CaptureDevices
         {
             // A portal dismissal is not cancellation of the caller's enumeration.
             ct.ThrowIfCancellationRequested();
-            Trace.WriteLine($"FlashCap: PipeWire enumeration unavailable: {exception}");
+            Trace.WriteLine($"FlashCap: PipeWire {(usePortal ? "portal" : "direct")} enumeration unavailable: {exception}");
             cameras = ArrayEx.Empty<PipeWireCamera>();
         }
         ct.ThrowIfCancellationRequested();
-        foreach (var camera in cameras)
-        {
-            ct.ThrowIfCancellationRequested();
-            yield return new PipeWireDeviceDescriptor(camera, this.DefaultBufferPool);
-        }
+        return cameras;
     }
 }
 #endif

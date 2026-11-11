@@ -35,7 +35,7 @@ namespace FlashCap;
 /// </summary>
 /// <remarks>
 /// On targets that support asynchronous enumeration, Linux also enumerates PipeWire
-/// cameras through the desktop camera portal. Synchronous enumeration includes V4L2 only.
+/// cameras, using the desktop camera portal when needed. Synchronous enumeration includes V4L2 only.
 /// </remarks>
 public class CaptureDevices
 {

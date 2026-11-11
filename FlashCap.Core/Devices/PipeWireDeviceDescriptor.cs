@@ -18,7 +18,7 @@ using System.Threading.Tasks;
 
 namespace FlashCap.Devices;
 
-/// <summary>Describes a camera accessible through the desktop camera portal.</summary>
+/// <summary>Describes a camera accessible through PipeWire.</summary>
 [SupportedOSPlatform("linux")]
 public sealed class PipeWireDeviceDescriptor : CaptureDeviceDescriptor
 {

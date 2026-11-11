@@ -317,6 +317,10 @@ int main(int argc, char **argv)
     if (argc != 3) return 2;
     mode = argv[2];
     start_camera(argv[1]);
+    char direct_socket[sizeof(((struct sockaddr_un *)0)->sun_path)];
+    snprintf(direct_socket, sizeof(direct_socket), "%s/pipewire-0", getenv("XDG_RUNTIME_DIR"));
+    if (strcmp(mode, "direct") == 0 && symlink("flashcap-test", direct_socket) < 0)
+        fatal("expose direct socket");
     main_loop = g_main_loop_new(NULL, FALSE);
     GError *error = NULL;
     GDBusConnection *bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, &error);
@@ -332,7 +336,7 @@ int main(int argc, char **argv)
     g_dbus_connection_register_object(bus, "/org/freedesktop/portal/desktop", info->interfaces[0],
         &camera_vtable, NULL, NULL, &error);
     if (error != NULL) fatal(error->message);
-    if (strcmp(mode, "absent") == 0) {
+    if (strcmp(mode, "absent") == 0 || strcmp(mode, "direct") == 0) {
         puts("READY"); fflush(stdout);
     } else {
         portal_owner = g_bus_own_name_on_connection(bus, "org.freedesktop.portal.Desktop",
@@ -341,6 +345,7 @@ int main(int argc, char **argv)
     g_unix_signal_add(SIGTERM, quit, NULL);
     g_unix_fd_add(STDIN_FILENO, G_IO_IN | G_IO_HUP, input_ready, NULL);
     g_main_loop_run(main_loop);
+    if (strcmp(mode, "direct") == 0) unlink(direct_socket);
     if (portal_owner != 0) g_bus_unown_name(portal_owner);
     g_object_unref(bus);
     g_dbus_node_info_unref(info);

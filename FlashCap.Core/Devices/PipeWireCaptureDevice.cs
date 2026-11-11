@@ -19,7 +19,7 @@ using System.Threading.Tasks;
 
 namespace FlashCap.Devices;
 
-/// <summary>Captures camera frames through the desktop camera portal and PipeWire.</summary>
+/// <summary>Captures camera frames through PipeWire.</summary>
 /// <remarks>
 /// Frames always conform to their advertised FlashCap pixel layout, including when
 /// color conversion is disabled. PipeWire buffers remain owned by PipeWire.
@@ -67,7 +67,7 @@ public sealed class PipeWireCaptureDevice : CaptureDevice
             header->biCompression = compression;
             header->biSizeImage = header->CalculateImageSize();
         }
-        this.connection = await PipeWireConnection.OpenAsync(ct).ConfigureAwait(false);
+        this.connection = await PipeWireConnection.OpenAsync(this.camera.UsePortal, ct).ConfigureAwait(false);
         this.connection.Disconnected += () => this.IsRunning = false;
     }
 
