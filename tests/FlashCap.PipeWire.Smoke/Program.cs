@@ -90,6 +90,7 @@ internal sealed class C930eCaptureTests
         }, timeout.Token);
         CaptureDeviceControlValue? originalBrightness = null;
         CaptureDeviceControlValue? originalFocus = null;
+        var brightnessChanged = false;
         try
         {
             var controls = await device.GetControlsAsync(timeout.Token);
@@ -100,16 +101,24 @@ internal sealed class C930eCaptureTests
             Assert.That(originalBrightness, Is.Not.Null);
             var changed = originalBrightness!.Value < brightness.Maximum ?
                 originalBrightness.Value + brightness.Step : originalBrightness.Value - brightness.Step;
-            Assert.That(await device.SetControlValueAsync(brightness.Type, changed, false, timeout.Token), Is.True);
-            Assert.That((await device.GetControlValueAsync(brightness.Type, timeout.Token))!.Value, Is.EqualTo(changed));
+            var writable = await device.SetControlValueAsync(brightness.Type, changed, false, timeout.Token);
+            brightnessChanged = writable;
+            // A sandbox's direct PipeWire connection can have RX permission only,
+            // even with the socket and /dev/video* exposed. Verify that route too.
+            Assert.That(writable || (File.Exists("/.flatpak-info") && deviceType == DeviceTypes.PipeWire), Is.True);
+            Assert.That((await device.GetControlValueAsync(brightness.Type, timeout.Token))!.Value,
+                Is.EqualTo(writable ? changed : originalBrightness.Value));
             await device.StartAsync(timeout.Token);
-            Assert.That(await device.SetControlValueAsync(brightness.Type, originalBrightness.Value, false, timeout.Token), Is.True);
-            var focus = controls.Single(control => control.Type == CaptureDeviceControlTypes.Focus);
-            Assert.That(focus.SupportsAuto, Is.True);
-            originalFocus = await device.GetControlValueAsync(focus.Type, timeout.Token);
-            Assert.That(originalFocus, Is.Not.Null);
-            Assert.That(await device.SetControlValueAsync(focus.Type, originalFocus!.Value, !originalFocus.IsAuto, timeout.Token), Is.True);
-            Assert.That((await device.GetControlValueAsync(focus.Type, timeout.Token))!.IsAuto, Is.EqualTo(!originalFocus.IsAuto));
+            Assert.That(await device.SetControlValueAsync(brightness.Type, originalBrightness.Value, false, timeout.Token), Is.EqualTo(writable));
+            if (writable)
+            {
+                var focus = controls.Single(control => control.Type == CaptureDeviceControlTypes.Focus);
+                Assert.That(focus.SupportsAuto, Is.True);
+                originalFocus = await device.GetControlValueAsync(focus.Type, timeout.Token);
+                Assert.That(originalFocus, Is.Not.Null);
+                Assert.That(await device.SetControlValueAsync(focus.Type, originalFocus!.Value, !originalFocus.IsAuto, timeout.Token), Is.True);
+                Assert.That((await device.GetControlValueAsync(focus.Type, timeout.Token))!.IsAuto, Is.EqualTo(!originalFocus.IsAuto));
+            }
             // Invalid values are rejected by the PipeWire adapter before reaching the camera.
             if (deviceType == DeviceTypes.PipeWire)
                 Assert.That(await device.SetControlValueAsync(brightness.Type, brightness.Maximum + 1, false, timeout.Token), Is.False);
@@ -119,8 +128,8 @@ internal sealed class C930eCaptureTests
             using (timeout.Token.Register(() => received.TrySetCanceled())) await received.Task;
             Assert.That(device.IsRunning, Is.True);
             await device.StopAsync(timeout.Token);
-            Assert.That(await device.SetControlValueAsync(brightness.Type, changed, false, timeout.Token), Is.True);
-            TestContext.Progress.WriteLine($"CONTROLS PASSED: {deviceType}, before/during/after capture, rejected requests, autofocus switch");
+            Assert.That(await device.SetControlValueAsync(brightness.Type, changed, false, timeout.Token), Is.EqualTo(writable));
+            TestContext.Progress.WriteLine($"CONTROLS PASSED: {deviceType}, writable={writable}, before/during/after capture, rejected requests");
         }
         finally
         {
@@ -135,7 +144,7 @@ internal sealed class C930eCaptureTests
                 }
                 finally
                 {
-                    if (originalBrightness is not null)
+                    if (brightnessChanged && originalBrightness is not null)
                         Assert.That(await device.SetControlValueAsync(CaptureDeviceControlTypes.Brightness, originalBrightness.Value, originalBrightness.IsAuto, cleanup.Token), Is.True);
                 }
             }
