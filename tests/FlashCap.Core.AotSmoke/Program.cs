@@ -156,11 +156,15 @@ internal static partial class Program
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         var devices = await new PipeWireDevices().GetDescriptorsAsync(timeout.Token);
-        var camera = devices.Single();
-        var frame = await camera.TakeOneShotAsync(camera.Characteristics.Single(),
-            TranscodeFormats.DoNotTranscode, timeout.Token);
-        if (frame.Length != 66 || !frame.Skip(54).SequenceEqual(Enumerable.Range(1, 12).Select(value => (byte)value)))
-            return 8;
+        if (devices.Length == 0) return 8;
+        foreach (var camera in devices)
+        {
+            var frame = await camera.TakeOneShotAsync(camera.Characteristics.Single(),
+                TranscodeFormats.DoNotTranscode, timeout.Token);
+            var first = camera.Name.EndsWith(" extra", StringComparison.Ordinal) ? 101 : 1;
+            if (frame.Length != 66 || !frame.Skip(54).SequenceEqual(Enumerable.Range(first, 12).Select(value => (byte)value)))
+                return 8;
+        }
         Console.WriteLine("PipeWire AOT capture passed.");
         return 0;
     }

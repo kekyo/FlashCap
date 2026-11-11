@@ -71,6 +71,8 @@ internal static class PipeWireNative
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal delegate void ParamCallback(IntPtr data, int sequence, uint id, uint index, uint next, IntPtr parameter);
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    internal delegate void PermissionsCallback(IntPtr data, uint index, uint count, IntPtr permissions);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal delegate void StreamStateCallback(IntPtr data, int previous, int state, IntPtr error);
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal delegate void StreamParamCallback(IntPtr data, uint id, IntPtr parameter);
@@ -87,6 +89,11 @@ internal static class PipeWireNative
     private delegate IntPtr BindMethod(IntPtr data, uint id, [MarshalAs(UnmanagedType.LPStr)] string type, uint version, UIntPtr userSize);
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     private delegate int EnumParamsMethod(IntPtr data, int sequence, uint id, uint start, uint count, IntPtr filter);
+    [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+    private delegate int GetPermissionsMethod(IntPtr data, uint index, uint count);
+
+    // PW_PERM_R | PW_PERM_X: discover a node and read its formats.
+    internal const uint ReadExecute = 0x100 | 0x40;
 
     private static IntPtr Method(Interface iface, int slot) =>
         Marshal.ReadIntPtr(iface.Methods, checked(IntPtr.Size * (slot + 1)));
@@ -125,6 +132,13 @@ internal static class PipeWireNative
         var iface = Marshal.PtrToStructure<Interface>(node);
         Check(Marshal.GetDelegateForFunctionPointer<EnumParamsMethod>(Method(iface, 2))
             (iface.Data, 0, PipeWireFormats.EnumFormat, 0, uint.MaxValue, IntPtr.Zero), "enumerate formats");
+    }
+
+    internal static void GetPermissions(IntPtr client)
+    {
+        var iface = Marshal.PtrToStructure<Interface>(client);
+        Check(Marshal.GetDelegateForFunctionPointer<GetPermissionsMethod>(Method(iface, 3))
+            (iface.Data, 0, uint.MaxValue), "query client permissions");
     }
 
     internal static Dictionary<string, string> ReadDictionary(IntPtr pointer)
@@ -182,6 +196,7 @@ internal static class PipeWireNative
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern IntPtr pw_context_connect(IntPtr context, IntPtr properties, UIntPtr userSize);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern IntPtr pw_context_connect_fd(IntPtr context, int fd, IntPtr properties, UIntPtr userSize);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int pw_core_disconnect(IntPtr core);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern IntPtr pw_core_get_client(IntPtr core);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void pw_proxy_destroy(IntPtr proxy);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern IntPtr pw_properties_new(IntPtr firstKey);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void pw_properties_free(IntPtr properties);

@@ -63,6 +63,7 @@ internal sealed class PipeWireConnection : IDisposable
     private readonly Dictionary<int, TaskCompletionSource<bool>> pending = new();
     private IntPtr loop, context, core, registry, stream;
     private bool loopStarted, disposed;
+    private bool requestingPermissions;
     private Exception? failure;
     private TaskCompletionSource<bool>? streamReady;
     private string? targetSerial;
@@ -70,6 +71,7 @@ internal sealed class PipeWireConnection : IDisposable
     private bool formatReady, streaming;
     private PipeWirePlane[] planes = new PipeWirePlane[1];
     internal event Action? Disconnected;
+    internal bool HasUnrestrictedAccess { get; private set; }
 
     private PipeWireConnection(bool usePortal) => this.usePortal = usePortal;
 
@@ -84,6 +86,7 @@ internal sealed class PipeWireConnection : IDisposable
             ct.ThrowIfCancellationRequested();
             connection.Initialize(ref descriptor);
             await connection.SynchronizeAsync(ct).ConfigureAwait(false);
+            connection.requestingPermissions = false;
             // Registry callbacks bind nodes and request their formats. A second barrier
             // covers those requests, which were issued after the initial barrier.
             await connection.SynchronizeAsync(ct).ConfigureAwait(false);
@@ -158,14 +161,50 @@ internal sealed class PipeWireConnection : IDisposable
                 completion.TrySetResult(true);
         };
         PipeWireNative.ErrorCallback error = (_, id, sequence, result, message) =>
+        {
+            // Some servers do not allow querying the client's own permissions.
+            // Keep its visible cameras and treat that connection as restricted.
+            if (id == 1 && this.requestingPermissions && result is -1 or -13 or -95) return;
             this.Fail(new IOException("FlashCap PipeWire: " + Marshal.PtrToStringAnsi(message) + $" ({result})."));
+        };
         PipeWireNative.AddListener(this.core, this.listeners.Hook(), this.listeners.Events(
             default, this.listeners.Callback(done), default, this.listeners.Callback(error),
             default, default, default, default));
+        if (!this.usePortal)
+        {
+            var client = PipeWireNative.Require(PipeWireNative.pw_core_get_client(this.core), "get client");
+            PipeWireNative.PermissionsCallback permissions = (_, index, count, values) =>
+            {
+                try
+                {
+                    var unrestricted = false;
+                    var restricted = false;
+                    for (var i = 0u; i < count; i++)
+                    {
+                        var offset = checked((int)i * 8);
+                        var id = unchecked((uint)Marshal.ReadInt32(values, offset));
+                        var flags = unchecked((uint)Marshal.ReadInt32(values, offset + 4));
+                        var readable = (flags & PipeWireNative.ReadExecute) == PipeWireNative.ReadExecute;
+                        if (id == uint.MaxValue) unrestricted = readable;
+                        else if (!readable) restricted = true;
+                    }
+                    this.HasUnrestrictedAccess = unrestricted && !restricted;
+                }
+                catch (Exception exception) { this.Fail(exception); }
+            };
+            PipeWireNative.AddListener(client, this.listeners.Hook(),
+                this.listeners.Events(default, this.listeners.Callback(permissions)));
+            this.requestingPermissions = true;
+            PipeWireNative.GetPermissions(client);
+        }
         this.registry = PipeWireNative.GetRegistry(this.core);
         PipeWireNative.GlobalCallback global = (_, id, permissions, type, version, properties) =>
         {
-            try { this.AddNode(id, type, version, properties); }
+            try
+            {
+                if ((permissions & PipeWireNative.ReadExecute) == PipeWireNative.ReadExecute)
+                    this.AddNode(id, type, version, properties);
+            }
             catch (Exception exception) { this.Fail(exception); }
         };
         PipeWireNative.RemoveCallback remove = (_, id) =>

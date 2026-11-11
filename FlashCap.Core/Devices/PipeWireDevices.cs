@@ -55,9 +55,18 @@ public sealed class PipeWireDevices : CaptureDevices
     protected override async IAsyncEnumerable<CaptureDeviceDescriptor> OnEnumerateDescriptorsAsync(
         [EnumeratorCancellation] CancellationToken ct)
     {
-        var cameras = await GetCamerasAsync(false, ct).ConfigureAwait(false);
-        if (cameras.Length == 0)
-            cameras = await GetCamerasAsync(true, ct).ConfigureAwait(false);
+        var direct = await GetCamerasAsync(false, ct).ConfigureAwait(false);
+        var cameras = new List<PipeWireCamera>(direct.Cameras);
+        // A successful connection may expose only a subset of cameras. Query the
+        // portal whenever the server's permissions do not establish full visibility.
+        if (!direct.Unrestricted)
+        {
+            var portal = await GetCamerasAsync(true, ct).ConfigureAwait(false);
+            var identities = new HashSet<string>();
+            foreach (var camera in cameras) identities.Add(camera.Serial + ":" + camera.NodeName);
+            foreach (var camera in portal.Cameras)
+                if (identities.Add(camera.Serial + ":" + camera.NodeName)) cameras.Add(camera);
+        }
         foreach (var camera in cameras)
         {
             ct.ThrowIfCancellationRequested();
@@ -65,13 +74,24 @@ public sealed class PipeWireDevices : CaptureDevices
         }
     }
 
-    private static async Task<PipeWireCamera[]> GetCamerasAsync(bool usePortal, CancellationToken ct)
+    private readonly struct Snapshot
     {
-        PipeWireCamera[] cameras;
+        internal readonly PipeWireCamera[] Cameras;
+        internal readonly bool Unrestricted;
+        internal Snapshot(PipeWireCamera[] cameras, bool unrestricted)
+        {
+            this.Cameras = cameras;
+            this.Unrestricted = unrestricted;
+        }
+    }
+
+    private static async Task<Snapshot> GetCamerasAsync(bool usePortal, CancellationToken ct)
+    {
+        Snapshot snapshot;
         try
         {
             using var connection = await PipeWireConnection.OpenAsync(usePortal, ct).ConfigureAwait(false);
-            cameras = connection.GetCameras();
+            snapshot = new Snapshot(connection.GetCameras(), connection.HasUnrestrictedAccess);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or
             DllNotFoundException or EntryPointNotFoundException or BadImageFormatException or OperationCanceledException)
@@ -79,10 +99,10 @@ public sealed class PipeWireDevices : CaptureDevices
             // A portal dismissal is not cancellation of the caller's enumeration.
             ct.ThrowIfCancellationRequested();
             Trace.WriteLine($"FlashCap: PipeWire {(usePortal ? "portal" : "direct")} enumeration unavailable: {exception}");
-            cameras = ArrayEx.Empty<PipeWireCamera>();
+            snapshot = new Snapshot(ArrayEx.Empty<PipeWireCamera>(), false);
         }
         ct.ThrowIfCancellationRequested();
-        return cameras;
+        return snapshot;
     }
 }
 #endif

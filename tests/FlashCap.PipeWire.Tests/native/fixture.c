@@ -12,13 +12,18 @@
 #include <glib-unix.h>
 #include <pipewire/pipewire.h>
 #include <pipewire/impl-client.h>
+#include <pipewire/impl-node.h>
 #include <spa/param/video/format-utils.h>
 
 static struct pw_thread_loop *thread_loop;
 static struct pw_context *context;
 static struct pw_core *core;
 static struct pw_registry *registry;
-static struct pw_stream *camera;
+static struct pw_stream *camera, *extra_camera;
+static struct spa_hook extra_stream_hook;
+static uint32_t extra_output_port = SPA_ID_INVALID;
+static bool extra_ready, expose_direct;
+static gint next_portal_connection;
 static struct spa_hook registry_hook, stream_hook, context_hook;
 static struct spa_source *timer;
 static struct pw_proxy *links[64];
@@ -41,8 +46,8 @@ static void fatal(const char *message)
 
 static void process_frame(void *data)
 {
-    (void)data;
-    struct pw_buffer *buffer = pw_stream_dequeue_buffer(camera);
+    struct pw_stream *source = data;
+    struct pw_buffer *buffer = pw_stream_dequeue_buffer(source);
     if (buffer == NULL) return;
     struct spa_data *plane = &buffer->buffer->datas[0];
     // Alternate tight and padded layouts, with a nonzero data offset, in the
@@ -54,17 +59,17 @@ static void process_frame(void *data)
     memset(plane->data, 0xee, plane->maxsize);
     for (unsigned row = 0; row < 3; row++)
         for (unsigned column = 0; column < 4; column++)
-            ((unsigned char *)plane->data)[offset + row * stride + column] = 1 + row * 4 + column;
+            ((unsigned char *)plane->data)[offset + row * stride + column] = (source == extra_camera ? 101 : 1) + row * 4 + column;
     plane->chunk->offset = offset;
     plane->chunk->size = stride * 3;
     plane->chunk->stride = stride;
     plane->chunk->flags = 0;
-    pw_stream_queue_buffer(camera, buffer);
+    pw_stream_queue_buffer(source, buffer);
 }
 
 static void format_changed(void *data, uint32_t id, const struct spa_pod *param)
 {
-    (void)data;
+    struct pw_stream *source = data;
     if (id != SPA_PARAM_Format || param == NULL) return;
     unsigned char storage[512];
     struct spa_pod_builder builder = SPA_POD_BUILDER_INIT(storage, sizeof(storage));
@@ -76,16 +81,17 @@ static void format_changed(void *data, uint32_t id, const struct spa_pod *param)
             SPA_PARAM_BUFFERS_stride, SPA_POD_Int(8),
             SPA_PARAM_BUFFERS_dataType, SPA_POD_CHOICE_FLAGS_Int(1 << SPA_DATA_MemFd))
     };
-    if (pw_stream_update_params(camera, parameters, 1) < 0) fatal("update camera parameters");
+    if (pw_stream_update_params(source, parameters, 1) < 0) fatal("update camera parameters");
 }
 
 static void state_changed(void *data, enum pw_stream_state old,
     enum pw_stream_state state, const char *error)
 {
-    (void)data; (void)old;
+    (void)old;
     if (state == PW_STREAM_STATE_ERROR) fatal(error);
     if (state == PW_STREAM_STATE_PAUSED) {
-        camera_ready = true;
+        if (data == camera) camera_ready = true;
+        else extra_ready = true;
         pw_thread_loop_signal(thread_loop, false);
     }
 }
@@ -95,6 +101,8 @@ static void tick(void *data, uint64_t expirations)
     (void)data; (void)expirations;
     if (pw_stream_get_state(camera, NULL) == PW_STREAM_STATE_STREAMING)
         pw_stream_trigger_process(camera);
+    if (extra_camera != NULL && pw_stream_get_state(extra_camera, NULL) == PW_STREAM_STATE_STREAMING)
+        pw_stream_trigger_process(extra_camera);
 }
 
 static void global_added(void *data, uint32_t id, uint32_t permissions,
@@ -120,16 +128,30 @@ static void global_added(void *data, uint32_t id, uint32_t permissions,
     const char *node = spa_dict_lookup(props, PW_KEY_NODE_ID);
     if (direction == NULL || node == NULL) return;
     if (strcmp(direction, "out") == 0) {
-        output_port = id;
+        if ((uint32_t)strtoul(node, NULL, 10) == pw_stream_get_node_id(camera)) output_port = id;
+        else extra_output_port = id;
         return;
     }
     if (strcmp(direction, "in") != 0 || output_port == SPA_ID_INVALID) return;
+    struct pw_stream *source = camera;
+    uint32_t source_port = output_port;
+    if (extra_camera != NULL) {
+        struct pw_global *input_global = pw_context_find_global(context, (uint32_t)strtoul(node, NULL, 10));
+        const struct pw_properties *input_props = pw_impl_node_get_properties(pw_global_get_object(input_global));
+        const char *target = pw_properties_get(input_props, "target.object");
+        struct pw_global *extra_global = pw_context_find_global(context, pw_stream_get_node_id(extra_camera));
+        const char *serial = pw_properties_get(pw_global_get_properties(extra_global), PW_KEY_OBJECT_SERIAL);
+        if (target != NULL && serial != NULL && strcmp(target, serial) == 0) {
+            source = extra_camera;
+            source_port = extra_output_port;
+        }
+    }
     if (link_count == 64) fatal("too many fixture links");
     struct pw_properties *properties = pw_properties_new(
         PW_KEY_LINK_INPUT_NODE, node, PW_KEY_LINK_PASSIVE, "false", NULL);
     pw_properties_setf(properties, PW_KEY_LINK_INPUT_PORT, "%u", id);
-    pw_properties_setf(properties, PW_KEY_LINK_OUTPUT_PORT, "%u", output_port);
-    pw_properties_setf(properties, PW_KEY_LINK_OUTPUT_NODE, "%u", pw_stream_get_node_id(camera));
+    pw_properties_setf(properties, PW_KEY_LINK_OUTPUT_PORT, "%u", source_port);
+    pw_properties_setf(properties, PW_KEY_LINK_OUTPUT_NODE, "%u", pw_stream_get_node_id(source));
     links[link_count] = pw_core_create_object(core, "link-factory",
         PW_TYPE_INTERFACE_Link, PW_VERSION_LINK, &properties->dict, 0);
     input_ports[link_count++] = id;
@@ -170,6 +192,16 @@ static void client_destroyed(void *data)
 static void check_access(void *data, struct pw_impl_client *client)
 {
     (void)data;
+    if (camera_ready && (strncmp(mode, "partial", 7) == 0 || strcmp(mode, "readonly") == 0)) {
+        bool portal = g_atomic_int_compare_and_exchange(&next_portal_connection, 1, 0);
+        if (!portal) {
+            struct pw_permission permission = PW_PERMISSION_INIT(
+                pw_stream_get_node_id(extra_camera != NULL ? extra_camera : camera),
+                strstr(mode, "readonly") != NULL ? PW_PERM_R : 0);
+            if (pw_impl_client_update_permissions(client, 1, &permission) < 0) fatal("restrict direct camera");
+        }
+        return;
+    }
     if (!camera_ready || (strcmp(mode, "duplicate") != 0 && strcmp(mode, "delayed") != 0)) return;
     // Enumeration and opening use separate remotes. Delay the camera's
     // visibility on each opening connection, without a timing-dependent sleep.
@@ -184,6 +216,29 @@ static void check_access(void *data, struct pw_impl_client *client)
         PW_VERSION_IMPL_CLIENT_EVENTS, .destroy = client_destroyed, .resource_added = resource_added
     };
     pw_impl_client_add_listener(client, hook, &events, hook);
+}
+
+static struct pw_stream *create_camera(const char *name, const char *description, struct spa_hook *hook)
+{
+    struct pw_stream *source = pw_stream_new(core, description, pw_properties_new(
+        PW_KEY_NODE_NAME, name, PW_KEY_NODE_DESCRIPTION, description,
+        PW_KEY_MEDIA_TYPE, "Video", PW_KEY_MEDIA_CLASS, strcmp(mode, "direct-empty") == 0 ? "Audio/Source" : "Video/Source", PW_KEY_MEDIA_ROLE, "Camera", NULL));
+    static const struct pw_stream_events events = {
+        PW_VERSION_STREAM_EVENTS, .state_changed = state_changed,
+        .param_changed = format_changed, .process = process_frame
+    };
+    pw_stream_add_listener(source, hook, &events, source);
+    unsigned char storage[512];
+    struct spa_pod_builder builder = SPA_POD_BUILDER_INIT(storage, sizeof(storage));
+    const struct spa_pod *parameters[] = {
+        spa_format_video_raw_build(&builder, SPA_PARAM_EnumFormat, &(struct spa_video_info_raw) {
+            .format = SPA_VIDEO_FORMAT_NV12, .size = { 4, 2 }, .framerate = { 30, 1 }
+        })
+    };
+    if (pw_stream_connect(source, PW_DIRECTION_OUTPUT, PW_ID_ANY,
+        PW_STREAM_FLAG_DRIVER | PW_STREAM_FLAG_MAP_BUFFERS,
+        parameters, 1) < 0) fatal("connect camera");
+    return source;
 }
 
 static void start_camera(const char *config)
@@ -205,30 +260,15 @@ static void start_camera(const char *config)
         PW_VERSION_REGISTRY_EVENTS, .global = global_added, .global_remove = global_removed
     };
     pw_registry_add_listener(registry, &registry_hook, &registry_events, NULL);
-    camera = pw_stream_new(core, "FlashCap fixture camera", pw_properties_new(
-        PW_KEY_NODE_NAME, "flashcap.test.camera", PW_KEY_NODE_DESCRIPTION, "FlashCap fixture camera",
-        PW_KEY_MEDIA_TYPE, "Video", PW_KEY_MEDIA_CLASS, "Video/Source", PW_KEY_MEDIA_ROLE, "Camera", NULL));
-    static const struct pw_stream_events events = {
-        PW_VERSION_STREAM_EVENTS, .state_changed = state_changed,
-        .param_changed = format_changed, .process = process_frame
-    };
-    pw_stream_add_listener(camera, &stream_hook, &events, NULL);
-    unsigned char storage[512];
-    struct spa_pod_builder builder = SPA_POD_BUILDER_INIT(storage, sizeof(storage));
-    const struct spa_pod *parameters[] = {
-        spa_format_video_raw_build(&builder, SPA_PARAM_EnumFormat, &(struct spa_video_info_raw) {
-            .format = SPA_VIDEO_FORMAT_NV12, .size = { 4, 2 }, .framerate = { 30, 1 }
-        })
-    };
-    if (pw_stream_connect(camera, PW_DIRECTION_OUTPUT, PW_ID_ANY,
-        PW_STREAM_FLAG_DRIVER | PW_STREAM_FLAG_MAP_BUFFERS,
-        parameters, 1) < 0) fatal("connect camera");
+    camera = create_camera("flashcap.test.camera", "FlashCap fixture camera", &stream_hook);
+    if (strncmp(mode, "partial", 7) == 0)
+        extra_camera = create_camera("flashcap.test.extra", "FlashCap fixture camera extra", &extra_stream_hook);
     timer = pw_loop_add_timer(loop, tick, NULL);
     struct timespec interval = { .tv_nsec = 33333333 };
     pw_loop_update_timer(loop, timer, &interval, &interval, false);
     pw_thread_loop_lock(thread_loop);
     if (pw_thread_loop_start(thread_loop) < 0) fatal("start loop");
-    while (!camera_ready) pw_thread_loop_wait(thread_loop);
+    while (!camera_ready || (extra_camera != NULL && !extra_ready)) pw_thread_loop_wait(thread_loop);
     pw_thread_loop_unlock(thread_loop);
 }
 
@@ -249,6 +289,7 @@ static void camera_call(GDBusConnection *bus, const gchar *sender, const gchar *
 {
     (void)path; (void)interface; (void)data;
     if (strcmp(method, "AccessCamera") == 0) {
+        if (strcmp(mode, "direct-empty") == 0) fatal("unnecessary portal request");
         GVariant *options;
         const char *token;
         g_variant_get(parameters, "(@a{sv})", &options);
@@ -259,7 +300,7 @@ static void camera_call(GDBusConnection *bus, const gchar *sender, const gchar *
         g_dbus_connection_register_object(bus, handle, request_info->interfaces[0],
             &request_vtable, NULL, NULL, NULL);
         if (strcmp(mode, "wait") != 0 && strcmp(mode, "vanish") != 0) {
-            unsigned response = strcmp(mode, "deny") == 0 ? 2 : strcmp(mode, "cancel") == 0 ? 1 : 0;
+            unsigned response = strstr(mode, "deny") != NULL ? 2 : strcmp(mode, "cancel") == 0 ? 1 : 0;
             // Deliberately emit before returning the handle to exercise the subscription race.
             g_dbus_connection_emit_signal(bus, sender, handle, "org.freedesktop.portal.Request",
                 "Response", g_variant_new("(u@a{sv})", response,
@@ -273,6 +314,7 @@ static void camera_call(GDBusConnection *bus, const gchar *sender, const gchar *
         puts("REQUESTED"); fflush(stdout);
         g_free(handle); g_free(escaped_sender); g_variant_unref(options);
     } else if (strcmp(method, "OpenPipeWireRemote") == 0) {
+        g_atomic_int_set(&next_portal_connection, 1);
         int descriptor = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
         struct sockaddr_un address = { .sun_family = AF_UNIX };
         snprintf(address.sun_path, sizeof(address.sun_path), "%s/flashcap-test", getenv("XDG_RUNTIME_DIR"));
@@ -316,10 +358,13 @@ int main(int argc, char **argv)
 {
     if (argc != 3) return 2;
     mode = argv[2];
+    expose_direct = strncmp(mode, "direct", 6) == 0 || strncmp(mode, "partial", 7) == 0 || strcmp(mode, "readonly") == 0;
     start_camera(argv[1]);
     char direct_socket[sizeof(((struct sockaddr_un *)0)->sun_path)];
     snprintf(direct_socket, sizeof(direct_socket), "%s/pipewire-0", getenv("XDG_RUNTIME_DIR"));
-    if (strcmp(mode, "direct") == 0 && symlink("flashcap-test", direct_socket) < 0)
+    // A deliberately failed test may have exited before removing its alias.
+    unlink(direct_socket);
+    if (expose_direct && symlink("flashcap-test", direct_socket) < 0)
         fatal("expose direct socket");
     main_loop = g_main_loop_new(NULL, FALSE);
     GError *error = NULL;
@@ -345,7 +390,7 @@ int main(int argc, char **argv)
     g_unix_signal_add(SIGTERM, quit, NULL);
     g_unix_fd_add(STDIN_FILENO, G_IO_IN | G_IO_HUP, input_ready, NULL);
     g_main_loop_run(main_loop);
-    if (strcmp(mode, "direct") == 0) unlink(direct_socket);
+    if (expose_direct) unlink(direct_socket);
     if (portal_owner != 0) g_bus_unown_name(portal_owner);
     g_object_unref(bus);
     g_dbus_node_info_unref(info);
@@ -354,6 +399,7 @@ int main(int argc, char **argv)
     pw_thread_loop_stop(thread_loop);
     pw_loop_destroy_source(pw_thread_loop_get_loop(thread_loop), timer);
     for (size_t i = 0; i < link_count; i++) if (links[i] != NULL) pw_proxy_destroy(links[i]);
+    if (extra_camera != NULL) pw_stream_destroy(extra_camera);
     pw_stream_destroy(camera);
     pw_proxy_destroy((struct pw_proxy *)registry);
     pw_core_disconnect(core);

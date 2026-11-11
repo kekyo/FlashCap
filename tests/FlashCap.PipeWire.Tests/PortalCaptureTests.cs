@@ -29,6 +29,12 @@ public sealed class PortalCaptureTests
     [TestCase("allow", true)]
     [TestCase("direct", false)]
     [TestCase("direct", true)]
+    [TestCase("direct-empty", false)]
+    [TestCase("partial", false)]
+    [TestCase("partial", true)]
+    [TestCase("partial-deny", false)]
+    [TestCase("partial-readonly-deny", false)]
+    [TestCase("readonly", false)]
     [TestCase("duplicate", false)]
     [TestCase("delayed", false)]
     [TestCase("deny", false)]
@@ -74,7 +80,7 @@ public sealed class PortalCaptureTests
                 Assert.CatchAsync<OperationCanceledException>(async () => await enumeration);
                 Assert.That(await fixture.StandardOutput.ReadLineAsync(timeout.Token), Is.EqualTo("CLOSED"));
             }
-            else if (mode is "deny" or "cancel" or "vanish" or "absent")
+            else if (mode is "deny" or "cancel" or "vanish" or "absent" or "direct-empty")
             {
                 var expected = aggregate ? new V4L2Devices().GetDescriptors() : Array.Empty<CaptureDeviceDescriptor>();
                 Assert.That((await enumeration).Select(device => device.Identity),
@@ -102,10 +108,12 @@ public sealed class PortalCaptureTests
                         .Select(descriptor => descriptor.Identity), Is.EquivalentTo(synchronous));
                 }
                 else
-                    Assert.That(descriptors, Has.Length.EqualTo(1));
+                    Assert.That(descriptors, Has.Length.EqualTo(mode == "partial" ? 2 : 1));
                 var pipeWireDescriptors = descriptors.Where(descriptor => descriptor.DeviceType == DeviceTypes.PipeWire).ToArray();
-                Assert.That(pipeWireDescriptors, Has.Length.EqualTo(1));
-                var descriptor = pipeWireDescriptors[0];
+                Assert.That(pipeWireDescriptors, Has.Length.EqualTo(mode == "partial" ? 2 : 1));
+                if (mode.StartsWith("partial", StringComparison.Ordinal))
+                    Assert.That(await fixture.StandardOutput.ReadLineAsync(timeout.Token), Is.EqualTo("REQUESTED"));
+                var descriptor = pipeWireDescriptors.OrderBy(device => device.Name).Last();
                 Assert.That(descriptor.DeviceType, Is.EqualTo(DeviceTypes.PipeWire));
                 Assert.That(descriptor.Characteristics, Has.Length.EqualTo(1));
                 var format = descriptor.Characteristics.Single();
@@ -140,7 +148,7 @@ public sealed class PortalCaptureTests
                             foreach (var frame in frames)
                             {
                                 Assert.That(frame.Length, Is.EqualTo(54 + 12));
-                                Assert.That(frame.Skip(54), Is.EqualTo(Enumerable.Range(1, 12).Select(value => (byte)value)));
+                                Assert.That(frame.Skip(54), Is.EqualTo(Enumerable.Range(mode == "partial" ? 101 : 1, 12).Select(value => (byte)value)));
                             }
                             frames.Clear();
                             received = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
