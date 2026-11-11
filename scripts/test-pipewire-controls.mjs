@@ -32,6 +32,11 @@ const geometry = (window) => {
 const main = geometry(mainWindow);
 // Keep the controls beside the preview so both are visible in the recording.
 run("xdotool", ["windowmove", controlsWindow, String(main.x + 820), String(main.y - 49)]);
+const moveDeadline = Date.now() + 30000;
+while (geometry(controlsWindow).x !== main.x + 820 || geometry(controlsWindow).y !== main.y) {
+  assert.ok(Date.now() < moveDeadline, "Place the controls beside the preview before recording.");
+  await setTimeout(10);
+}
 const controls = geometry(controlsWindow);
 const left = Math.min(main.x, controls.x);
 const top = Math.min(main.y, controls.y);
@@ -44,9 +49,20 @@ const brightness = () => {
   return Number(match[1]);
 };
 const original = brightness();
+const thumbPosition = () => {
+  // Read a row above the slider track to find the blue thumb alone. Device
+  // readback can arrive before Avalonia has rendered the corresponding position.
+  const pixels = run("import", ["-window", controlsWindow, "-crop", "320x1+0+49", "-depth", "8", "txt:-"]);
+  const blue = [...pixels.matchAll(/^(\d+),0: \((\d+),(\d+),(\d+)\)/gm)]
+    .filter((pixel) => Number(pixel[4]) > 120 && Number(pixel[4]) > Number(pixel[2]) + 50)
+    .map((pixel) => Number(pixel[1]));
+  return blue.length ? (blue[0] + blue.at(-1)) / 2 : Number.NaN;
+};
 const waitForBrightness = async (expected) => {
   const deadline = Date.now() + 30000;
-  while (brightness() !== expected) {
+  const position = Math.round(22 + expected * 276 / 255);
+  while (true) {
+    if (brightness() === expected && Math.abs(thumbPosition() - position) <= 1) return;
     assert.ok(Date.now() < deadline, `Brightness must reach ${expected}.`);
     await setTimeout(10);
   }
@@ -68,6 +84,7 @@ const recorder = spawn("ffmpeg", [
 ], { stdio: ["pipe", "ignore", "inherit"] });
 const recorded = once(recorder, "exit");
 try {
+  await waitForBrightness(original);
   run("xdotool", ["windowactivate", "--sync", controlsWindow,
     "mousemove", "--window", controlsWindow, String(Math.round(22 + original * 276 / 255)), "57", "click", "1"]);
   await setBrightness(64);
