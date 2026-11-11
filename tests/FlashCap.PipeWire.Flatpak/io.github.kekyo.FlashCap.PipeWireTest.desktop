@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=FlashCap PipeWire Test
+Exec=FlashCap.Avalonia
+Icon=io.github.kekyo.FlashCap.PipeWireTest
+StartupWMClass=FlashCap.Avalonia
+Terminal=false
+Categories=AudioVideo;

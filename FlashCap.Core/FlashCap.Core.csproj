@@ -21,6 +21,10 @@
     <PackageReference Include="Microsoft.Bcl.Async" Version="1.0.168" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net461' Or '$(TargetFramework)' == 'net48' Or '$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'netcoreapp2.0' Or '$(TargetFramework)' == 'netcoreapp2.1' Or '$(TargetFramework)' == 'netcoreapp2.2'">
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="1.1.1" />
+  </ItemGroup>
+
   <ItemGroup>
     <None Include="../Images/FlashCap.100.png" Pack="true" PackagePath="" />
   </ItemGroup>

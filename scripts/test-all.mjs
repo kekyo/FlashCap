@@ -103,12 +103,19 @@ const verifyCoreRestoreGraph = () => {
   const assets = JSON.parse(readFileSync(assetsPath, "utf8"));
   const failures = [];
   for (const [targetName, target] of Object.entries(assets.targets ?? {})) {
+    // The async-enumerable backport uses Tasks.Extensions and its Unsafe dependency.
+    const hasAsyncBackport = Object.keys(target).some((name) =>
+      name.toLowerCase().startsWith("microsoft.bcl.asyncinterfaces/"),
+    );
     for (const libraryName of Object.keys(target)) {
       const separator = libraryName.lastIndexOf("/");
       const packageId = (
         separator < 0 ? libraryName : libraryName.slice(0, separator)
       ).toLowerCase();
       if (forbiddenPackageIds.has(packageId)) {
+        if (packageId === "system.runtime.compilerservices.unsafe" && hasAsyncBackport) {
+          continue;
+        }
         failures.push(`${targetName}: ${packageId}`);
       }
     }
@@ -277,6 +284,7 @@ try {
     isolatedEnvironment,
   );
 
+  const pipeWireAotBinaries = [];
   for (const framework of ["net8.0", "net10.0"]) {
     const outputDirectory = join(temporaryRoot, "aot", framework);
     run("dotnet", [
@@ -298,7 +306,13 @@ try {
       outputDirectory,
     ], isolatedEnvironment);
     run(join(outputDirectory, "FlashCap.Core.Tests"), []);
+    pipeWireAotBinaries.push(join(outputDirectory, "FlashCap.Core.Tests"));
   }
+
+  run("bash", ["scripts/test-pipewire.sh"], {
+    ...process.env,
+    FLASHCAP_PIPEWIRE_AOT_BINARIES: pipeWireAotBinaries.join(":"),
+  });
 
   // Build the macOS consumers with AOT analysis; native linking requires macOS.
   for (const runtime of ["osx-x64", "osx-arm64"]) {

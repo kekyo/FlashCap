@@ -9,7 +9,7 @@
     <PublishAot>true</PublishAot>
     <Nullable>enable</Nullable>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <WarningsAsErrors>$(WarningsAsErrors);IL2026;IL2104</WarningsAsErrors>
+    <WarningsAsErrors>$(WarningsAsErrors);IL2026;IL2104;IL3050</WarningsAsErrors>
     <TrimmerSingleWarn>false</TrimmerSingleWarn>
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
     <NuGetAudit>false</NuGetAudit>

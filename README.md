@@ -142,6 +142,7 @@ Platforms on which capture devices can be used:
 * Windows (Video for Windows devices, tested on x64/x86)
 * Windows 7 or later (Media Foundation API, tested on x64)
 * Linux (V4L2 devices, supported on x86_64/i686/aarch64/armv7l/mips)
+* Linux (PipeWire devices, tested on x86_64)
 * OSX (AVFoundation devices, supported on x86_64/arm64)
 
 ## Tested devices
@@ -274,12 +275,12 @@ See [Avalonia sample code](samples/FlashCap.Avalonia/) and [WPF sample code](sam
 ### Camera controls
 
 Camera controls such as the brightness, the zoom or the exposure can be read and set.
-DirectShow, Media Foundation and V4L2 are supported. Available controls and ranges depend on the camera.
+DirectShow, Media Foundation, V4L2 and PipeWire are supported. Available controls and ranges depend on the camera.
 Call `GetControlsAsync()` to discover supported controls; it returns an empty array when none are available.
 Each entry describes a control the camera exposes through the selected backend.
 `SupportsAuto` indicates whether automatic and manual operation can be selected.
 Equal `Minimum` and `Maximum` values indicate a fixed value.
-The values are in the native unit of the device, see `CaptureDeviceControlTypes`.
+Values generally use the device's native unit, with the PipeWire floating-point conversion described below. See also `CaptureDeviceControlTypes`.
 
 ```csharp
 var device = await descriptor.OpenAsync(characteristics, bufferScope =>
@@ -308,13 +309,21 @@ finally
 ```
 
 Controls can be changed before capture starts, during capture and after capture stops.
+If PipeWire returns an empty control list before capture starts, query it again after starting capture.
 Media Foundation keeps the camera connection open until `DisposeAsync()` is called.
 Reading an unsupported or unavailable value returns `null`.
 Setting an unsupported control or a value refused by the camera returns `false`.
 These results do not distinguish unsupported hardware, an unsupported backend and communication failures.
 A successful set means the driver accepted the request. Read the value again with `GetControlValueAsync()` to verify what the device applied.
 
+On PipeWire, missing write permission or a rejected setting returns `false` while capture continues.
+FlashCap also reads the value back after writing and returns `false` if it cannot confirm the change.
+Controls are available through Camera Portal too, but permission to capture video does not imply permission to change settings.
+Changing settings requires [write and execute permissions](https://docs.pipewire.org/structpw__node__methods.html) on the camera node.
+
+Controls exposed by PipeWire as floating-point values use integers scaled by 1000 for both values and ranges. For example, a native value of `0.5` is represented as `500`.
 The exposure is the binary logarithm of seconds on DirectShow and Media Foundation and the time in 100 µs units on V4L2.
+On PipeWire, the exposure unit depends on the camera provider; V4L2 cameras use 100 µs units.
 The following controls are also available on cameras that support them.
 
 | Control | Meaning | DirectShow / Media Foundation | V4L2 |
@@ -326,11 +335,101 @@ The following controls are also available on cameras that support them.
 | `ColorEnable` | 0 black and white, 1 color | Supported | Requires both corresponding modes |
 
 The table describes backend support. Use `GetControlsAsync()` to discover the controls and ranges available on your camera.
+V4L2 cameras accessed through PipeWire support the same controls as the V4L2 column.
 Setting `AutoExposurePriority` to 1 does not enable automatic exposure.
 V4L2 may change automatic exposure and iris together; read both values again after changing either.
 They share the [V4L2 exposure mode](https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/ext-ctrls-camera.html).
 V4L2 `ColorEnable` selects the no-effect or black-and-white [color effect](https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/control.html).
 The current value is `null` when another effect is active.
+
+## Using V4L2 and PipeWire on Linux
+
+V4L2 is an API for accessing Linux camera devices directly. PipeWire is a service for exchanging video and audio between applications. It can also be accessed through Camera Portal, which mediates desktop camera permissions.
+
+Use the asynchronous enumeration API of `CaptureDevices` to enumerate cameras through both backends:
+
+```csharp
+using FlashCap;
+using System;
+using System.Threading;
+
+var devices = new CaptureDevices();
+
+// Use asynchronous enumeration instead of synchronous enumeration.
+await foreach (var descriptor in devices.EnumerateDescriptorsAsync(default))
+{
+    Console.WriteLine($"{descriptor.DeviceType}: {descriptor.Name}");
+}
+```
+
+> Note: Enumerating PipeWire devices requires the asynchronous enumeration API introduced in version 1.14.0.
+
+To obtain an array, use `await devices.GetDescriptorsAsync(cancellationToken)`.
+A camera accessible through both backends appears as separate V4L2 and PipeWire entries.
+Distinguish them using `DeviceType`, then open the selected descriptor with `OpenAsync()` as usual.
+Applications do not need to select a connection route. The Avalonia sample uses this API to show both backends.
+
+The synchronous `EnumerateDescriptors()` API continues to return only V4L2 devices on Linux.
+Synchronous enumeration of `FlashCap.Devices.PipeWireDevices` always throws `NotSupportedException`.
+Other backends support both APIs and complete each asynchronous enumeration step synchronously.
+
+PipeWire is available only in builds supporting `IAsyncEnumerable<T>`.
+The `net461`, `net48`, `netstandard2.0`, and `netcoreapp2.0`–`netcoreapp2.2` builds use `Microsoft.Bcl.AsyncInterfaces`.
+PipeWire is not available in the `net35`, `net40`, `net45`, or `netstandard1.3` builds.
+
+### PipeWire image formats
+
+CPU-readable `RGB24`, `RGB32`, `ARGB32`, `YUYV`, `UYVY`, `NV12`, and `JPEG` formats are supported. Formats requiring DMA-BUF are not advertised.
+
+Row strides and plane arrangements are checked for each received frame.
+No additional repacking is needed when the layout matches that represented by FlashCap's `PixelFormats`.
+Only mismatched layouts are repacked, without changing pixel values.
+This layout adjustment also applies with `TranscodeFormats.DoNotTranscode`; it does not guarantee that extracting an image will avoid copying.
+
+### Requirements and enumeration results
+
+In a typical environment, Linux V4L2 is available. If PipeWire is configured, it may also provide access to devices.
+In restricted environments such as Flatpak, the appropriate permissions must be granted and access to Camera Portal enabled as needed.
+
+| Backend | Requirements |
+|---|---|
+| V4L2 | A compatible kernel driver and permission to open the relevant `/dev/video*` devices |
+| Direct PipeWire connection | A PipeWire service and session manager exposing cameras, access to its connection socket, and `libpipewire-0.3.so.0` in the application environment |
+| Camera Portal | The PipeWire service above, `xdg-desktop-portal` with a backend providing the Camera interface, session D-Bus access, and camera permission. The application environment needs `libpipewire-0.3.so.0`, `libgio-2.0.so.0`, `libglib-2.0.so.0`, and `libgobject-2.0.so.0` |
+
+Missing permissions, libraries, or services, and denying or dismissing a permission dialog do not produce enumeration API errors.
+Unavailable backends are omitted while results from other backends are retained.
+
+### Using FlashCap in restricted environments
+
+Using Camera Portal in a restricted environment does not require broad permissions.
+It uses a portal connection and camera access permission for the application.
+
+The following describes how to configure Flatpak:
+
+> For Flatpak specifications, see the [Flatpak permissions guide](https://docs.flatpak.org/en/latest/sandbox-permissions.html) and [Camera Portal API](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Camera.html).
+
+The following `finish-args` were tested with the Avalonia sample using X11 and portal capture.
+Here, `dri` grants access to rendering devices:
+
+```json
+"finish-args": ["--socket=x11", "--share=ipc", "--device=dri"]
+```
+
+Add `--device=all` to also use V4L2.
+To permit direct PipeWire connections as well, add `--filesystem=xdg-run/pipewire-0`.
+For a non-default socket, match its exposure to the connection configuration. The following example exposes both camera devices and the PipeWire socket:
+
+```json
+"finish-args": [
+  "--socket=x11", "--share=ipc", "--device=all",
+  "--filesystem=xdg-run/pipewire-0"
+]
+```
+
+This configuration was tested with Flatpak 1.14.6, Freedesktop runtime 25.08, .NET 10, and a C930e. Runtime 25.08 includes the PipeWire and GLib/GIO libraries listed above.
+
+The initial permission dialog also has desktop-specific requirements. GNOME 46 requires the registered application ID to match the foreground window's application ID; see [GNOME's access check](https://github.com/GNOME/gnome-shell/blob/46.0/js/ui/accessDialog.js#L152-L160). Register the application with the desktop and begin enumeration after bringing it to the foreground. If permission cannot be obtained because this condition is unmet, that route produces no camera entries.
 
 
 ----

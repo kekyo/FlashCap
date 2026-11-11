@@ -44,7 +44,8 @@ jobs:
     - name: Setup native build dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install --yes clang mono-runtime zlib1g-dev
+        # pipewire-bin supplies client.conf, which libpipewire needs to create a client context.
+        sudo apt-get install --yes clang mono-runtime zlib1g-dev gcc make pkg-config dbus-daemon pipewire-bin libpipewire-0.3-dev libpipewire-0.3-modules libglib2.0-dev
 
     - name: Setup NuGet package reference
       run: |

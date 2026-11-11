@@ -45,6 +45,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlashCap.Core.LegacyInterop
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlashCap.MediaFoundation.Smoke", "tests\FlashCap.MediaFoundation.Smoke\FlashCap.MediaFoundation.Smoke.csproj", "{CC720C54-67B2-44B7-9678-9FEF28EA9905}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlashCap.PipeWire.Smoke", "tests\FlashCap.PipeWire.Smoke\FlashCap.PipeWire.Smoke.csproj", "{5EA41515-21D6-4D20-8264-19D64685334B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlashCap.Avalonia.Tests", "tests\FlashCap.Avalonia.Tests\FlashCap.Avalonia.Tests.csproj", "{AD762CD4-FCB3-4879-ACB8-2E8F9C9B52ED}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -99,6 +103,14 @@ Global
 		{CC720C54-67B2-44B7-9678-9FEF28EA9905}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CC720C54-67B2-44B7-9678-9FEF28EA9905}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{CC720C54-67B2-44B7-9678-9FEF28EA9905}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5EA41515-21D6-4D20-8264-19D64685334B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5EA41515-21D6-4D20-8264-19D64685334B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5EA41515-21D6-4D20-8264-19D64685334B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5EA41515-21D6-4D20-8264-19D64685334B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AD762CD4-FCB3-4879-ACB8-2E8F9C9B52ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AD762CD4-FCB3-4879-ACB8-2E8F9C9B52ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AD762CD4-FCB3-4879-ACB8-2E8F9C9B52ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AD762CD4-FCB3-4879-ACB8-2E8F9C9B52ED}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -112,6 +124,8 @@ Global
 		{539C6CDD-B165-4233-9F83-DF61F4A735AA} = {A1BDFB2A-48C0-4D65-AE03-4DBFC12B4BA8}
 		{06150000-B9CA-4BDF-A2AE-7EE2FC8D1588} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{CC720C54-67B2-44B7-9678-9FEF28EA9905} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{5EA41515-21D6-4D20-8264-19D64685334B} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{AD762CD4-FCB3-4879-ACB8-2E8F9C9B52ED} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {53E3C2D2-05FD-4396-ABF1-6B313F8F82A9}

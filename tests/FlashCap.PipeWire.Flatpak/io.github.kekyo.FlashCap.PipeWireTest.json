@@ -1,0 +1,29 @@
+{
+  "app-id": "io.github.kekyo.FlashCap.PipeWireTest",
+  "branch": "test",
+  "runtime": "org.freedesktop.Platform",
+  "runtime-version": "25.08",
+  "sdk": "org.freedesktop.Sdk",
+  "command": "FlashCap.Avalonia",
+  "finish-args": ["--socket=x11", "--share=ipc", "--device=dri"],
+  "build-options": { "no-debuginfo": true, "strip": false },
+  "modules": [
+    {
+      "name": "flashcap",
+      "buildsystem": "simple",
+      "build-commands": [
+        "mkdir -p /app/lib/flashcap /app/bin",
+        "cp -a publish/avalonia publish/smoke /app/lib/flashcap/",
+        "ln -s /app/lib/flashcap/avalonia/FlashCap.Avalonia /app/bin/FlashCap.Avalonia",
+        "ln -s /app/lib/flashcap/smoke/FlashCap.PipeWire.Smoke /app/bin/FlashCap.PipeWire.Smoke",
+        "install -Dm644 io.github.kekyo.FlashCap.PipeWireTest.desktop /app/share/applications/io.github.kekyo.FlashCap.PipeWireTest.desktop",
+        "install -Dm644 FlashCap.100.png /app/share/icons/hicolor/100x100/apps/io.github.kekyo.FlashCap.PipeWireTest.png"
+      ],
+      "sources": [
+        { "type": "dir", "path": "../../artifacts/pipewire-flatpak/publish", "dest": "publish" },
+        { "type": "file", "path": "io.github.kekyo.FlashCap.PipeWireTest.desktop" },
+        { "type": "file", "path": "../../Images/FlashCap.100.png" }
+      ]
+    }
+  ]
+}

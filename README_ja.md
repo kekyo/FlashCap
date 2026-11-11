@@ -143,6 +143,7 @@ await deviceObservable.StartAsync();
 * Windows (Video for Windowsデバイス, x64/x86)
 * Windows 7以降 (Media Foundation API, x64)
 * Linux (V4L2デバイス, x86_64/i686/aarch64/armv7l/mips)
+* Linux (PipeWireデバイス, x86_64で検証)
 * OSX (AVFoundationデバイス, x86_64/arm64)
 
 ## テスト済みデバイス
@@ -272,7 +273,7 @@ if (device.HasPropertyPage)
 ### カメラコントロール
 
 明るさ、ズーム、露出などの設定を読み書きできます。
-DirectShow、Media Foundation、V4L2に対応しており、操作できる項目と値の範囲はカメラによって異なります。
+DirectShow、Media Foundation、V4L2、PipeWireに対応しており、操作できる項目と値の範囲はカメラによって異なります。
 `GetControlsAsync()`で対応項目を取得してから操作してください。
 対応項目がない場合は空の配列を返します。
 一覧に含まれる項目は、選択したバックエンドを通じてカメラが公開している制御です。
@@ -304,14 +305,22 @@ finally
 ```
 
 設定を変更できるのは、撮影開始前、撮影中、停止後です。
+PipeWireで撮影前の制御一覧が空だった場合は、撮影開始後に再取得してください。
 Media Foundationでは、`DisposeAsync()`を呼び出すまでカメラへの接続を保持します。
 非対応項目や取得できなかった値の読み出し結果は`null`です。
 非対応項目への設定や、カメラが拒否した設定は`false`を返します。
 これらの戻り値だけでは、カメラの非対応、バックエンドの非対応、通信失敗を区別できません。
 設定の戻り値は、ドライバーが要求を受理したかどうかを示します。反映された値は`GetControlValueAsync()`で再取得して確認してください。
 
-設定値はデバイスのネイティブ単位です。
+PipeWireでは、書き込み権限がない場合や設定が拒否された場合も`false`を返し、撮影を継続します。
+書き込み後に値を読み直し、変更を確認できなかった場合も`false`になります。
+Camera Portal経由でも制御できますが、映像を取得できることと設定を変更できることは別です。
+設定の変更には、対象カメラへの[書き込みとメソッド実行の権限](https://docs.pipewire.org/structpw__node__methods.html)が必要です。
+
+原則として、デバイスのネイティブ単位で設定します。
+PipeWireが小数型で公開する項目は、値と範囲を1000倍した整数で扱います。たとえばネイティブ値の`0.5`は`500`です。
 露出はDirectShowとMedia Foundationでは秒数の底2対数、V4L2では100 µs単位です。
+PipeWireの露出の単位はカメラを公開する仕組みに従い、V4L2カメラでは100 µs単位を使います。
 次の項目も、対応するカメラでは設定できます。
 
 | 項目 | 意味 | DirectShow / Media Foundation | V4L2 |
@@ -323,11 +332,101 @@ Media Foundationでは、`DisposeAsync()`を呼び出すまでカメラへの接
 | `ColorEnable` | 0は白黒、1はカラー | 対応 | 対応する両モードがある場合のみ |
 
 表の「対応」はバックエンドの対応状況です。実際に使える項目と範囲は`GetControlsAsync()`で確認してください。
+PipeWire経由のV4L2カメラも、表のV4L2欄と同じ項目に対応します。
 `AutoExposurePriority`を1にしても自動露出には切り替わりません。
 V4L2では、露出と絞りの自動設定が連動する場合があります。変更後は両方の値を再取得してください。
 これは[V4L2の露出モード](https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/ext-ctrls-camera.html)を共有するためです。
 V4L2の`ColorEnable`は[カラー効果](https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/control.html)の「効果なし」と「白黒」を切り替えます。
 別の効果が設定されている場合、現在値は`null`を返します。
+
+## LinuxでV4L2とPipeWireを使う
+
+V4L2はLinuxのカメラデバイスを直接扱うAPIです。PipeWireは映像や音声をアプリ間で受け渡すサービスで、デスクトップのカメラ許可を仲介するCamera Portal経由でも利用できます。
+
+両方の方式でカメラを列挙するには、`CaptureDevices`の非同期列挙APIを使ってください。
+
+```csharp
+using FlashCap;
+using System;
+using System.Threading;
+
+var devices = new CaptureDevices();
+
+// 同期列挙ではなく、非同期列挙を行う
+await foreach (var descriptor in devices.EnumerateDescriptorsAsync(default))
+{
+    Console.WriteLine($"{descriptor.DeviceType}: {descriptor.Name}");
+}
+```
+
+> 注意: PipeWireデバイスの列挙は、1.14.0で追加された非同期列挙APIを使用する必要があります。
+
+一覧を配列で受け取る場合は`await devices.GetDescriptorsAsync(cancellationToken)`を使えます。
+同じカメラを両方の方式で利用できる場合は、V4L2とPipeWireの別項目になります。
+`DeviceType`で区別し、選んだ項目を通常どおり`OpenAsync()`で開いてください。
+接続経路の指定は不要です。Avaloniaサンプルも、この方式で両方を表示します。
+
+同期APIの`EnumerateDescriptors()`によるLinuxの列挙対象は、従来どおりV4L2のみです。
+`FlashCap.Devices.PipeWireDevices`を直接使う場合、同期列挙は常に`NotSupportedException`になります。
+他のバックエンドは同期・非同期の両方に対応し、非同期列挙でも各項目を同期的に返します。
+
+PipeWireの利用には、`IAsyncEnumerable<T>`に対応したビルドが必要です。
+`net461`、`net48`、`netstandard2.0`、`netcoreapp2.0`〜`netcoreapp2.2`では`Microsoft.Bcl.AsyncInterfaces`を使用します。
+`net35`、`net40`、`net45`、`netstandard1.3`では、PipeWireを使用できません。
+
+### PipeWireの画像フォーマット
+
+CPUから読み取れる`RGB24`、`RGB32`、`ARGB32`、`YUYV`、`UYVY`、`NV12`、`JPEG`に対応します。DMA-BUF専用のフォーマットは列挙しません。
+
+受信バッファの行間隔やプレーン配置はフレームごとに確認します。
+FlashCapの`PixelFormats`が表す配置と一致する場合、追加の詰め替えは不要です。
+一致しない場合だけ、画素値を変えずに詰め替えます。
+`TranscodeFormats.DoNotTranscode`でも、このレイアウト調整は行います。画像を取り出す際のコピーまで省略する保証ではありません。
+
+### 環境要件と列挙結果
+
+通常の環境では、Linux V4L2が使用できます。PipeWireが構成されていれば、PipeWire経由でのデバイスアクセスが可能かも知れません。
+但し、Flatpakなどの制限された環境で使用する場合、適切な権限の許可や、Camera Portalへの接続を可能にする必要があります。
+
+| 方式 | 必要な環境 |
+|---|---|
+| V4L2 | 対応するカーネルドライバーと、対象の`/dev/video*`を開ける権限 |
+| PipeWireへの直接接続 | カメラを公開するPipeWireサービスとセッションマネージャー、接続ソケットへのアクセス、アプリ側の`libpipewire-0.3.so.0` |
+| Camera Portal経由 | 上記のPipeWireサービスに加え、Cameraインターフェイスを提供する`xdg-desktop-portal`と対応バックエンド、セッションD-Busへの接続、カメラ利用の許可。アプリ側には`libpipewire-0.3.so.0`、`libgio-2.0.so.0`、`libglib-2.0.so.0`、`libgobject-2.0.so.0` |
+
+権限不足、必要なライブラリやサービスの不在、許可ダイアログでの拒否・取消しは、列挙APIのエラーにはなりません。
+利用できない方式を除外し、他の方式で取得した結果を返します。
+
+### 制限された環境で使用する
+
+制限された環境でCamera Portalを使う場合は、大きな権限要求は不要です。
+ポータル接続と、アプリに対するカメラ利用許可を使います。
+
+以下は、Flatpakにおける構成方法の情報です。
+
+> Flatpakにおける仕様は、[Flatpakの権限ガイド](https://docs.flatpak.org/en/latest/sandbox-permissions.html)と[Camera Portal API](https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Camera.html)を参照してください。
+
+次の`finish-args`で、X11を使うAvaloniaサンプルのポータル経由キャプチャを確認しています。
+ここでの`dri`は描画用デバイスの権限です。
+
+```json
+"finish-args": ["--socket=x11", "--share=ipc", "--device=dri"]
+```
+
+V4L2も利用する場合は`--device=all`を追加します。
+PipeWireへの直接接続も許可する構成では、さらに`--filesystem=xdg-run/pipewire-0`を追加します。
+既定名以外のソケットを使う場合は、その接続設定と公開先を揃えてください。以下は両方を公開する例です。
+
+```json
+"finish-args": [
+  "--socket=x11", "--share=ipc", "--device=all",
+  "--filesystem=xdg-run/pipewire-0"
+]
+```
+
+この構成はFlatpak 1.14.6、Freedesktopランタイム25.08、.NET 10、C930eで確認しました。ランタイム25.08には上記のPipeWire・GLib/GIOライブラリが含まれています。
+
+初回の許可ダイアログには、デスクトップ側の条件もあります。GNOME 46の条件は、登録済みアプリのIDと前面ウィンドウのアプリIDが一致することです。[GNOMEの判定処理](https://github.com/GNOME/gnome-shell/blob/46.0/js/ui/accessDialog.js#L152-L160)を参照してください。アプリをデスクトップに登録し、前面に表示してから列挙を開始してください。この条件を満たさず許可を得られなかった場合も、その経路ではカメラが列挙されません。
 
 
 ----

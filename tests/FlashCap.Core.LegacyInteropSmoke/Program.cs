@@ -9,6 +9,8 @@
 
 using System;
 using System.Runtime.InteropServices;
+using System.Threading;
+using System.Threading.Tasks;
 using FlashCap.Internal;
 
 namespace FlashCap.Core.LegacyInteropSmoke;
@@ -36,6 +38,7 @@ internal static unsafe class Program
         var callbackPointer = IntPtr.Zero;
         try
         {
+            if (!VerifyAsyncLock()) return 6;
             if (!typeof(IMFSourceReaderCallbackInterop).IsVisible)
             {
                 Console.Error.WriteLine("The callback interface is not visible to COM.");
@@ -85,6 +88,34 @@ internal static unsafe class Program
         {
             NativeMethods_MediaFoundation.ReleaseComInterface(callbackPointer);
         }
+    }
+
+    private static bool VerifyAsyncLock()
+    {
+        var mutex = new AsyncLock();
+        using var cancellation = new CancellationTokenSource();
+        var owner = mutex.LockAsync(CancellationToken.None).GetAwaiter().GetResult();
+        var canceled = mutex.LockAsync(cancellation.Token);
+        var next = mutex.LockAsync(CancellationToken.None);
+        if (next.IsCompleted) return false;
+        cancellation.Cancel();
+        owner.Dispose();
+        // The net35 TPL backport's blocking Task.Wait uses Windows-only APIs.
+        // Observe completion through a kernel event so these checks also run on Mono.
+        using (var completed = new ManualResetEvent(false))
+        {
+            canceled.ContinueWith(_ => completed.Set());
+            if (!completed.WaitOne(TimeSpan.FromSeconds(30))) return false;
+        }
+        if (!canceled.IsCanceled) return false;
+        using (var completed = new ManualResetEvent(false))
+        {
+            next.ContinueWith(_ => completed.Set());
+            if (!completed.WaitOne(TimeSpan.FromSeconds(30))) return false;
+        }
+        using (next.GetAwaiter().GetResult()) { }
+        using var final = mutex.LockAsync(CancellationToken.None).GetAwaiter().GetResult();
+        return true;
     }
 
     [ComVisible(true)]
