@@ -63,6 +63,7 @@ public enum CaptureDeviceControlTypes
 /// <summary>
 /// Camera control the device offers, with its range in the native unit of the device.
 /// </summary>
+/// <remarks>PipeWire floating-point controls use thousandths of their native unit for values and ranges.</remarks>
 public sealed class CaptureDeviceControl
 {
     /// <summary>The control exposed by the device through the selected backend.</summary>

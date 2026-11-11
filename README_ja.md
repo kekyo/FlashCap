@@ -273,7 +273,7 @@ if (device.HasPropertyPage)
 ### カメラコントロール
 
 明るさ、ズーム、露出などの設定を読み書きできます。
-DirectShow、Media Foundation、V4L2に対応しており、操作できる項目と値の範囲はカメラによって異なります。
+DirectShow、Media Foundation、V4L2、PipeWireに対応しており、操作できる項目と値の範囲はカメラによって異なります。
 `GetControlsAsync()`で対応項目を取得してから操作してください。
 対応項目がない場合は空の配列を返します。
 一覧に含まれる項目は、選択したバックエンドを通じてカメラが公開している制御です。
@@ -311,8 +311,15 @@ Media Foundationでは、`DisposeAsync()`を呼び出すまでカメラへの接
 これらの戻り値だけでは、カメラの非対応、バックエンドの非対応、通信失敗を区別できません。
 設定の戻り値は、ドライバーが要求を受理したかどうかを示します。反映された値は`GetControlValueAsync()`で再取得して確認してください。
 
-設定値はデバイスのネイティブ単位です。
+PipeWireでは、書き込み権限がない場合や設定が拒否された場合も`false`を返し、撮影を継続します。
+書き込み後に値を読み直し、変更を確認できなかった場合も`false`になります。
+Camera Portal経由でも制御できますが、映像を取得できることと設定を変更できることは別です。
+設定の変更には、対象カメラへの[書き込みとメソッド実行の権限](https://docs.pipewire.org/structpw__node__methods.html)が必要です。
+
+原則として、デバイスのネイティブ単位で設定します。
+PipeWireが小数型で公開する項目は、値と範囲を1000倍した整数で扱います。たとえばネイティブ値の`0.5`は`500`です。
 露出はDirectShowとMedia Foundationでは秒数の底2対数、V4L2では100 µs単位です。
+PipeWireの露出の単位はカメラを公開する仕組みに従い、V4L2カメラでは100 µs単位を使います。
 次の項目も、対応するカメラでは設定できます。
 
 | 項目 | 意味 | DirectShow / Media Foundation | V4L2 |
@@ -324,6 +331,7 @@ Media Foundationでは、`DisposeAsync()`を呼び出すまでカメラへの接
 | `ColorEnable` | 0は白黒、1はカラー | 対応 | 対応する両モードがある場合のみ |
 
 表の「対応」はバックエンドの対応状況です。実際に使える項目と範囲は`GetControlsAsync()`で確認してください。
+PipeWire経由のV4L2カメラも、表のV4L2欄と同じ項目に対応します。
 `AutoExposurePriority`を1にしても自動露出には切り替わりません。
 V4L2では、露出と絞りの自動設定が連動する場合があります。変更後は両方の値を再取得してください。
 これは[V4L2の露出モード](https://www.kernel.org/doc/html/latest/userspace-api/media/v4l/ext-ctrls-camera.html)を共有するためです。
