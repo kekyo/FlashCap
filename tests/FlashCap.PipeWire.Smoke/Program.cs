@@ -36,23 +36,38 @@ internal static class Program
 #endif
 internal sealed class C930eCaptureTests
 {
+    private DeviceTypes[] expectedBackends = null!;
+    private CaptureDeviceDescriptor[] descriptors = null!;
     private CaptureDeviceDescriptor[] cameras = null!;
 
-    /// <summary>Finds the host C930e through both default Linux backends.</summary>
+    /// <summary>Finds the host C930e through the available default Linux backends.</summary>
     [OneTimeSetUp]
     public async Task EnumerateCameraAsync()
     {
+        var backends = TestContext.Parameters.Get("backends", "V4L2,PipeWire");
+        this.expectedBackends = backends == "none" ? Array.Empty<DeviceTypes>() :
+            backends.Split(',').Select(value => (DeviceTypes)Enum.Parse(typeof(DeviceTypes), value)).ToArray();
         using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(2));
         TestContext.Progress.WriteLine("Enumerating cameras through the default Linux backends...");
-        var descriptors = await new CaptureDevices().GetDescriptorsAsync(timeout.Token);
-        foreach (var descriptor in descriptors)
+        this.descriptors = await new CaptureDevices().GetDescriptorsAsync(timeout.Token);
+        foreach (var descriptor in this.descriptors)
             TestContext.Progress.WriteLine($"DEVICE: {descriptor.DeviceType}, {descriptor.Name}, {descriptor.Identity}, formats={descriptor.Characteristics.Length}");
-        this.cameras = descriptors.Where(descriptor => descriptor.Characteristics.Length != 0 &&
+        this.cameras = this.descriptors.Where(descriptor => descriptor.Characteristics.Length != 0 &&
             descriptor.Name.IndexOf("C930e", StringComparison.OrdinalIgnoreCase) >= 0).ToArray();
-        Assert.That(this.cameras.Select(camera => camera.DeviceType), Is.EquivalentTo(new[] { DeviceTypes.V4L2, DeviceTypes.PipeWire }));
         foreach (var camera in this.cameras)
             foreach (var group in camera.Characteristics.GroupBy(format => format.PixelFormat))
                 TestContext.Progress.WriteLine($"FORMATS: {camera.DeviceType}, {group.Key}, count={group.Count()}");
+    }
+
+    /// <summary>Checks that permissions control enumeration without producing an error.</summary>
+    [Test]
+    public void EnumeratesOnlyAvailableBackends()
+    {
+        Assert.That(this.descriptors.Select(camera => camera.DeviceType).Distinct(), Is.EquivalentTo(this.expectedBackends));
+        Assert.That(this.cameras.Select(camera => camera.DeviceType), Is.EquivalentTo(this.expectedBackends));
+        var synchronous = new CaptureDevices().EnumerateDescriptors().ToArray();
+        Assert.That(synchronous.Select(camera => camera.DeviceType).Distinct(),
+            Is.EquivalentTo(this.expectedBackends.Where(backend => backend == DeviceTypes.V4L2)));
     }
 
     /// <summary>Checks captured images, timestamps, and restarting the same camera.</summary>
@@ -69,6 +84,8 @@ internal sealed class C930eCaptureTests
     [TestCase(DeviceTypes.PipeWire, PixelFormats.JPEG, 1920, 1080, TranscodeFormats.DoNotTranscode)]
     public async Task CaptureAndRestartAsync(DeviceTypes deviceType, PixelFormats pixelFormat, int width, int height, TranscodeFormats transcode)
     {
+        if (!this.expectedBackends.Contains(deviceType))
+            Assert.Ignore($"{deviceType} is intentionally unavailable in this permission scenario.");
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(45));
         var camera = this.cameras.Single(candidate => candidate.DeviceType == deviceType);
         var format = camera.Characteristics.Single(candidate =>
