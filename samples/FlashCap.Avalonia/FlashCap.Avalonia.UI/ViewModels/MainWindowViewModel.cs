@@ -37,6 +37,11 @@ public sealed class MainWindowViewModel
 
     private States state = States.NotShown;
     private long countFrames;
+    private readonly CancellationTokenSource lifetime = new();
+    private Task enumerating = Task.CompletedTask;
+    private Task changingDevice = Task.CompletedTask;
+    private Task? closing;
+    private volatile bool isClosing;
 
     // Constructed capture device.
     private CaptureDevice? captureDevice;
@@ -81,34 +86,9 @@ public sealed class MainWindowViewModel
         // Window shown:
         this.Opened = Command.Factory.Create(async () =>
         {
-            ////////////////////////////////////////////////
-            // Initialize and start capture device
-
-            // Enumerate capture devices:
-            var devices = new CaptureDevices();
-
-            // Store device list into the combo box.
-            this.DeviceList.Clear();
-
-            try
-            {
-                await foreach (var descriptor in devices.EnumerateDescriptorsAsync())
-                {
-                    // You could filter by device type and characteristics.
-                    //if (descriptor.DeviceType != DeviceTypes.DirectShow) continue; // Only DirectShow device.
-                    if (descriptor.Characteristics.Length >= 1) // One or more valid video characteristics.
-                        this.DeviceList.Add(descriptor);
-                }
-            }
-            catch (Exception exception)
-            {
-                // Keep devices already enumerated if a later backend fails unexpectedly.
-                Trace.WriteLine(exception);
-                this.EnumerationError = exception.Message;
-            }
-
-            this.Device = this.DeviceList.FirstOrDefault();
-            this.IsEnabled = true;
+            if (this.isClosing) return;
+            this.enumerating = this.EnumerateAsync();
+            await this.enumerating;
         });
 
         // Clicked start capture button.
@@ -174,6 +154,75 @@ public sealed class MainWindowViewModel
         });
     }
 
+    private async Task EnumerateAsync()
+    {
+        ////////////////////////////////////////////////
+        // Initialize and start capture device
+
+        // Enumerate capture devices:
+        var devices = new CaptureDevices();
+
+        // Store device list into the combo box.
+        this.DeviceList.Clear();
+
+        try
+        {
+            await foreach (var descriptor in devices.EnumerateDescriptorsAsync(this.lifetime.Token))
+            {
+                // You could filter by device type and characteristics.
+                //if (descriptor.DeviceType != DeviceTypes.DirectShow) continue; // Only DirectShow device.
+                if (descriptor.Characteristics.Length >= 1) // One or more valid video characteristics.
+                    this.DeviceList.Add(descriptor);
+            }
+        }
+        catch (OperationCanceledException) when (this.isClosing) { }
+        catch (Exception exception)
+        {
+            // Keep devices already enumerated if a later backend fails unexpectedly.
+            Trace.WriteLine(exception);
+            this.EnumerationError = exception.Message;
+        }
+
+        if (this.isClosing) return;
+        this.Device = this.DeviceList.FirstOrDefault();
+        this.IsEnabled = true;
+    }
+
+    /// <summary>Releases the camera before the window and its UI dispatcher close.</summary>
+    /// <returns>A task that completes after pending opens and camera cleanup finish.</returns>
+    public Task CloseAsync() => this.closing ??= this.CloseCoreAsync();
+
+    private async Task CloseCoreAsync()
+    {
+        this.isClosing = true;
+        this.IsEnabled = false;
+        this.controlsWindow?.Close();
+        this.lifetime.Cancel();
+        try
+        {
+            await this.enumerating;
+            await this.changingDevice;
+        }
+        finally
+        {
+            try
+            {
+                if (this.captureDevice is { } device)
+                {
+                    this.captureDevice = null;
+                    // DisposeAsync stops capture and joins the native PipeWire loop.
+                    await device.DisposeAsync();
+                }
+            }
+            finally
+            {
+                this.Controls.Clear();
+                this.Image = null;
+                this.lifetime.Dispose();
+            }
+        }
+    }
+
     // Buttons enabling control.
     private void UpdateCurrentState(States state)
     {
@@ -203,6 +252,7 @@ public sealed class MainWindowViewModel
     [PropertyChanged(nameof(Device))]
     private ValueTask OnDeviceChangedAsync(CaptureDeviceDescriptor? descriptor)
     {
+        if (this.isClosing) return default;
         Debug.WriteLine($"OnDeviceChangedAsync: Enter: {descriptor?.ToString() ?? "(null)"}");
 
         // Use selected device.
@@ -246,13 +296,23 @@ public sealed class MainWindowViewModel
 
     // Characteristics combo box was changed.
     [PropertyChanged(nameof(Characteristics))]
-    private async ValueTask OnCharacteristicsChangedAsync(VideoCharacteristics? characteristics)
+    private ValueTask OnCharacteristicsChangedAsync(VideoCharacteristics? characteristics)
+    {
+        if (this.isClosing) return default;
+        // Finish any previous open before releasing or replacing its device.
+        this.changingDevice = this.ChangeCharacteristicsAsync(characteristics, this.changingDevice);
+        return new ValueTask(this.changingDevice);
+    }
+
+    private async Task ChangeCharacteristicsAsync(VideoCharacteristics? characteristics, Task previous)
     {
         Debug.WriteLine($"OnCharacteristicsChangedAsync: Enter: {characteristics?.ToString() ?? "(null)"}");
 
         this.IsEnabled = false;
         try
         {
+            await previous;
+            if (this.isClosing) return;
             // Close when already opened.
             if (this.captureDevice is { } captureDevice)
             {
@@ -283,21 +343,26 @@ public sealed class MainWindowViewModel
                 Debug.WriteLine($"OnCharacteristicsChangedAsync: Opening: {descriptor.Name}");
                 this.captureDevice = await descriptor.OpenAsync(
                     characteristics,
-                    this.OnPixelBufferArrivedAsync);
+                    this.OnPixelBufferArrivedAsync,
+                    this.lifetime.Token);
+
+                // CloseCoreAsync owns the newly opened device when closing raced the open.
+                if (this.isClosing) return;
 
                 // Camera controls the device offers, such as the brightness or the zoom:
-                foreach (var control in await this.captureDevice.GetControlsAsync())
+                foreach (var control in await this.captureDevice.GetControlsAsync(this.lifetime.Token))
                 {
-                    var value = await this.captureDevice.GetControlValueAsync(control.Type);
+                    var value = await this.captureDevice.GetControlValueAsync(control.Type, this.lifetime.Token);
                     this.Controls.Add(new CaptureDeviceControlViewModel(this.captureDevice, control, value, this.RefreshControlsAsync));
                 }
 
                 this.UpdateCurrentState(States.Ready);
             }
         }
+        catch (OperationCanceledException) when (this.isClosing) { }
         finally
         {
-            this.IsEnabled = true;
+            this.IsEnabled = !this.isClosing;
 
             Debug.WriteLine($"OnCharacteristicsChangedAsync: Leave: {characteristics?.ToString() ?? "(null)"}");
         }
@@ -311,6 +376,11 @@ public sealed class MainWindowViewModel
 
     private async Task OnPixelBufferArrivedAsync(PixelBufferScope bufferScope)
     {
+        if (this.isClosing)
+        {
+            bufferScope.ReleaseNow();
+            return;
+        }
         ////////////////////////////////////////////////
         // Pixel buffer has arrived.
         // NOTE: Perhaps this thread context is NOT UI thread.
@@ -333,7 +403,7 @@ public sealed class MainWindowViewModel
         bufferScope.ReleaseNow();
 
         // Switch to UI thread:
-        if (await UIThread.TryBind())
+        if (await UIThread.TryBind() && !this.isClosing)
         {
             // Update a bitmap.
             this.Image = bitmap;
@@ -344,6 +414,10 @@ public sealed class MainWindowViewModel
             this.Statistics1 = $"Frame={countFrames}/{frameIndex}";
             this.Statistics2 = $"FPS={realFps:F3}/{fpsByIndex:F3}";
             this.Statistics3 = $"SKBitmap={bitmap.Width}x{bitmap.Height} [{bitmap.ColorType}]";
+        }
+        else
+        {
+            bitmap.Dispose();
         }
     }
 }
