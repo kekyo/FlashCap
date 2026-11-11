@@ -102,8 +102,7 @@ public sealed class MainWindowViewModel
             }
             catch (Exception exception)
             {
-                // Keep devices already enumerated if an optional backend is unavailable
-                // or camera portal access is denied.
+                // Keep devices already enumerated if a later backend fails unexpectedly.
                 Trace.WriteLine(exception);
                 this.EnumerationError = exception.Message;
             }
