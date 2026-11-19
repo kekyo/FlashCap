@@ -1,0 +1,15 @@
+#cloud-config
+users:
+  - name: flashcap
+    lock_passwd: true
+    shell: /bin/bash
+ssh_pwauth: false
+apt:
+  preserve_sources_list: true
+runcmd:
+  - |
+    mkdir -p /mnt/flashcap-seed
+    mount -o ro /dev/disk/by-label/cidata /mnt/flashcap-seed &&
+      bash /mnt/flashcap-seed/provision.sh > /dev/ttyS1 2>&1 &&
+      echo FLASHCAP_BASE_READY > /dev/ttyS1
+    poweroff

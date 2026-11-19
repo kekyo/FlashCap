@@ -12,7 +12,7 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { resolve, join } from "node:path";
 
-// Select the C930e and a format in the sample before running this X11 test.
+// Select a camera with a moving image and a format in the sample before running this X11 test.
 const [windowId, outputPath] = process.argv.slice(2);
 if (!windowId || !outputPath) throw new Error("Usage: node scripts/test-pipewire-preview.mjs WINDOW_ID OUTPUT_DIRECTORY");
 const output = resolve(outputPath);
