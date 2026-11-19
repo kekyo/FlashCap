@@ -17,12 +17,13 @@
         "ln -s /app/lib/flashcap/avalonia/FlashCap.Avalonia /app/bin/FlashCap.Avalonia",
         "ln -s /app/lib/flashcap/smoke/FlashCap.PipeWire.Smoke /app/bin/FlashCap.PipeWire.Smoke",
         "install -Dm644 io.github.kekyo.FlashCap.PipeWireTest.desktop /app/share/applications/io.github.kekyo.FlashCap.PipeWireTest.desktop",
-        "install -Dm644 FlashCap.100.png /app/share/icons/hicolor/100x100/apps/io.github.kekyo.FlashCap.PipeWireTest.png"
+        "gdk-pixbuf-thumbnailer --size 128 FlashCap.2000.png icon.png",
+        "install -Dm644 icon.png /app/share/icons/hicolor/128x128/apps/io.github.kekyo.FlashCap.PipeWireTest.png"
       ],
       "sources": [
         { "type": "dir", "path": "../../artifacts/pipewire-flatpak/publish", "dest": "publish" },
         { "type": "file", "path": "io.github.kekyo.FlashCap.PipeWireTest.desktop" },
-        { "type": "file", "path": "../../Images/FlashCap.100.png" }
+        { "type": "file", "path": "../../Images/FlashCap.2000.png" }
       ]
     }
   ]
