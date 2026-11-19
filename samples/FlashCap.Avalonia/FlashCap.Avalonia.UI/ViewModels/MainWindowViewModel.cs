@@ -12,6 +12,7 @@ using Epoxy;
 using FlashCap.Avalonia.Views;
 using SkiaSharp;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
@@ -94,6 +95,9 @@ public sealed class MainWindowViewModel
         // Clicked start capture button.
         this.StartCapture = Command.Factory.Create(async () =>
         {
+            if (this.isClosing || this.captureDevice is not { } device) return;
+            var ct = this.lifetime.Token;
+
             // Erase preview.
             this.Image = null;
             this.Statistics1 = null;
@@ -101,9 +105,16 @@ public sealed class MainWindowViewModel
             this.Statistics3 = null;
             this.countFrames = 0;
 
-            await this.captureDevice!.StartAsync();
-
-            this.UpdateCurrentState(States.Show);
+            try
+            {
+                await device.StartAsync(ct);
+                if (this.isClosing || this.captureDevice != device || !device.IsRunning) return;
+                this.UpdateCurrentState(States.Show);
+                // A portal may first publish the camera controls when its stream starts.
+                if (this.Device?.DeviceType == DeviceTypes.PipeWire && this.Controls.Count == 0)
+                    await this.LoadControlsAsync(device, ct, duringCapture: true);
+            }
+            catch (OperationCanceledException) when (this.isClosing) { }
         });
 
         // Clicked stop capture button.
@@ -349,14 +360,8 @@ public sealed class MainWindowViewModel
                 // CloseCoreAsync owns the newly opened device when closing raced the open.
                 if (this.isClosing) return;
 
-                // Camera controls the device offers, such as the brightness or the zoom:
-                foreach (var control in await this.captureDevice.GetControlsAsync(this.lifetime.Token))
-                {
-                    var value = await this.captureDevice.GetControlValueAsync(control.Type, this.lifetime.Token);
-                    this.Controls.Add(new CaptureDeviceControlViewModel(this.captureDevice, control, value, this.RefreshControlsAsync));
-                }
-
-                this.UpdateCurrentState(States.Ready);
+                await this.LoadControlsAsync(this.captureDevice, this.lifetime.Token, duringCapture: false);
+                if (!this.isClosing) this.UpdateCurrentState(States.Ready);
             }
         }
         catch (OperationCanceledException) when (this.isClosing) { }
@@ -366,6 +371,22 @@ public sealed class MainWindowViewModel
 
             Debug.WriteLine($"OnCharacteristicsChangedAsync: Leave: {characteristics?.ToString() ?? "(null)"}");
         }
+    }
+
+    private async Task LoadControlsAsync(CaptureDevice device, CancellationToken ct, bool duringCapture)
+    {
+        // Camera controls the device offers, such as the brightness or the zoom:
+        var editors = new List<CaptureDeviceControlViewModel>();
+        foreach (var control in await device.GetControlsAsync(ct))
+        {
+            var value = await device.GetControlValueAsync(control.Type, ct);
+            editors.Add(new CaptureDeviceControlViewModel(device, control, value, this.RefreshControlsAsync));
+        }
+
+        // The selection may have changed while awaiting the camera. Publish the list together.
+        if (this.isClosing || this.captureDevice != device || (duringCapture && !device.IsRunning) || this.Controls.Count != 0) return;
+        foreach (var editor in editors) this.Controls.Add(editor);
+        this.IsEnabledShowControls = this.Controls.Count != 0;
     }
 
     private async Task RefreshControlsAsync()
