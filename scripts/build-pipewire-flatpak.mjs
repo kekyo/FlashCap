@@ -15,6 +15,9 @@ import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const output = join(root, "artifacts", "pipewire-flatpak");
 const appId = "io.github.kekyo.FlashCap.PipeWireTest";
+const bundleOnly = process.argv.length === 3 && process.argv[2] === "--bundle-only";
+if (process.argv.length > 2 && !bundleOnly)
+  throw new Error("Usage: node scripts/build-pipewire-flatpak.mjs [--bundle-only]");
 const run = (command, args) => {
   process.stdout.write(`\n> ${command} ${args.join(" ")}\n`);
   const result = spawnSync(command, args, { cwd: root, stdio: "inherit" });
@@ -47,8 +50,11 @@ run("flatpak-builder", [
 ]);
 const bundle = join(output, `${appId}.flatpak`);
 run("flatpak", [
-  "build-bundle", "--runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo",
+  "build-bundle", ...(bundleOnly ? [] : ["--runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo"]),
   join(output, "repo"), bundle, appId, "test",
 ]);
-run("flatpak", ["install", "--user", "--noninteractive", "-y", "--reinstall", bundle]);
-process.stdout.write(`\nInstalled test bundle: ${bundle}\n`);
+if (bundleOnly) console.log(`Built test bundle: ${bundle}`);
+else {
+  run("flatpak", ["install", "--user", "--noninteractive", "-y", "--reinstall", bundle]);
+  console.log(`Installed test bundle: ${bundle}`);
+}
