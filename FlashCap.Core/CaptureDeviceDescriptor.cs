@@ -24,6 +24,10 @@ public enum DeviceTypes
     V4L2,
     AVFoundation,
     MediaFoundation,
+#if !(NET35 || NET40 || NET45 || NETSTANDARD1_3)
+    /// <summary>Linux cameras accessed through the desktop camera portal and PipeWire.</summary>
+    PipeWire,
+#endif
 }
 
 public enum TranscodeFormats

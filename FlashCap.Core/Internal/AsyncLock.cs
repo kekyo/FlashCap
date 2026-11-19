@@ -19,8 +19,8 @@ namespace FlashCap.Internal;
 internal sealed class AsyncLock
 {
     private readonly Disposer disposer;
-    private readonly Queue<TaskCompletionSource<Disposer>> queue = new();
-    private int count;
+    private readonly Queue<AsyncTaskCompletionSource<Disposer>> queue = new();
+    private bool held;
 
     public AsyncLock() =>
         this.disposer = new(this);
@@ -31,60 +31,63 @@ internal sealed class AsyncLock
     public Task<Disposer> LockAsync(CancellationToken ct)
 #endif
     {
-        var count = Interlocked.Increment(ref this.count);
-        Debug.Assert(count >= 1);
-
-        if (count == 1)
-        {
-#if NETCOREAPP || NETSTANDARD2_1
-            return new(this.disposer);
-#else
-            return TaskCompat.FromResult(this.disposer);
-#endif
-        }
-
-        var tcs = new TaskCompletionSource<Disposer>();
-        var ctr = ct.Register(() => tcs.TrySetCanceled());
-
-        tcs.Task.ContinueWith(_ =>
-            ctr.Dispose(),
-            TaskContinuationOptions.ExecuteSynchronously);
-
+        ct.ThrowIfCancellationRequested();
+        AsyncTaskCompletionSource<Disposer> waiter;
+        CancellationTokenRegistration registration;
         lock (this.queue)
         {
-            this.queue.Enqueue(tcs);
+            if (!this.held)
+            {
+                this.held = true;
+#if NETCOREAPP || NETSTANDARD2_1
+                return new(this.disposer);
+#else
+                return TaskCompat.FromResult(this.disposer);
+#endif
+            }
+
+            // Publish the waiter atomically with observing the current owner.
+            // Unlock must never observe contention before its waiter is queued.
+            waiter = new AsyncTaskCompletionSource<Disposer>();
+            // Register before publishing the waiter: older cancellation sources
+            // may reject registration after disposal, leaving nothing to enqueue.
+            registration = ct.Register(() => waiter.TrySetCanceled(ct));
+            this.queue.Enqueue(waiter);
         }
 
 #if NETCOREAPP || NETSTANDARD2_1
-        return new(tcs.Task);
+        return new(WaitAsync(waiter, registration));
 #else
-        return tcs.Task;
+        return WaitAsync(waiter, registration);
 #endif
+    }
+
+    private static async Task<Disposer> WaitAsync(
+        AsyncTaskCompletionSource<Disposer> waiter, CancellationTokenRegistration registration)
+    {
+        using (registration)
+            return await waiter.Task.ConfigureAwait(false);
     }
 
     private void Unlock()
     {
         while (true)
         {
-            var count = Interlocked.Decrement(ref this.count);
-            Debug.Assert(count >= 0);
-
-            if (count == 0)
+            AsyncTaskCompletionSource<Disposer> waiter;
+            lock (this.queue)
             {
-                break;
-            }
-            else if (count >= 1)
-            {
-                lock (this.queue)
+                Debug.Assert(this.held);
+                if (this.queue.Count == 0)
                 {
-                    Debug.Assert(this.queue.Count >= 1);
-                    var tcs = this.queue.Dequeue();
-                    if (tcs.TrySetResult(this.disposer))
-                    {
-                        break;
-                    }
+                    this.held = false;
+                    return;
                 }
+                waiter = this.queue.Dequeue();
             }
+
+            // Keep ownership reserved until a live waiter accepts it. Completion
+            // and cancellation-registration cleanup run outside the queue monitor.
+            if (waiter.TrySetResult(this.disposer)) return;
         }
     }
 

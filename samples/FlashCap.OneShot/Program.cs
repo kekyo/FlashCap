@@ -13,20 +13,21 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using FlashCap.Devices;
 
 namespace FlashCap.OneShot;
 
 public static class Program
 {
     private static async Task<int> TakeOneShotToFileAsync(
-        string fileName, CancellationToken ct)
+        string fileName, bool usePipeWire, CancellationToken ct)
     {
         ///////////////////////////////////////////////////////////////
         // Initialize and detection capture devices.
 
         // Step 1: Enumerate capture devices:
         var devices = new CaptureDevices();
-        var descriptor0 = devices.EnumerateDescriptors().
+        var descriptor0 = usePipeWire ? await FindPipeWireDeviceAsync(ct) : devices.EnumerateDescriptors().
             // You could filter by device type and characteristics.
             //Where(d => d.DeviceType == DeviceTypes.DirectShow).  // Only DirectShow device.
             FirstOrDefault();
@@ -133,16 +134,34 @@ public static class Program
         return 0;
     }
 
+    private static async Task<CaptureDeviceDescriptor?> FindPipeWireDeviceAsync(CancellationToken ct)
+    {
+#if NET5_0_OR_GREATER
+        if (!OperatingSystem.IsLinux())
+            throw new PlatformNotSupportedException("PipeWire capture requires Linux.");
+#endif
+        // The camera portal can display a permission dialog during asynchronous enumeration.
+        return (await new PipeWireDevices().GetDescriptorsAsync(ct)).FirstOrDefault();
+    }
+
     public static async Task<int> Main(string[] args)
     {
+        using var cancellation = new CancellationTokenSource();
+        ConsoleCancelEventHandler cancel = (_, e) =>
+        {
+            e.Cancel = true;
+            cancellation.Cancel();
+        };
+        Console.CancelKeyPress += cancel;
         try
         {
-            return await TakeOneShotToFileAsync("oneshot", default);
+            return await TakeOneShotToFileAsync("oneshot", args.Contains("--pipewire"), cancellation.Token);
         }
         catch (Exception ex)
         {
             Console.WriteLine(ex.ToString());
             return Marshal.GetHRForException(ex);
         }
+        finally { Console.CancelKeyPress -= cancel; }
     }
 }

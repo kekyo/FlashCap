@@ -346,7 +346,7 @@ namespace System.Threading.Tasks
             }
 
             // These TPL versions cannot prevent inline continuations, so publish completion
-            // from another worker instead of the Media Foundation capture or callback thread.
+            // from another worker instead of the capture, callback, or lock-release thread.
             ThreadPool.QueueUserWorkItem(_ => completion());
             return true;
         }

@@ -7,6 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Keep the async-stream contract available when a host selects native TFM dependencies. -->
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="6.0.0" />
     <PackageReference Include="Avalonia" Version="11.0.13" />
     <PackageReference Include="Avalonia.Diagnostics" Version="11.0.13" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.0.13" />

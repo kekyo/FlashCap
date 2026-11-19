@@ -5,6 +5,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:epoxy="clr-namespace:Epoxy;assembly=Epoxy.Core"
     xmlns:siv="clr-namespace:SkiaImageView;assembly=SkiaImageView"
+    xmlns:capture="clr-namespace:FlashCap;assembly=FlashCap.Core"
     xmlns:viewmodels="clr-namespace:FlashCap.Avalonia.ViewModels"
     mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
     x:Class="FlashCap.Avalonia.Views.MainWindow"
@@ -31,7 +32,17 @@
                 <ComboBox HorizontalAlignment="Stretch"
                           IsEnabled="{Binding IsEnabled}"
                           ItemsSource="{Binding DeviceList}"
-                          SelectedItem="{Binding Device, Mode=TwoWay}" />
+                          SelectedItem="{Binding Device, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="capture:CaptureDeviceDescriptor">
+                            <StackPanel Orientation="Horizontal" Spacing="8"
+                                        ToolTip.Tip="{Binding Description}">
+                                <TextBlock Text="{Binding DeviceType}" />
+                                <TextBlock Text="{Binding Name}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
                 <ComboBox HorizontalAlignment="Stretch"
                           IsEnabled="{Binding IsEnabled}"
                           ItemsSource="{Binding CharacteristicsList}"
@@ -55,6 +66,8 @@
                         Content="Camera controls"
                         Command="{Binding ShowControls}" />
             </StackPanel>
+            <TextBlock Foreground="Yellow"
+                       Text="{Binding EnumerationError}" />
             <TextBlock Foreground="Yellow"
                        Text="{Binding Statistics1}" />
             <TextBlock Foreground="Yellow"

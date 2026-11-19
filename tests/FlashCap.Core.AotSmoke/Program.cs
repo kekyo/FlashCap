@@ -12,6 +12,8 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
+using System.Threading;
+using System.Threading.Tasks;
 using FlashCap;
 using FlashCap.Devices;
 using FlashCap.Internal;
@@ -24,8 +26,10 @@ internal static partial class Program
     private static readonly Guid CallbackInterfaceId =
         new("DEEC8D99-FA1D-4D82-84C2-2C8969944867");
 
-    private static int Main()
+    private static int Main(string[] args)
     {
+        if (args.Contains("--pipewire") && OperatingSystem.IsLinux())
+            return CapturePipeWireAsync().GetAwaiter().GetResult();
         if (OperatingSystem.IsMacOS())
         {
             var devices = new AVFoundationDevices();
@@ -39,6 +43,14 @@ internal static partial class Program
             var devices = new V4L2Devices();
             _ = devices.EnumerateDescriptors().ToArray();
             _ = devices.GetDescriptors();
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            try
+            {
+                new PipeWireDevices().GetDescriptorsAsync(cancellation.Token).GetAwaiter().GetResult();
+                return 7;
+            }
+            catch (OperationCanceledException) { }
         }
 
         try
@@ -137,6 +149,42 @@ internal static partial class Program
 #pragma warning restore CA1416
             }
         }
+    }
+
+    [System.Runtime.Versioning.SupportedOSPlatform("linux")]
+    private static async Task<int> CapturePipeWireAsync()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        var devices = await new PipeWireDevices().GetDescriptorsAsync(timeout.Token);
+        if (devices.Length == 0) return 8;
+        foreach (var camera in devices)
+        {
+            var received = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var device = await camera.OpenAsync(camera.Characteristics.Single(), TranscodeFormats.DoNotTranscode,
+                scope => received.TrySetResult(scope.Buffer.CopyImage()), timeout.Token);
+            byte[] frame;
+            try
+            {
+                await device.StartAsync(timeout.Token);
+                var controls = await device.GetControlsAsync(timeout.Token);
+                foreach (var control in controls)
+                {
+                    var value = await device.GetControlValueAsync(control.Type, timeout.Token);
+                    if (value is null) return 8;
+                    // Read-only fixtures reject this call; it must still exercise the
+                    // native set_param delegate and keep the capture connection alive.
+                    await device.SetControlValueAsync(control.Type, value.Value, value.IsAuto, timeout.Token);
+                }
+                frame = await received.Task.WaitAsync(timeout.Token);
+                if (!device.IsRunning) return 8;
+            }
+            finally { await device.DisposeAsync(); }
+            var first = camera.Name.EndsWith(" extra", StringComparison.Ordinal) ? 101 : 1;
+            if (frame.Length != 66 || !frame.Skip(54).SequenceEqual(Enumerable.Range(first, 12).Select(value => (byte)value)))
+                return 8;
+        }
+        Console.WriteLine("PipeWire AOT capture passed.");
+        return 0;
     }
 
     // Exercise the native control ABI in the published AOT executable without camera hardware.

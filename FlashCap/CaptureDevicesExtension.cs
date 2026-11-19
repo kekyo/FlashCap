@@ -16,7 +16,7 @@ using FlashCap.Devices;
 
 namespace FlashCap;
 
-public static class CaptureDevicesExtension
+public static partial class CaptureDevicesExtension
 {
 #if NET6_0_OR_GREATER
     [RequiresUnreferencedCode("Default device enumeration includes DirectShow, which requires runtime-generated COM interop. Use a platform-specific Devices type for Native AOT.")]
