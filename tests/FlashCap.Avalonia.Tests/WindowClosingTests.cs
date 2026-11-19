@@ -71,6 +71,7 @@ public sealed class WindowClosingTests
         try
         {
             await descriptor.OpenEntered.Task.WaitAsync(TimeSpan.FromSeconds(30));
+            Assert.That(model.IsEnabledStartCapture, Is.False, "Wait for the in-flight open before offering capture.");
             window.Close();
             Assert.That(closed.Task.IsCompleted, Is.False, "An in-flight open must not outlive the window.");
             descriptor.OpenAllowed.SetResult(true);

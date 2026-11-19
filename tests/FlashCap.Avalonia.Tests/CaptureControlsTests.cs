@@ -29,6 +29,7 @@ public sealed class CaptureControlsTests
             Assert.That(model.IsEnabledShowControls, Is.False);
             for (var run = 0; run < 2; run++)
             {
+                Assert.That(model.IsEnabledStartCapture, Is.True);
                 await model.StartCapture.ExecuteAsync(null);
                 Assert.That(model.IsEnabledShowControls, Is.True);
                 Assert.That(model.Controls, Has.Count.EqualTo(1));

@@ -287,10 +287,6 @@ public sealed class MainWindowViewModel
 
             this.Characteristics = this.CharacteristicsList.FirstOrDefault();
 #endif
-            if (this.Characteristics != null)
-            {
-                this.UpdateCurrentState(States.Ready);
-            }
         }
         else
         {
